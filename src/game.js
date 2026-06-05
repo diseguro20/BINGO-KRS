@@ -356,6 +356,12 @@ function adicionarVencedor(estado, categoria, cardId, pdv, ordem) {
       ordemSorteio: ordem
     });
     
+    // Registra o prêmio pago nas métricas acumuladoras do banco
+    const valorPremio = (estado.prizes && estado.prizes[categoria]) ? parseFloat(estado.prizes[categoria]) : 0;
+    if (valorPremio > 0) {
+      FirebaseHelper.registrarPremioPago(valorPremio);
+    }
+    
     // Dispara comando rápido para alertas sonoros/visuais na TV
     FirebaseHelper.enviarComando('NOVO_GANHADOR', { categoria, cardId, pdv, ordem });
   }

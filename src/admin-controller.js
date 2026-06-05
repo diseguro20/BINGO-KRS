@@ -16,7 +16,7 @@ let estado = criarEstadoInicial();
 let autoDrawIntervalId = null;
 let autoAdvanceTimeoutId = null;
 
-// Elementos do DOM
+// Elementos do DOM - Console e Sorteio
 const gameStatusText = document.getElementById('game-status-text');
 const gameStatusBadge = document.getElementById('game-status-badge');
 const btnDrawBall = document.getElementById('btn-draw-ball');
@@ -37,14 +37,10 @@ const inputValBingo = document.getElementById('input-val-bingo');
 const inputValAcumulado = document.getElementById('input-val-acumulado');
 const btnSaveSettings = document.getElementById('btn-save-settings');
 
-// Simulador de PDV Integrado
-const inputPdvName = document.getElementById('input-pdv-name');
-const inputPdvQuantity = document.getElementById('input-pdv-quantity');
-const btnGenerateCards = document.getElementById('btn-generate-cards');
-const btnClearCards = document.getElementById('btn-clear-cards');
+// Ganhadores
+const winnersContainer = document.getElementById('winners-container');
 const totalCardsValue = document.getElementById('total-cards-value');
 const nextCardsValue = document.getElementById('next-cards-value');
-const winnersContainer = document.getElementById('winners-container');
 
 // Elementos de Agendamento da Rodada
 const schedulingPanelManual = document.getElementById('scheduling-panel-manual');
@@ -63,6 +59,32 @@ const selectBottomPanel = document.getElementById('select-bottom-panel');
 const inputPanelTitle = document.getElementById('input-panel-title');
 const textareaPanelText = document.getElementById('textarea-panel-text');
 const btnSavePanel = document.getElementById('btn-save-panel');
+
+// Elementos do DOM - Autenticação
+const loginOverlay = document.getElementById('login-overlay');
+const loginErrorMsg = document.getElementById('login-error-msg');
+const formLogin = document.getElementById('form-login');
+const inputLoginEmail = document.getElementById('login-email');
+const inputLoginPassword = document.getElementById('login-password');
+const btnLoginSubmit = document.getElementById('btn-login-submit');
+const btnLogout = document.getElementById('btn-logout');
+
+// Elementos do DOM - Abas
+const tabGame = document.getElementById('tab-game');
+const tabMetrics = document.getElementById('tab-metrics');
+const containerTabGame = document.getElementById('container-tab-game');
+const containerTabMetrics = document.getElementById('container-tab-metrics');
+
+// Elementos do DOM - Métricas Financeiras
+const metRevenue = document.getElementById('met-revenue');
+const metPayout = document.getElementById('met-payout');
+const metProfit = document.getElementById('met-profit');
+const metMargin = document.getElementById('met-margin');
+const metricsPdvTbody = document.getElementById('metrics-pdv-tbody');
+const metAvgTicket = document.getElementById('met-avg-ticket');
+const metRatio = document.getElementById('met-ratio');
+const metRiggingStatus = document.getElementById('met-rigging-status');
+const metFinancialHealth = document.getElementById('met-financial-health');
 
 // Flag para não sobrescrever formulário enquanto o usuário digita no carregamento
 let camposPreenchidosIniciais = false;
@@ -369,50 +391,144 @@ selectBottomPanel.addEventListener('change', (e) => {
   }
 });
 
-// Simulador de PDV: Gerar Cartelas
-btnGenerateCards.addEventListener('click', () => {
-  const pdv = inputPdvName.value.trim() || "Simulador PDV";
-  const quant = parseInt(inputPdvQuantity.value) || 10;
-  
-  const novasCartelas = [];
-  const statusAtual = estado.status;
-  
-  // Decide o ID de destino baseado no status do sorteio
-  const gameDestino = (statusAtual === 'WAITING') ? estado.gameId : estado.nextGameId;
-
-  for (let i = 0; i < quant; i++) {
-    novasCartelas.push(gerarCartela90Bolas(pdv, gameDestino));
-  }
-
-  if (statusAtual === 'WAITING') {
-    estado.cards.push(...novasCartelas);
-    estado = processarEstadoJogo(estado);
-    alert(`${quant} cartelas foram registradas no sorteio ATUAL (${estado.gameId})!`);
-  } else {
-    if (!estado.nextCards) estado.nextCards = [];
-    estado.nextCards.push(...novasCartelas);
-    alert(`${quant} cartelas foram reservadas para o PRÓXIMO sorteio (${estado.nextGameId})!`);
-  }
-  
-  FirebaseHelper.salvarEstadoJogo(estado);
+// ==========================================
+// ABAS DE NAVEGAÇÃO DO PAINEL ADMIN
+// ==========================================
+tabGame.addEventListener('click', () => {
+  tabGame.classList.add('active');
+  tabMetrics.classList.remove('active');
+  containerTabGame.style.display = 'grid';
+  containerTabMetrics.style.display = 'none';
 });
 
-// Simulador de PDV: Limpar tudo
-btnClearCards.addEventListener('click', () => {
-  if (confirm("Remover absolutamente TODAS as cartelas cadastradas (Atuais e Próximas)? Isso invalidará o sorteio em andamento.")) {
-    estado.cards = [];
-    estado.nextCards = [];
-    estado.winners = {
-      quadra: [],
-      quina: [],
-      bingo: [],
-      acumulado: []
-    };
-    if (estado.status === 'ENDED') {
-      estado.status = 'WAITING';
+tabMetrics.addEventListener('click', () => {
+  tabMetrics.classList.add('active');
+  tabGame.classList.remove('active');
+  containerTabMetrics.style.display = 'block';
+  containerTabGame.style.display = 'none';
+});
+
+// ==========================================
+// AUTENTICAÇÃO DO ADMINISTRADOR
+// ==========================================
+formLogin.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  loginErrorMsg.style.display = 'none';
+  btnLoginSubmit.disabled = true;
+  btnLoginSubmit.innerText = 'Autenticando...';
+
+  const email = inputLoginEmail.value.trim();
+  const password = inputLoginPassword.value;
+
+  try {
+    const cred = await FirebaseHelper.login(email, password);
+    if (cred.profile.tipo !== 'admin') {
+      await FirebaseHelper.logout();
+      throw new Error("Acesso restrito apenas para administradores.");
     }
-    FirebaseHelper.salvarEstadoJogo(estado);
-    alert("Todas as cartelas foram deletadas.");
+  } catch (error) {
+    loginErrorMsg.innerText = error.message || "E-mail ou senha incorretos.";
+    loginErrorMsg.style.display = 'block';
+    btnLoginSubmit.disabled = false;
+    btnLoginSubmit.innerText = 'Entrar no Painel';
+  }
+});
+
+// Logout Administrador
+btnLogout.addEventListener('click', async () => {
+  if (confirm("Deseja encerrar o painel administrativo?")) {
+    await FirebaseHelper.logout();
+    location.reload();
+  }
+});
+
+// Monitor de Sessão
+FirebaseHelper.assinarAutenticacao((user, profile) => {
+  if (user && profile && profile.tipo === 'admin') {
+    loginOverlay.style.display = 'none';
+  } else {
+    loginOverlay.style.display = 'flex';
+    btnLoginSubmit.disabled = false;
+    btnLoginSubmit.innerText = 'Entrar no Painel';
+  }
+});
+
+// ==========================================
+// MONITOR DE MÉTRICAS FINANCEIRAS EM TEMPO REAL
+// ==========================================
+FirebaseHelper.assinarMetricasFinanceiras((metricas) => {
+  if (!metricas) return;
+
+  const faturamento = metricas.totalFaturamento || 0;
+  const premiosPagos = metricas.totalPremiosPagos || 0;
+  const lucro = faturamento - premiosPagos;
+  const margem = faturamento > 0 ? (lucro / faturamento) * 100 : 0;
+
+  // Atualiza cards de topo
+  metRevenue.innerText = `R$ ${faturamento.toFixed(2).replace('.', ',')}`;
+  metPayout.innerText = `R$ ${premiosPagos.toFixed(2).replace('.', ',')}`;
+  
+  metProfit.innerText = `R$ ${lucro.toFixed(2).replace('.', ',')}`;
+  if (lucro >= 0) {
+    metProfit.style.color = 'var(--success)';
+  } else {
+    metProfit.style.color = 'var(--danger)';
+  }
+
+  metMargin.innerText = `${margem.toFixed(0)}%`;
+  if (margem >= 30) {
+    metMargin.style.color = 'var(--success)';
+  } else if (margem >= 0) {
+    metMargin.style.color = 'var(--info)';
+  } else {
+    metMargin.style.color = 'var(--danger)';
+  }
+
+  // Atualiza tabela de ranking de PDVs
+  metricsPdvTbody.innerHTML = '';
+  const ranking = metricas.rankingPdvs || {};
+  const pdvsSorted = Object.entries(ranking).sort((a, b) => b[1] - a[1]);
+
+  if (pdvsSorted.length === 0) {
+    metricsPdvTbody.innerHTML = `
+      <tr>
+        <td colspan="3" class="empty-log" style="text-align: center; font-style: italic; padding: 40px; color: var(--text-muted);">Nenhum faturamento registrado por PDV.</td>
+      </tr>`;
+  } else {
+    pdvsSorted.forEach(([pdvName, pdvFaturamento]) => {
+      const precoCupom = estado ? estado.prizes.cupom : 2.0;
+      const volVendas = Math.round(pdvFaturamento / precoCupom);
+      
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${pdvName}</strong></td>
+        <td>${volVendas} cartelas</td>
+        <td style="color: var(--success); font-weight: 700;">R$ ${pdvFaturamento.toFixed(2).replace('.', ',')}</td>
+      `;
+      metricsPdvTbody.appendChild(tr);
+    });
+  }
+
+  // Auditoria
+  if (estado) {
+    metAvgTicket.innerText = estado.prizes.cupom.toFixed(2).replace('.', ',');
+    const ratio = faturamento / (premiosPagos || 1);
+    metRatio.innerText = `${ratio.toFixed(1)}x`;
+
+    const riggingAtivo = estado.forcedPdvWinner && estado.forcedPdvWinner !== 'NENHUM';
+    metRiggingStatus.innerText = riggingAtivo ? `ATIVADO (${estado.forcedPdvWinner})` : 'Inativo';
+    metRiggingStatus.style.color = riggingAtivo ? 'var(--warning)' : 'var(--text-muted)';
+
+    if (lucro > (faturamento * 0.3)) {
+      metFinancialHealth.innerText = 'EXCELENTE';
+      metFinancialHealth.style.color = 'var(--success)';
+    } else if (lucro >= 0) {
+      metFinancialHealth.innerText = 'SAUDÁVEL';
+      metFinancialHealth.style.color = 'var(--info)';
+    } else {
+      metFinancialHealth.innerText = 'CRÍTICO (Prejuízo)';
+      metFinancialHealth.style.color = 'var(--danger)';
+    }
   }
 });
 

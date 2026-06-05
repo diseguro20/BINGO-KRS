@@ -27,6 +27,14 @@ const selectRiggingProb = document.getElementById('input-rigging-prob');
 const queueTbody = document.getElementById('queue-tbody');
 const btnClearQueue = document.getElementById('btn-clear-queue');
 
+// Elementos do DOM - Autenticação
+const loginOverlay = document.getElementById('login-overlay');
+const loginErrorMsg = document.getElementById('login-error-msg');
+const formLogin = document.getElementById('form-login');
+const inputLoginEmail = document.getElementById('login-email');
+const inputLoginPassword = document.getElementById('login-password');
+const btnLoginSubmit = document.getElementById('btn-login-submit');
+
 /**
  * Inicializa e preenche o dropdown de PDVs
  */
@@ -270,6 +278,43 @@ btnClearQueue.addEventListener('click', () => {
     FirebaseHelper.salvarEstadoJogo(estado);
     sugerirProximoGameId();
     alert("Fila de programação limpa.");
+  }
+});
+
+// ==========================================
+// AUTENTICAÇÃO DO ADMINISTRADOR
+// ==========================================
+formLogin.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  loginErrorMsg.style.display = 'none';
+  btnLoginSubmit.disabled = true;
+  btnLoginSubmit.innerText = 'Autenticando...';
+
+  const email = inputLoginEmail.value.trim();
+  const password = inputLoginPassword.value;
+
+  try {
+    const cred = await FirebaseHelper.login(email, password);
+    if (cred.profile.tipo !== 'admin') {
+      await FirebaseHelper.logout();
+      throw new Error("Acesso restrito apenas para administradores.");
+    }
+  } catch (error) {
+    loginErrorMsg.innerText = error.message || "E-mail ou senha incorretos.";
+    loginErrorMsg.style.display = 'block';
+    btnLoginSubmit.disabled = false;
+    btnLoginSubmit.innerText = 'Entrar no Painel';
+  }
+});
+
+// Monitor de Sessão
+FirebaseHelper.assinarAutenticacao((user, profile) => {
+  if (user && profile && profile.tipo === 'admin') {
+    loginOverlay.style.display = 'none';
+  } else {
+    loginOverlay.style.display = 'flex';
+    btnLoginSubmit.disabled = false;
+    btnLoginSubmit.innerText = 'Entrar no Painel';
   }
 });
 

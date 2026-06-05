@@ -8,8 +8,105 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/pdv.css">
+  <style>
+    /* Estilos dinâmicos para a Autenticação no PDV */
+    .login-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(9, 10, 18, 0.96);
+      backdrop-filter: blur(8px);
+      z-index: 10000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+    .login-card {
+      background: #111322;
+      border: 1px solid #242946;
+      border-radius: 16px;
+      padding: 35px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 243, 255, 0.1);
+      box-sizing: border-box;
+    }
+    .login-card h2 {
+      font-size: 24px;
+      font-weight: 800;
+      margin-top: 0;
+      margin-bottom: 8px;
+      text-align: center;
+      text-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+    }
+    .login-card .subtitle {
+      text-align: center;
+      color: #8590b2;
+      font-size: 13px;
+      margin-bottom: 25px;
+    }
+    .login-toggle {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: #8590b2;
+    }
+    .login-toggle a {
+      color: #00f3ff;
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .login-toggle a:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
+  
+  <!-- ================= OVERLAY DE AUTENTICAÇÃO (BLOQUEIO) ================= -->
+  <div class="login-overlay" id="login-overlay" style="display: flex;">
+    <div class="login-card">
+      <h2 id="login-title">BINGOKRS <span style="background:var(--primary); font-size: 11px; padding: 3px 8px; border-radius: 4px; vertical-align: middle; margin-left: 5px;">CAIXA PDV</span></h2>
+      <p class="subtitle" id="login-subtitle">Faça login com seu operador ou registre seu novo estabelecimento.</p>
+      
+      <div id="login-error-msg" style="color: var(--danger); font-size: 13px; font-weight: 600; padding: 10px; background: rgba(255,23,68,0.1); border: 1px solid var(--danger); border-radius: 8px; margin-bottom: 18px; display: none; text-align: center;"></div>
+      
+      <form id="form-login">
+        <!-- Campos de Cadastro extras -->
+        <div class="form-group" id="login-group-pdv" style="display: none; margin-bottom: 15px;">
+          <label style="display:block; font-size:12px; color:#8590b2; margin-bottom:5px;">Identificação do PDV (Nome do Bar/Local):</label>
+          <input type="text" id="login-pdv-name" class="form-control" placeholder="Ex: Bar do Marcão, Choperia Neon">
+        </div>
+        
+        <div class="form-group" id="login-group-name" style="display: none; margin-bottom: 15px;">
+          <label style="display:block; font-size:12px; color:#8590b2; margin-bottom:5px;">Nome do Operador de Caixa:</label>
+          <input type="text" id="login-operator-name" class="form-control" placeholder="Ex: Lucas Ferreira">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label style="display:block; font-size:12px; color:#8590b2; margin-bottom:5px;">E-mail do Operador:</label>
+          <input type="email" id="login-email" class="form-control" placeholder="operador@bingokrs.com" required>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label style="display:block; font-size:12px; color:#8590b2; margin-bottom:5px;">Senha secreta:</label>
+          <input type="password" id="login-password" class="form-control" placeholder="******" required>
+        </div>
+
+        <button type="submit" id="btn-login-submit" class="btn btn-primary" style="width: 100%;">Entrar no Caixa</button>
+      </form>
+
+      <div class="login-toggle">
+        <span id="toggle-text">Novo estabelecimento?</span> 
+        <a href="#" id="btn-toggle-login-mode">Cadastrar Novo PDV</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CONTEÚDO PRINCIPAL DO PDV ================= -->
   <div class="pdv-layout">
     
     <!-- Topo do PDV -->
@@ -18,18 +115,19 @@
         <h1>BINGOKRS <span class="badge">PDV</span></h1>
       </div>
       
-      <!-- Seletor do Nome do Ponto de Venda -->
+      <!-- Seletor do Nome do Ponto de Venda (Travado por perfil logado) -->
       <div class="pdv-selector">
         <label for="select-pdv-name">PONTO DE VENDA (IDENTIFICAÇÃO):</label>
-        <div class="input-wrapper">
-          <input type="text" id="select-pdv-name" value="Bar da Julia" placeholder="Ex: Bar do Zé, Padaria Central">
+        <div class="input-wrapper" style="display: flex; gap: 8px; align-items: center;">
+          <input type="text" id="select-pdv-name" value="Carregando..." readonly style="background: rgba(255,255,255,0.02); color: var(--text-muted); cursor: not-allowed; border-color: transparent;">
           <span class="status-badge" id="pdv-name-status">Ativo</span>
+          <button id="btn-logout" class="btn btn-danger-outline btn-mini" style="width: auto; margin: 0; padding: 6px 12px; font-size: 11px;">Sair</button>
         </div>
       </div>
 
       <!-- Widget da Bola Sorteada Ao Vivo -->
       <div class="live-widget">
-        <div class="live-label">LIVE STATUS</div>
+        <div class="live-label">STATUS AO VIVO</div>
         <div class="live-ball-display">
           <div class="widget-ball" id="widget-current-ball">--</div>
           <div class="widget-details">
@@ -42,15 +140,40 @@
 
     <div class="pdv-main">
       
-      <!-- ================= ESQUERDA: VENDA E CRIAÇÃO ================= -->
+      <!-- ================= ESQUERDA: VENDA E CLIENTE ================= -->
       <div class="pdv-column card-sales">
+        
+        <!-- CARD 1: DADOS DO CLIENTE (VINCULAÇÃO DE COMPRA) -->
+        <div class="section-card">
+          <h2 style="border-left-color: var(--neon-cyan);">Identificação do Cliente (Opcional)</h2>
+          <p class="section-subtitle">Informe o celular para associar a compra e salvar no banco.</p>
+          
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="client-phone">Celular do Cliente (Pesquisa Automática):</label>
+            <input type="text" id="client-phone" class="form-control" placeholder="Ex: (11) 99999-9999">
+          </div>
+          
+          <div class="grid-2-cols">
+            <div class="form-group">
+              <label for="client-name">Nome do Cliente:</label>
+              <input type="text" id="client-name" class="form-control" placeholder="Nome Completo">
+            </div>
+            <div class="form-group">
+              <label for="client-cpf">CPF:</label>
+              <input type="text" id="client-cpf" class="form-control" placeholder="000.000.000-00">
+            </div>
+          </div>
+          <div id="client-status-info" style="font-size: 11px; color: var(--success); margin-top: 8px; display: none;"></div>
+        </div>
+
+        <!-- CARD 2: VENDA UNITÁRIA -->
         <div class="section-card">
           <h2>Vender Nova Cartela</h2>
           <p class="section-subtitle">Gere uma cartela única no padrão oficial de 90 bolas (15 números de 1 a 90).</p>
           
           <div class="preview-cartela-box" id="preview-cartela-box">
             <div class="cartela-header-mini">PRÉ-VISUALIZAÇÃO DA CARTELA</div>
-            <!-- Grid 3x9 preenchido quando clicado em Gerar Rascunho -->
+            <!-- Grid 3x9 -->
             <div class="cartela-grid-3x9" id="preview-grid">
               <div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div>
               <div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div>
@@ -76,9 +199,10 @@
           </div>
         </div>
 
+        <!-- CARD 3: VENDA RAPIDA EM LOTE -->
         <div class="section-card batch-sales">
           <h2>Venda Rápida em Lote</h2>
-          <p class="section-subtitle">Venda várias cartelas ao mesmo tempo de forma automatizada para o mesmo cliente.</p>
+          <p class="section-subtitle">Venda várias cartelas ao mesmo tempo para o mesmo cliente.</p>
           
           <div class="form-row">
             <div class="form-group">

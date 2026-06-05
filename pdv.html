@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BINGOKRS - Terminal de Vendas (PDV)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/pdv.css">
+</head>
+<body>
+  <div class="pdv-layout">
+    
+    <!-- Topo do PDV -->
+    <header class="pdv-header">
+      <div class="header-left">
+        <h1>BINGOKRS <span class="badge">PDV</span></h1>
+      </div>
+      
+      <!-- Seletor do Nome do Ponto de Venda -->
+      <div class="pdv-selector">
+        <label for="select-pdv-name">PONTO DE VENDA (IDENTIFICAÇÃO):</label>
+        <div class="input-wrapper">
+          <input type="text" id="select-pdv-name" value="Bar da Julia" placeholder="Ex: Bar do Zé, Padaria Central">
+          <span class="status-badge" id="pdv-name-status">Ativo</span>
+        </div>
+      </div>
+
+      <!-- Widget da Bola Sorteada Ao Vivo -->
+      <div class="live-widget">
+        <div class="live-label">LIVE STATUS</div>
+        <div class="live-ball-display">
+          <div class="widget-ball" id="widget-current-ball">--</div>
+          <div class="widget-details">
+            <span id="widget-status-text">AGUARDANDO</span>
+            <span id="widget-order-text">ORDEM --</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="pdv-main">
+      
+      <!-- ================= ESQUERDA: VENDA E CRIAÇÃO ================= -->
+      <div class="pdv-column card-sales">
+        <div class="section-card">
+          <h2>Vender Nova Cartela</h2>
+          <p class="section-subtitle">Gere uma cartela única no padrão oficial de 90 bolas (15 números de 1 a 90).</p>
+          
+          <div class="preview-cartela-box" id="preview-cartela-box">
+            <div class="cartela-header-mini">PRÉ-VISUALIZAÇÃO DA CARTELA</div>
+            <!-- Grid 3x9 preenchido quando clicado em Gerar Rascunho -->
+            <div class="cartela-grid-3x9" id="preview-grid">
+              <div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div>
+              <div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div>
+              <div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div>
+              
+              <div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div>
+              <div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div>
+              <div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div>
+              
+              <div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div>
+              <div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div>
+              <div class="cell empty"></div><div class="cell empty"></div><div class="cell empty"></div>
+            </div>
+            <div class="cartela-footer-mini" style="display:flex; justify-content:space-between; padding: 0 4px; font-size:11px;">
+              <span>Código: <span id="preview-code">-------</span></span>
+              <span>Sorteio: <strong id="preview-game-id" style="color:var(--primary)">--</strong></span>
+            </div>
+          </div>
+
+          <div class="action-buttons-sales">
+            <button id="btn-generate-draft" class="btn btn-secondary">Gerar Rascunho</button>
+            <button id="btn-sell-card" class="btn btn-primary" disabled>Confirmar Venda (R$ <span class="cupom-price">2,00</span>)</button>
+          </div>
+        </div>
+
+        <div class="section-card batch-sales">
+          <h2>Venda Rápida em Lote</h2>
+          <p class="section-subtitle">Venda várias cartelas ao mesmo tempo de forma automatizada para o mesmo cliente.</p>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="batch-quantity">Quantidade de Cartelas:</label>
+              <input type="number" id="batch-quantity" class="form-control" value="5" min="1" max="100">
+            </div>
+            <div class="form-group val-total-container">
+              <label>Valor Total:</label>
+              <div class="val-total-display">R$ <span id="batch-total-value">10,00</span></div>
+            </div>
+          </div>
+
+          <button id="btn-sell-batch" class="btn btn-success">Vender & Registrar Lote</button>
+        </div>
+      </div>
+
+      <!-- ================= DIREITA: CARTELAS VENDIDAS NESTE PDV ================= -->
+      <div class="pdv-column cards-list-column">
+        <div class="section-card table-card">
+          <div class="section-header-row">
+            <h2>Cartelas Vendidas neste PDV</h2>
+            <span class="count-badge" id="sold-count-badge">0 Vendidas</span>
+          </div>
+
+          <div class="search-box">
+            <input type="text" id="search-card-input" placeholder="Buscar por código de cartela...">
+          </div>
+
+          <div class="table-wrapper">
+            <table class="sold-cards-table">
+              <thead>
+                <tr>
+                  <th>CÓDIGO</th>
+                  <th>NÚMEROS DA CARTELA</th>
+                  <th>RESTAM</th>
+                  <th>AÇÕES</th>
+                </tr>
+              </thead>
+              <tbody id="sold-cards-tbody">
+                <tr class="empty-row"><td colspan="4">Nenhuma cartela vendida neste terminal ainda.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal Visualizar/Imprimir Cartela -->
+  <div class="modal-overlay" id="cartela-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Detalhamento da Cartela</h3>
+        <button class="close-modal" id="close-modal-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="printable-ticket" id="printable-ticket">
+          <div class="ticket-brand">BINGOKRS</div>
+          <div class="ticket-details">
+            <div>PDV: <strong id="modal-pdv-name">--</strong></div>
+            <div>Sorteio: <strong id="modal-sorteio-id">--</strong></div>
+            <div>Data: <strong id="modal-ticket-date">--</strong></div>
+          </div>
+          <div class="ticket-card-code">CARTELA: <span id="modal-card-code">--</span></div>
+          
+          <div class="cartela-grid-3x9 printable" id="modal-grid">
+            <!-- Grid da cartela -->
+          </div>
+          
+          <div class="ticket-price">VALOR DO CUPOM: R$ <span class="cupom-price">2,00</span></div>
+          <div class="ticket-barcode">|||||||||||||||||||||||||||||||||||</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-print-ticket" class="btn btn-secondary">Simular Impressão</button>
+        <button id="btn-close-modal" class="btn btn-primary">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/pdv-controller.js"></script>
+</body>
+</html>

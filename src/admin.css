@@ -1,0 +1,363 @@
+/**
+ * BINGOKRS - Folha de Estilo do Administrador
+ */
+
+:root {
+  --admin-bg: #0f111a;
+  --admin-card-bg: #161925;
+  --admin-border: #24293e;
+  --text-main: #f0f2f5;
+  --text-muted: #8a94a6;
+  
+  --primary: #007bff;
+  --primary-hover: #0056b3;
+  --success: #28a745;
+  --success-hover: #218838;
+  --warning: #ffc107;
+  --warning-hover: #e0a800;
+  --danger: #dc3545;
+  --danger-hover: #c82333;
+  --info: #17a2b8;
+  --info-hover: #138496;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background-color: var(--admin-bg);
+  color: var(--text-main);
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+}
+
+.admin-layout {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--admin-border);
+  padding-bottom: 15px;
+  margin-bottom: 25px;
+}
+
+.header-logo h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.header-logo .badge {
+  background: var(--danger);
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-left: 10px;
+}
+
+.status-connection {
+  font-size: 14px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.indicator-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.indicator-dot.online {
+  background-color: var(--success);
+  box-shadow: 0 0 8px var(--success);
+}
+
+/* Grids */
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cards */
+.admin-card {
+  background-color: var(--admin-card-bg);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-card h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 16px;
+  border-left: 4px solid var(--primary);
+  padding-left: 10px;
+}
+
+.card-subtitle {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-top: -10px;
+  margin-bottom: 20px;
+}
+
+.card-subtitle a {
+  color: var(--primary);
+  text-decoration: none;
+}
+.card-subtitle a:hover {
+  text-decoration: underline;
+}
+
+/* Game Status Box */
+.game-status-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.game-status-box strong {
+  color: var(--warning);
+}
+
+/* Buttons */
+.btn {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  text-align: center;
+  width: 100%;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary { background-color: var(--primary); color: white; }
+.btn-primary:hover:not(:disabled) { background-color: var(--primary-hover); }
+
+.btn-success { background-color: var(--success); color: white; }
+.btn-success:hover:not(:disabled) { background-color: var(--success-hover); }
+
+.btn-warning { background-color: var(--warning); color: #111; }
+.btn-warning:hover:not(:disabled) { background-color: var(--warning-hover); }
+
+.btn-danger { background-color: var(--danger); color: white; }
+.btn-danger:hover:not(:disabled) { background-color: var(--danger-hover); }
+
+.btn-info { background-color: var(--info); color: white; }
+.btn-info:hover:not(:disabled) { background-color: var(--info-hover); }
+
+.btn-danger-outline {
+  background-color: transparent;
+  color: #ff4d4d;
+  border: 1px solid #ff4d4d;
+}
+.btn-danger-outline:hover:not(:disabled) {
+  background-color: rgba(255, 77, 77, 0.1);
+}
+
+.btn-large {
+  padding: 16px 20px;
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.draw-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.btn-group-row {
+  display: flex;
+  gap: 10px;
+}
+
+/* Forms */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.form-control {
+  width: 100%;
+  background-color: rgba(0,0,0,0.2);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: white;
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.form-control:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+.grid-2-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.divider {
+  border: 0;
+  height: 1px;
+  background-color: var(--admin-border);
+  margin: 20px 0;
+}
+
+/* Listas e Contadores */
+.balls-drawn-count {
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  padding: 8px;
+  background: rgba(0, 123, 255, 0.1);
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.balls-sequence-log {
+  margin-top: 10px;
+}
+
+.balls-log-box {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 12px;
+  height: 140px;
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 8px;
+}
+
+.drawn-ball-chip {
+  background: var(--admin-card-bg);
+  border: 1px solid var(--primary);
+  color: white;
+  font-weight: 800;
+  font-size: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.drawn-ball-chip:nth-child(even) {
+  border-color: var(--info);
+}
+
+.empty-log {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 13px;
+  width: 100%;
+  text-align: center;
+  margin-top: 40px;
+}
+
+.cards-stat {
+  font-size: 15px;
+  text-align: center;
+  padding: 10px;
+  background: rgba(40, 167, 69, 0.1);
+  border: 1px solid rgba(40, 167, 69, 0.2);
+  border-radius: 8px;
+  margin-top: 15px;
+}
+
+/* Ganhadores */
+.winners-log {
+  margin-top: 20px;
+  flex-grow: 1;
+}
+
+.winners-log h3 {
+  font-size: 15px;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+}
+
+.winners-container-box {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 12px;
+  height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.winner-item {
+  background: rgba(40, 167, 69, 0.15);
+  border: 1px solid var(--success);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.winner-item.type-quadra { background: rgba(23, 162, 184, 0.15); border-color: var(--info); }
+.winner-item.type-quina { background: rgba(155, 81, 224, 0.15); border-color: #9b51e0; }
+.winner-item.type-acumulado { background: rgba(255, 215, 0, 0.15); border-color: var(--warning); animation: pulseAcumulado 1.5s infinite; }
+
+@keyframes pulseAcumulado {
+  0% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.2); }
+  50% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); }
+  100% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.2); }
+}

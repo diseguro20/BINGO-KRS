@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BINGOKRS - Transmissão de TV Ao Vivo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <!-- Plano de Fundo Dinâmico Miami Night -->
+  <div id="miami-skyline-bg">
+    <div class="stars"></div>
+    <div class="neon-sun"></div>
+    <div class="skyline-silhouette"></div>
+    <div class="palm-trees"></div>
+    <div class="ocean-reflection"></div>
+    <div class="ambient-glow"></div>
+  </div>
+
+  <!-- Contêiner Auto-Ajustável de Transmissão (1920x1080) -->
+  <div id="broadcast-app">
+    <div class="app-grid">
+      
+      <!-- ================= SIDEBAR ESQUERDA (18%) ================= -->
+      <aside class="sidebar-left">
+        <!-- Logo Neon -->
+        <div class="logo-container">
+          <h1 class="neon-logo">BINGO<span class="highlight">KRS</span></h1>
+          <div class="logo-badge">AO VIVO</div>
+        </div>
+
+        <!-- Últimas 4 Bolas Sorteadas (Vertical) -->
+        <div class="last-balls-vertical-panel">
+          <div class="panel-header-mini">ÚLTIMAS SORTEDAS</div>
+          <div class="vertical-balls-list" id="vertical-balls-list">
+            <!-- Gerado dinamicamente: 4 esferas 3D pequenas -->
+            <div class="ball-placeholder">--</div>
+            <div class="ball-placeholder">--</div>
+            <div class="ball-placeholder">--</div>
+            <div class="ball-placeholder">--</div>
+          </div>
+        </div>
+
+        <!-- Stack de Painéis de Informação (Glassmorphism) -->
+        <div class="info-panels-stack">
+          <!-- PAINEL 1: QUADRA -->
+          <div class="glass-panel neon-border-blue" id="panel-quadra">
+            <div class="panel-icon">🏆</div>
+            <div class="panel-content">
+              <span class="panel-title">QUADRA</span>
+              <span class="panel-value" id="val-quadra">R$ 50,00</span>
+            </div>
+          </div>
+
+          <!-- PAINEL 2: QUINA -->
+          <div class="glass-panel neon-border-cyan" id="panel-quina">
+            <div class="panel-icon">👑</div>
+            <div class="panel-content">
+              <span class="panel-title">QUINA</span>
+              <span class="panel-value" id="val-quina">R$ 100,00</span>
+            </div>
+          </div>
+
+          <!-- PAINEL 3: BINGO -->
+          <div class="glass-panel neon-border-purple" id="panel-bingo">
+            <div class="panel-icon">🎟️</div>
+            <div class="panel-content">
+              <span class="panel-title">BINGO</span>
+              <span class="panel-value" id="val-bingo">R$ 250,00</span>
+            </div>
+          </div>
+
+          <!-- PAINEL 4: ACUMULADO -->
+          <div class="glass-panel neon-border-gold" id="panel-acumulado-left">
+            <div class="panel-icon">⭐</div>
+            <div class="panel-content">
+              <span class="panel-title">ACUMULADO</span>
+              <span class="panel-value" id="val-acumulado-left">R$ 1.000,00</span>
+            </div>
+          </div>
+
+          <!-- PAINEL 5: SORTEIO -->
+          <div class="glass-panel neon-border-pink" id="panel-sorteio">
+            <div class="panel-icon">🎲</div>
+            <div class="panel-content">
+              <span class="panel-title">SORTEIO</span>
+              <span class="panel-value" id="val-sorteio">#0001</span>
+            </div>
+          </div>
+
+          <!-- PAINEL 6: VALOR DO CUPOM -->
+          <div class="glass-panel neon-border-blue" id="panel-cupom">
+            <div class="panel-icon">💵</div>
+            <div class="panel-content">
+              <span class="panel-title">VALOR DO CUPOM</span>
+              <span class="panel-value" id="val-cupom">R$ 2,00</span>
+            </div>
+          </div>
+
+          <!-- PAINEL 7: DATA -->
+          <div class="glass-panel neon-border-orange" id="panel-data">
+            <div class="panel-icon">📅</div>
+            <div class="panel-content">
+              <span class="panel-title">DATA</span>
+              <span class="panel-value" id="val-data">--/--/----</span>
+            </div>
+          </div>
+
+          <!-- PAINEL 8: HORA -->
+          <div class="glass-panel neon-border-purple-light" id="panel-hora">
+            <div class="panel-icon">🕒</div>
+            <div class="panel-content">
+              <span class="panel-title">HORA</span>
+              <span class="panel-value" id="val-hora">00:00:00</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ================= ÁREA CENTRAL PRINCIPAL (52%) ================= -->
+      <main class="center-main-area">
+        
+        <!-- Topo da Área Central: Painel da Bola Atual, Bolas Anteriores e Acumulado -->
+        <div class="top-center-grid">
+          
+          <!-- BOLA ATUAL PANEL -->
+          <div class="bola-atual-panel">
+            <div class="panel-header-centered">BOLA ATUAL</div>
+            <div class="giant-ball-wrapper">
+              <div class="neon-glow-ring"></div>
+              <div class="pedestal"></div>
+              <div class="giant-ball-3d" id="giant-ball">
+                <div class="ball-inner-plate giant">
+                  <span class="giant-ball-number" id="current-ball-num">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLUNA DIREITA DO TOPO CENTRAL: ACUMULADO E ANTERIORES -->
+          <div class="top-center-right-col">
+            
+            <!-- ACUMULADO JACKPOT PANEL (Red-Gold Neon) -->
+            <div class="acumulado-jackpot-panel">
+              <div class="confetti-effect"></div>
+              <div class="gold-coin-decor left-coin"></div>
+              <div class="gold-coin-decor right-coin"></div>
+              <div class="jackpot-header">
+                <span class="jackpot-star">★</span> ACUMULADO <span class="jackpot-star">★</span>
+              </div>
+              <div class="jackpot-value" id="jackpot-value">R$ 1.000,00</div>
+            </div>
+
+            <!-- SEQUÊNCIA CHRONOLÓGICA DAS 3 ÚLTIMAS BOLAS (ABAIXO DA BOLA ATUAL) -->
+            <div class="last-three-balls-container">
+              <div class="mini-label">BOLA ANTERIORES (MAIS RECENTE À ESQUERDA)</div>
+              <div class="last-three-balls-row" id="last-three-balls-row">
+                <div class="mini-ball-3d">--</div>
+                <div class="mini-ball-3d">--</div>
+                <div class="mini-ball-3d">--</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- PAINEL HORIZONTAL: BOLAS SORTEADAS (ÚLTIMAS 5) -->
+        <div class="bolas-sorteadas-panel">
+          <div class="panel-title-horizontal">LINHA DO TEMPO (ÚLTIMAS 5 SORTEDAS)</div>
+          <div class="horizontal-balls-row" id="horizontal-balls-row">
+            <div class="horiz-ball-placeholder">--</div>
+            <div class="horiz-ball-placeholder">--</div>
+            <div class="horiz-ball-placeholder">--</div>
+            <div class="horiz-ball-placeholder">--</div>
+            <div class="horiz-ball-placeholder">--</div>
+          </div>
+        </div>
+
+        <!-- CONTADOR DE ORDEM E TABULEIRO 1-90 -->
+        <div class="numbers-board-container">
+          <div class="board-header">
+            <div class="board-title">TABULEIRO DE SORTEIO</div>
+            <div class="order-counter" id="order-counter">ORDEM --</div>
+          </div>
+          
+          <!-- Grid 1 a 90 -->
+          <div class="numbers-grid" id="numbers-grid-90">
+            <!-- Preenchido dinamicamente via JS -->
+          </div>
+        </div>
+
+      </main>
+
+      <!-- ================= SIDEBAR DIREITA (30%) ================= -->
+      <aside class="sidebar-right">
+        
+        <!-- Tabela de Classificação das Cartelas (Top 20) -->
+        <div class="ranking-panel">
+          <div class="ranking-header">
+            <h2>RANKING DE CARTELAS (TOP 20)</h2>
+            <div class="neon-divider"></div>
+          </div>
+          
+          <div class="table-container">
+            <table class="ranking-table">
+              <thead>
+                <tr>
+                  <th>CARTELA</th>
+                  <th>PONTO DE VENDA</th>
+                  <th>RESTAM</th>
+                </tr>
+              </thead>
+              <tbody id="ranking-tbody">
+                <!-- Gerado Dinamicamente -->
+                <tr class="empty-row"><td colspan="3">Nenhuma cartela ativa no jogo</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Painel Informativo Inferior (Configurável) -->
+        <div class="bottom-right-panel glass-panel neon-border-gold-pulse" id="bottom-info-panel">
+          <div class="panel-info-wrapper" id="panel-info-content">
+            <!-- Gerado dinamicamente com base nas opções do administrador:
+                 - MINHAS CARTELAS
+                 - ÚLTIMO GANHADOR
+                 - PRÓXIMO PRÊMIO
+                 - PROMOÇÕES
+            -->
+            <div class="info-content-title">PRÓXIMO PRÊMIO</div>
+            <div class="info-content-text">Sorteio hoje às 20h! Compre sua cartela nos pontos credenciados.</div>
+          </div>
+        </div>
+
+      </aside>
+
+    </div>
+  </div>
+
+  <script type="module" src="/src/broadcast.js"></script>
+</body>
+</html>

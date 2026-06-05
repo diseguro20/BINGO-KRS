@@ -1,0 +1,1130 @@
+/**
+ * BINGOKRS - Design System & Estilo da TV (Miami Neon)
+ * 
+ * Tema: Miami Neon Broadcast
+ * Paleta: Rosa Neon, Ciano Elétrico, Roxo Neon, Azul Neon, Destaques em Ouro
+ */
+
+:root {
+  --neon-pink: #ff007f;
+  --neon-cyan: #00f3ff;
+  --neon-purple: #9b51e0;
+  --neon-blue: #0044ff;
+  --neon-orange: #ff5500;
+  --neon-gold: #ffd700;
+  --neon-green: #39ff14;
+  
+  --bg-deep: #030310;
+  --glass-bg: rgba(6, 8, 24, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  
+  --font-main: 'Outfit', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+}
+
+/* Zerar Margens */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--bg-deep);
+  color: #ffffff;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+/* ================= PLANO DE FUNDO MIAMI NIGHT ================= */
+#miami-skyline-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  background: linear-gradient(180deg, #02020a 0%, #080720 50%, #150935 80%, #300c4c 100%);
+  overflow: hidden;
+}
+
+.stars {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 70%;
+  background-image: 
+    radial-gradient(1px 1px at 10% 20%, #fff, rgba(255,255,255,0)),
+    radial-gradient(1.5px 1.5px at 25% 40%, #fff, rgba(255,255,255,0)),
+    radial-gradient(1px 1px at 45% 15%, #fff, rgba(255,255,255,0)),
+    radial-gradient(2px 2px at 65% 55%, #00f3ff, rgba(255,255,255,0)),
+    radial-gradient(1px 1px at 80% 30%, #fff, rgba(255,255,255,0)),
+    radial-gradient(1.5px 1.5px at 90% 70%, #ff007f, rgba(255,255,255,0));
+  opacity: 0.5;
+  animation: starsFlicker 8s infinite alternate;
+}
+
+.neon-sun {
+  position: absolute;
+  bottom: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--neon-pink) 0%, rgba(155, 81, 224, 0.4) 60%, rgba(0,0,0,0) 100%);
+  filter: blur(15px);
+  opacity: 0.45;
+}
+
+/* Silhuetas de Prédios de Miami */
+.skyline-silhouette {
+  position: absolute;
+  bottom: 25%;
+  left: 0;
+  width: 100%;
+  height: 150px;
+  background-color: #060515;
+  z-index: 1;
+  clip-path: polygon(
+    0% 100%, 0% 60%, 3% 60%, 3% 40%, 6% 40%, 6% 65%, 9% 65%, 9% 30%, 14% 30%, 14% 70%,
+    18% 70%, 18% 20%, 23% 20%, 23% 75%, 26% 75%, 26% 50%, 30% 50%, 30% 80%,
+    35% 80%, 35% 10%, 42% 10%, 42% 65%, 45% 65%, 45% 40%, 50% 40%, 50% 85%,
+    55% 85%, 55% 30%, 62% 30%, 62% 70%, 66% 70%, 66% 15%, 72% 15%, 72% 75%,
+    76% 75%, 76% 45%, 82% 45%, 82% 80%, 86% 80%, 86% 25%, 92% 25%, 92% 60%,
+    96% 60%, 96% 35%, 100% 35%, 100% 100%
+  );
+  box-shadow: 0 -10px 40px rgba(255, 0, 127, 0.15);
+}
+
+.skyline-silhouette::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(90deg, transparent 50%, rgba(0, 243, 255, 0.1) 50.5%, transparent 51%),
+    linear-gradient(90deg, transparent 20%, rgba(255, 0, 127, 0.15) 20.5%, transparent 21%);
+  background-size: 40px 100%;
+}
+
+/* Palmeiras Vetoriais */
+.palm-trees {
+  position: absolute;
+  bottom: 25%;
+  width: 100%;
+  height: 220px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 300' fill='%2303030c'%3E%3Cpath d='M80 300 q10 -80 0 -160 q-5 -40 -30 -60 q30 5 45 25 q10 -35 -10 -70 q25 25 20 60 q25 -25 15 -70 q20 40 -5 65 q40 -5 55 -35 q-10 35 -35 45 q45 15 65 -15 q-35 15 -60 5 q20 30 10 60 q-10 -30 -30 -40 q0 40 -15 80 q-15 40 -20 75 Z' /%3E%3Cpath d='M900 300 q-15 -70 -5 -140 q5 -35 25 -55 q-25 5 -40 25 q-15 -35 5 -65 q-20 25 -15 55 q-25 -25 -20 -65 q-15 40 5 60 q-35 -10 -55 -40 q5 35 25 45 q-40 10 -60 -15 q30 15 50 8 q-25 25 -20 55 q10 -25 25 -35 q-5 45 5 85 q10 40 20 82 Z' /%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: bottom;
+  background-size: cover;
+  z-index: 2;
+  opacity: 0.85;
+}
+
+/* Reflexo do Oceano */
+.ocean-reflection {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 25%;
+  z-index: 1;
+  background: 
+    linear-gradient(180deg, rgba(48, 12, 76, 0.8) 0%, rgba(6, 5, 21, 0.95) 100%),
+    repeating-linear-gradient(0deg, rgba(255, 0, 127, 0.05) 0px, rgba(255, 0, 127, 0.05) 1px, transparent 1px, transparent 4px);
+  filter: blur(1px);
+  animation: oceanRipple 4s infinite linear;
+}
+
+/* Brilho de Ambiente Geral */
+.ambient-glow {
+  position: absolute;
+  bottom: 25%;
+  left: 0;
+  width: 100%;
+  height: 50px;
+  background: linear-gradient(180deg, rgba(255, 0, 127, 0.15) 0%, rgba(0, 243, 255, 0.15) 100%);
+  filter: blur(20px);
+  z-index: 1;
+}
+
+
+/* ================= CONTÊINER AUTO-AJUSTÁVEL (1920x1080) ================= */
+#broadcast-app {
+  width: 1920px;
+  height: 1080px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center center;
+  z-index: 10;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.app-grid {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  gap: 20px;
+}
+
+
+/* ================= ESTILO DE PAINEL (GLASSMORPHISM) ================= */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+
+/* BORDAS NEON */
+.neon-border-blue {
+  border-color: rgba(0, 68, 255, 0.4);
+  box-shadow: 0 4px 25px rgba(0, 68, 255, 0.15), inset 0 0 12px rgba(0, 68, 255, 0.1);
+}
+.neon-border-blue:hover {
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 15px rgba(0, 68, 255, 0.4), inset 0 0 12px rgba(0, 68, 255, 0.2);
+}
+
+.neon-border-cyan {
+  border-color: rgba(0, 243, 255, 0.4);
+  box-shadow: 0 4px 25px rgba(0, 243, 255, 0.15), inset 0 0 12px rgba(0, 243, 255, 0.1);
+}
+.neon-border-cyan:hover {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.4), inset 0 0 12px rgba(0, 243, 255, 0.2);
+}
+
+.neon-border-purple {
+  border-color: rgba(155, 81, 224, 0.4);
+  box-shadow: 0 4px 25px rgba(155, 81, 224, 0.15), inset 0 0 12px rgba(155, 81, 224, 0.1);
+}
+.neon-border-purple:hover {
+  border-color: var(--neon-purple);
+  box-shadow: 0 0 15px rgba(155, 81, 224, 0.4), inset 0 0 12px rgba(155, 81, 224, 0.2);
+}
+
+.neon-border-gold {
+  border-color: rgba(255, 215, 0, 0.4);
+  box-shadow: 0 4px 25px rgba(255, 215, 0, 0.15), inset 0 0 12px rgba(255, 215, 0, 0.1);
+}
+.neon-border-gold:hover {
+  border-color: var(--neon-gold);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4), inset 0 0 12px rgba(255, 215, 0, 0.2);
+}
+
+.neon-border-pink {
+  border-color: rgba(255, 0, 127, 0.4);
+  box-shadow: 0 4px 25px rgba(255, 0, 127, 0.15), inset 0 0 12px rgba(255, 0, 127, 0.1);
+}
+.neon-border-pink:hover {
+  border-color: var(--neon-pink);
+  box-shadow: 0 0 15px rgba(255, 0, 127, 0.4), inset 0 0 12px rgba(255, 0, 127, 0.2);
+}
+
+.neon-border-orange {
+  border-color: rgba(255, 85, 0, 0.4);
+  box-shadow: 0 4px 25px rgba(255, 85, 0, 0.15), inset 0 0 12px rgba(255, 85, 0, 0.1);
+}
+.neon-border-orange:hover {
+  border-color: var(--neon-orange);
+  box-shadow: 0 0 15px rgba(255, 85, 0, 0.4), inset 0 0 12px rgba(255, 85, 0, 0.2);
+}
+
+.neon-border-purple-light {
+  border-color: rgba(200, 80, 255, 0.4);
+  box-shadow: 0 4px 25px rgba(200, 80, 255, 0.15), inset 0 0 12px rgba(200, 80, 255, 0.1);
+}
+.neon-border-purple-light:hover {
+  border-color: #c850ff;
+  box-shadow: 0 0 15px rgba(200, 80, 255, 0.4), inset 0 0 12px rgba(200, 80, 255, 0.2);
+}
+
+.neon-border-gold-pulse {
+  border: 2px solid var(--neon-gold);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.25), inset 0 0 15px rgba(255, 215, 0, 0.1);
+  animation: borderGoldGlow 2s infinite alternate;
+}
+
+
+/* ================= SIDEBAR ESQUERDA (18% = 345px) ================= */
+.sidebar-left {
+  width: 18%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 12px;
+}
+
+/* LOGO BINGOKRS */
+.logo-container {
+  padding: 16px;
+  background: rgba(10, 5, 28, 0.85);
+  border: 2px solid var(--neon-pink);
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 
+    0 0 15px rgba(255, 0, 127, 0.35),
+    inset 0 0 15px rgba(255, 0, 127, 0.15);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.neon-logo {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #ffffff;
+  text-shadow: 
+    0 0 5px #fff,
+    0 0 10px var(--neon-pink),
+    0 0 20px var(--neon-pink);
+  animation: logoFlicker 6s infinite alternate;
+}
+
+.neon-logo .highlight {
+  color: var(--neon-cyan);
+  text-shadow: 
+    0 0 5px #fff,
+    0 0 10px var(--neon-cyan),
+    0 0 20px var(--neon-cyan);
+}
+
+.logo-badge {
+  background: var(--neon-purple);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 12px;
+  border-radius: 20px;
+  margin-top: 5px;
+  box-shadow: 0 0 8px var(--neon-purple);
+  letter-spacing: 1px;
+}
+
+/* ÚLTIMAS 4 VERTICAL */
+.last-balls-vertical-panel {
+  background: rgba(6, 8, 24, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 10px;
+  text-align: center;
+}
+
+.panel-header-mini {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 8px;
+}
+
+.vertical-balls-list {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px;
+}
+
+/* Esferas 3D Pequenas */
+.ball-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* ESTILOS DE BOLAS 3D TEXTURIZADAS REALISTAS (Gradientes, Miolos e Reflexos Glossy) */
+.small-ball-3d, .mini-ball-3d, .horiz-ball-3d, .giant-ball-3d {
+  position: relative;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    inset -4px -4px 10px rgba(0, 0, 0, 0.5), 
+    inset 4px 4px 10px rgba(255, 255, 255, 0.2),
+    0 8px 16px rgba(0, 0, 0, 0.45);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.small-ball-3d {
+  width: 48px;
+  height: 48px;
+}
+
+.mini-ball-3d {
+  width: 50px;
+  height: 50px;
+}
+
+.horiz-ball-3d {
+  width: 54px;
+  height: 54px;
+}
+
+/* Placa interna branca de alta definição onde o número é impresso */
+.ball-inner-plate {
+  width: 63%;
+  height: 63%;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #f4f5f8 50%, #d5d8df 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    inset 1px 1px 3px rgba(0, 0, 0, 0.5),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.8),
+    1px 2px 3px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+
+/* Números das Bolas com peso extra */
+.ball-number {
+  font-size: 17px;
+  font-weight: 900;
+  color: #151824;
+  font-family: var(--font-main);
+  line-height: 1;
+}
+
+.horiz-ball-3d .ball-number {
+  font-size: 19px;
+}
+
+/* Efeito de Reflexo Brilhante e Realista por cima do Miolo */
+.small-ball-3d::after, .mini-ball-3d::after, .horiz-ball-3d::after, .giant-ball-3d::after {
+  content: '';
+  position: absolute;
+  top: 5%;
+  left: 5%;
+  width: 90%;
+  height: 90%;
+  background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 50%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Ajustes Especiais para a Bola Gigante */
+.giant-ball-3d {
+  width: 135px;
+  height: 135px;
+  box-shadow: 
+    inset -10px -10px 25px rgba(0, 0, 0, 0.6), 
+    inset 10px 10px 20px rgba(255, 255, 255, 0.35),
+    0 15px 30px rgba(0, 0, 0, 0.5);
+  transform: translateY(-8px);
+}
+
+.giant-ball-3d .ball-inner-plate.giant {
+  width: 66%;
+  height: 66%;
+  box-shadow: 
+    inset 2px 2px 5px rgba(0, 0, 0, 0.5),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.9),
+    2px 4px 6px rgba(0, 0, 0, 0.4);
+}
+
+.giant-ball-number {
+  font-size: 54px;
+  font-weight: 900;
+  color: #111524;
+  line-height: 1;
+  text-shadow: none;
+}
+
+/* Esquemas de Cores das Esferas 3D (Texturas Plásticas Brilhantes) */
+.ball-color-1 { background: radial-gradient(circle at 35% 35%, #ff5e9c 0%, #ff0055 70%, #990033 100%); } /* Rosa */
+.ball-color-2 { background: radial-gradient(circle at 35% 35%, #3bd2ff 0%, #0077ff 70%, #003399 100%); } /* Azul */
+.ball-color-3 { background: radial-gradient(circle at 35% 35%, #d18dff 0%, #8811ff 70%, #440099 100%); } /* Roxo */
+.ball-color-4 { background: radial-gradient(circle at 35% 35%, #4dff88 0%, #00cc44 70%, #005511 100%); } /* Verde */
+.ball-color-5 { background: radial-gradient(circle at 35% 35%, #ffaa66 0%, #ff6600 70%, #993300 100%); } /* Laranja */
+.ball-color-6 { background: radial-gradient(circle at 35% 35%, #fffa80 0%, #e6b800 70%, #806600 100%); } /* Amarelo */
+
+/* Stack de 8 Painéis */
+.info-panels-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-grow: 1;
+  justify-content: space-between;
+}
+
+.info-panels-stack .glass-panel {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  height: 54px;
+  gap: 12px;
+}
+
+.panel-icon {
+  font-size: 20px;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.2));
+}
+
+.panel-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.panel-value {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+}
+
+/* Cores específicas de texto nos valores */
+#val-quadra { color: #5ee5ff; text-shadow: 0 0 4px rgba(94, 229, 255, 0.4); }
+#val-quina { color: #b67cff; text-shadow: 0 0 4px rgba(182, 124, 255, 0.4); }
+#val-bingo { color: #ff5bff; text-shadow: 0 0 4px rgba(255, 91, 255, 0.4); }
+#val-acumulado-left, #val-acumulado { color: var(--neon-gold); text-shadow: 0 0 8px rgba(255, 215, 0, 0.5); }
+#val-sorteio { font-family: var(--font-mono); color: var(--neon-pink); }
+#val-cupom { color: var(--neon-green); }
+#val-hora { font-family: var(--font-mono); letter-spacing: 1px; color: #ffbbdd; }
+
+
+/* ================= ÁREA CENTRAL PRINCIPAL (52% = 998px) ================= */
+.center-main-area {
+  width: 52%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 16px;
+}
+
+/* TOPO CENTRAL GRID */
+.top-center-grid {
+  display: flex;
+  gap: 16px;
+  height: 240px;
+}
+
+/* Painel Bola Atual */
+.bola-atual-panel {
+  width: 48%;
+  background: var(--glass-bg);
+  border: 1px solid rgba(0, 243, 255, 0.2);
+  border-radius: 16px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 
+    0 10px 30px rgba(0,0,0,0.5),
+    inset 0 0 20px rgba(0, 243, 255, 0.05);
+}
+
+.panel-header-centered {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+  margin-bottom: 6px;
+}
+
+.giant-ball-wrapper {
+  position: relative;
+  width: 170px;
+  height: 170px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.neon-glow-ring {
+  position: absolute;
+  width: 148px;
+  height: 148px;
+  border-radius: 50%;
+  border: 3px solid var(--neon-cyan);
+  box-shadow: 
+    0 0 20px var(--neon-cyan),
+    inset 0 0 20px var(--neon-cyan);
+  animation: neonRingRotate 12s infinite linear;
+  z-index: 1;
+}
+
+.pedestal {
+  position: absolute;
+  bottom: 0px;
+  width: 120px;
+  height: 20px;
+  background: linear-gradient(90deg, #111 0%, #333 50%, #111 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 2px solid var(--neon-cyan);
+  border-radius: 50% / 10px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.8), 0 0 10px rgba(0, 243, 255, 0.3);
+  z-index: 2;
+}
+
+/* Efeito da bola atual pulsar quando entra */
+.giant-ball-3d.drawn-pulse {
+  animation: giantBallEntrance 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Coluna do Topo Direito (Acumulado + Anteriores) */
+.top-center-right-col {
+  width: 52%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Painel Acumulado Red-Gold */
+.acumulado-jackpot-panel {
+  height: 124px;
+  background: linear-gradient(135deg, #7a0010 0%, #b3001e 50%, #4d000a 100%);
+  border: 3px solid var(--neon-gold);
+  border-radius: 16px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 
+    0 8px 25px rgba(255, 0, 0, 0.3),
+    0 0 25px rgba(255, 215, 0, 0.25),
+    inset 0 0 20px rgba(255, 215, 0, 0.2);
+  overflow: hidden;
+  animation: jackpotGlow 3s infinite alternate;
+}
+
+.confetti-effect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='10' y='10' width='4' height='4' fill='%23ffd700' transform='rotate(15 12 12)'/%3E%3Crect x='50' y='20' width='3' height='5' fill='%23ff007f' transform='rotate(45 51.5 22.5)'/%3E%3Crect x='80' y='15' width='5' height='3' fill='%2300f3ff' transform='rotate(-30 82.5 16.5)'/%3E%3Ccircle cx='30' cy='60' r='2' fill='%23ffd700'/%3E%3Ccircle cx='70' cy='70' r='1.5' fill='%23ffffff'/%3E%3Crect x='20' y='80' width='4' height='4' fill='%2300f3ff' transform='rotate(60 22 82)'/%3E%3C/svg%3E");
+  background-size: cover;
+  opacity: 0.35;
+}
+
+.gold-coin-decor {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  background: radial-gradient(circle at 35% 35%, #fff1a8 0%, #ffd700 60%, #998100 100%);
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+}
+.left-coin { left: 12px; bottom: 12px; transform: rotate(-20deg); animation: floatCoin 4s infinite ease-in-out; }
+.right-coin { right: 12px; top: 12px; transform: rotate(15deg); animation: floatCoin 4s infinite ease-in-out 2s; }
+
+.jackpot-header {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: #ffffff;
+  text-shadow: 0 0 10px var(--neon-gold), 0 0 15px rgba(255,255,255,0.6);
+  z-index: 2;
+  margin-bottom: 2px;
+}
+.jackpot-star {
+  color: var(--neon-gold);
+  animation: starBlink 1s infinite alternate;
+}
+
+.jackpot-value {
+  font-size: 34px;
+  font-weight: 900;
+  color: var(--neon-gold);
+  text-shadow: 
+    2px 2px 0px #000,
+    0 0 15px var(--neon-gold),
+    0 0 30px var(--neon-gold);
+  z-index: 2;
+  letter-spacing: 0.5px;
+}
+
+/* Painel Últimas 3 Bolas (Abaixo) */
+.last-three-balls-container {
+  height: 104px;
+  background: rgba(10, 8, 28, 0.65);
+  border: 1px solid rgba(155, 81, 224, 0.2);
+  border-radius: 16px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.mini-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.last-three-balls-row {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.mini-ball-placeholder {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease;
+}
+
+
+/* PAINEL HORIZONTAL: BOLAS SORTEADAS (ÚLTIMAS 5) */
+.bolas-sorteadas-panel {
+  background: var(--glass-bg);
+  border: 1px solid rgba(155, 81, 224, 0.25);
+  border-radius: 16px;
+  padding: 12px 20px;
+  height: 110px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.panel-title-horizontal {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--neon-purple);
+  text-shadow: 0 0 5px rgba(155, 81, 224, 0.3);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.horizontal-balls-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px;
+  gap: 10px;
+}
+
+.horiz-ball-placeholder, .horiz-ball-3d {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.horiz-ball-placeholder {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.15);
+}
+
+/* Transição de entrada suave para bolas */
+.horiz-ball-3d {
+  animation: ballSlideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.15) forwards;
+}
+
+
+/* CONTADOR DE ORDEM E TABULEIRO 1-90 */
+.numbers-board-container {
+  background: rgba(5, 7, 24, 0.85);
+  border: 2px solid rgba(0, 68, 255, 0.4);
+  border-radius: 16px;
+  padding: 16px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 
+    0 15px 40px rgba(0,0,0,0.6),
+    inset 0 0 25px rgba(0, 68, 255, 0.1);
+}
+
+.board-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 68, 255, 0.2);
+  padding-bottom: 8px;
+}
+
+.board-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(255,255,255,0.2);
+}
+
+.order-counter {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 8px var(--neon-cyan);
+  background: rgba(0, 243, 255, 0.1);
+  padding: 4px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 243, 255, 0.3);
+}
+
+/* Grid do Tabuleiro */
+.numbers-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  gap: 6px;
+  flex-grow: 1;
+}
+
+/* Número Individual */
+.board-num {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.22);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  user-select: none;
+}
+
+/* Sorteados: Azul Neon */
+.board-num.drawn {
+  background: rgba(0, 68, 255, 0.25);
+  border-color: var(--neon-cyan);
+  color: #ffffff;
+  font-weight: 900;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.35);
+  text-shadow: 0 0 4px var(--neon-cyan);
+}
+
+/* Último Sorteado: Vermelho Neon e Pulsando */
+.board-num.latest-drawn {
+  background: rgba(255, 0, 127, 0.35);
+  border-color: var(--neon-pink);
+  color: #ffffff;
+  font-weight: 900;
+  box-shadow: 
+    0 0 20px var(--neon-pink),
+    inset 0 0 5px var(--neon-pink);
+  text-shadow: 0 0 8px var(--neon-pink);
+  animation: numPulseRed 0.8s infinite alternate;
+  z-index: 5;
+}
+
+
+/* ================= SIDEBAR DIREITA (30% = 576px) ================= */
+.sidebar-right {
+  width: 30%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 16px;
+}
+
+/* Tabela de Rankings */
+.ranking-panel {
+  background: rgba(5, 7, 24, 0.8);
+  border: 2px solid rgba(155, 81, 224, 0.35);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 156px); /* Espaço para o painel inferior */
+  box-shadow: 
+    0 15px 40px rgba(0,0,0,0.6),
+    inset 0 0 20px rgba(155, 81, 224, 0.05);
+}
+
+.ranking-header h2 {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--neon-purple);
+  text-shadow: 0 0 6px rgba(155, 81, 224, 0.4);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.neon-divider {
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--neon-purple) 50%, transparent 100%);
+  margin-bottom: 12px;
+}
+
+.table-container {
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.ranking-table th {
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 1.5px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  text-transform: uppercase;
+}
+
+.ranking-table td {
+  padding: 9px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* Layout das linhas da tabela de classificação */
+.ranking-table tbody tr {
+  transition: all 0.3s ease;
+}
+
+.ranking-table .empty-row {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+}
+
+.ranking-table td strong {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.ranking-table .pdv-cell {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 400;
+}
+
+.ranking-table .rest-cell {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+}
+
+/* Destaques das Bolas Restantes */
+/* 3 Bolas restantes: Brilho Amarelo */
+.row-rest-3 {
+  background: rgba(255, 215, 0, 0.07);
+  box-shadow: inset 3px 0 0 var(--neon-gold);
+}
+.row-rest-3 .rest-cell {
+  color: var(--neon-gold);
+  text-shadow: 0 0 4px var(--neon-gold);
+}
+
+/* 2 Bolas restantes: Brilho Laranja */
+.row-rest-2 {
+  background: rgba(255, 85, 0, 0.1);
+  box-shadow: inset 3px 0 0 var(--neon-orange);
+}
+.row-rest-2 .rest-cell {
+  color: var(--neon-orange);
+  text-shadow: 0 0 5px var(--neon-orange);
+}
+
+/* 1 Bola restante: Pisca Vermelho/Rosa Neon */
+.row-rest-1 {
+  background: rgba(255, 0, 127, 0.18);
+  box-shadow: inset 4px 0 0 var(--neon-pink);
+  animation: flashRowRed 0.8s infinite alternate;
+}
+.row-rest-1 td {
+  text-shadow: 0 0 4px var(--neon-pink);
+}
+.row-rest-1 .rest-cell {
+  color: var(--neon-pink);
+  text-shadow: 0 0 8px var(--neon-pink);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+
+/* PAINEL INFORMATIVO INFERIOR DIREITO */
+.bottom-right-panel {
+  height: 140px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.panel-info-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.info-content-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: var(--neon-gold);
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+  text-transform: uppercase;
+}
+
+.info-content-text {
+  font-size: 14px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 400;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* Alertas de Ganhador no rodapé do painel */
+.winner-alert-title {
+  color: var(--neon-green) !important;
+  text-shadow: 0 0 8px var(--neon-green) !important;
+  animation: textGlowGreen 1s infinite alternate;
+}
+
+.winner-alert-text {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: #fff !important;
+}
+
+
+/* ================= ANIMAÇÕES DE SUPORTE ================= */
+
+@keyframes starsFlicker {
+  0% { opacity: 0.35; }
+  100% { opacity: 0.65; }
+}
+
+@keyframes oceanRipple {
+  0% { background-position-y: 0px; }
+  100% { background-position-y: 40px; }
+}
+
+@keyframes logoFlicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.85; }
+  94% { opacity: 0.95; }
+  95% { opacity: 0.7; }
+  96% { opacity: 1; }
+}
+
+@keyframes neonRingRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes floatCoin {
+  0%, 100% { transform: translateY(0) rotate(-10deg); }
+  50% { transform: translateY(-8px) rotate(10deg); }
+}
+
+@keyframes starBlink {
+  0% { opacity: 0.4; }
+  100% { opacity: 1; filter: drop-shadow(0 0 6px var(--neon-gold)); }
+}
+
+@keyframes jackpotGlow {
+  0% { box-shadow: 0 8px 25px rgba(255, 0, 0, 0.3), 0 0 15px rgba(255, 215, 0, 0.15); border-color: rgba(255, 215, 0, 0.7); }
+  100% { box-shadow: 0 8px 30px rgba(255, 0, 0, 0.5), 0 0 30px rgba(255, 215, 0, 0.45); border-color: rgba(255, 215, 0, 1); }
+}
+
+@keyframes borderGoldGlow {
+  0% { border-color: rgba(255, 215, 0, 0.5); box-shadow: 0 0 10px rgba(255, 215, 0, 0.15), inset 0 0 10px rgba(255, 215, 0, 0.05); }
+  100% { border-color: rgba(255, 215, 0, 1); box-shadow: 0 0 25px rgba(255, 215, 0, 0.45), inset 0 0 20px rgba(255, 215, 0, 0.2); }
+}
+
+@keyframes giantBallEntrance {
+  0% { transform: translateY(-8px) scale(0.4); opacity: 0; }
+  70% { transform: translateY(-8px) scale(1.15); }
+  100% { transform: translateY(-8px) scale(1); opacity: 1; }
+}
+
+@keyframes ballSlideIn {
+  0% { transform: scale(0.2); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes numPulseRed {
+  0% { box-shadow: 0 0 10px rgba(255, 0, 127, 0.5); background-color: rgba(255, 0, 127, 0.2); }
+  100% { box-shadow: 0 0 25px var(--neon-pink); background-color: rgba(255, 0, 127, 0.5); }
+}
+
+@keyframes flashRowRed {
+  0% { background: rgba(255, 0, 127, 0.12); box-shadow: inset 4px 0 0 rgba(255, 0, 127, 0.5); }
+  100% { background: rgba(255, 0, 127, 0.28); box-shadow: inset 4px 0 0 rgba(255, 0, 127, 1); }
+}
+
+@keyframes textGlowGreen {
+  0% { text-shadow: 0 0 5px rgba(57, 255, 20, 0.4); }
+  100% { text-shadow: 0 0 15px rgba(57, 255, 20, 1); }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(5px); }
+  100% { opacity: 1; transform: translateY(0); }
+}

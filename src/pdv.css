@@ -1,0 +1,673 @@
+/**
+ * BINGOKRS - Folha de Estilo do Ponto de Venda (PDV)
+ */
+
+:root {
+  --pdv-bg: #090b11;
+  --pdv-card-bg: #111422;
+  --pdv-border: #1d2238;
+  --text-main: #f1f3f9;
+  --text-muted: #7f8a9e;
+  
+  --primary: #00e5ff;
+  --primary-hover: #00b8cc;
+  --success: #00e676;
+  --success-hover: #00c853;
+  --danger: #ff1744;
+  
+  --ticket-bg: #ffffff;
+  --ticket-text: #111111;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background-color: var(--pdv-bg);
+  color: var(--text-main);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.pdv-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 15px;
+  box-sizing: border-box;
+}
+
+/* PDV Header */
+.pdv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--pdv-card-bg);
+  border: 1px solid var(--pdv-border);
+  border-radius: 12px;
+  padding: 15px 25px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.header-left h1 {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.header-left .badge {
+  background: var(--primary);
+  color: #111;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
+/* POS Identifier Selector */
+.pdv-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pdv-selector label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.pdv-selector .input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pdv-selector input {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--pdv-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  padding-right: 65px;
+  color: white;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  width: 180px;
+  transition: border-color 0.2s;
+}
+
+.pdv-selector input:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+.pdv-selector .status-badge {
+  position: absolute;
+  right: 6px;
+  background-color: rgba(0, 230, 118, 0.15);
+  color: var(--success);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 230, 118, 0.3);
+}
+
+/* Live Status Widget */
+.live-widget {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid var(--pdv-border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.live-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--danger);
+  letter-spacing: 1.5px;
+  margin-bottom: 2px;
+  animation: pulseLabel 1s infinite alternate;
+}
+
+@keyframes pulseLabel {
+  0% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.live-ball-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.widget-ball {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #dcdcdc 50%, #888888 100%);
+  color: #111;
+  font-weight: 800;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  text-shadow: 1px 1px 0px rgba(255,255,255,0.7);
+}
+
+.widget-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.widget-details span {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+#widget-status-text {
+  color: var(--success);
+}
+#widget-order-text {
+  color: var(--text-muted);
+}
+
+/* Main Grid PDV */
+.pdv-main {
+  display: flex;
+  gap: 20px;
+  flex-grow: 1;
+}
+
+.pdv-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card-sales {
+  width: 40%;
+}
+
+.cards-list-column {
+  width: 60%;
+}
+
+@media (max-width: 992px) {
+  .pdv-main {
+    flex-direction: column;
+  }
+  .card-sales, .cards-list-column {
+    width: 100%;
+  }
+}
+
+/* Section Card */
+.section-card {
+  background-color: var(--pdv-card-bg);
+  border: 1px solid var(--pdv-border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+.section-card h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 4px;
+}
+
+.section-subtitle {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+/* Buttons */
+.btn {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary { background-color: var(--primary); color: #111; }
+.btn-primary:hover:not(:disabled) { background-color: var(--primary-hover); box-shadow: 0 0 10px rgba(0, 229, 255, 0.3); }
+
+.btn-secondary { background-color: #2c324e; color: white; border: 1px solid #3c456b; }
+.btn-secondary:hover:not(:disabled) { background-color: #383f63; }
+
+.btn-success { background-color: var(--success); color: #111; }
+.btn-success:hover:not(:disabled) { background-color: var(--success-hover); box-shadow: 0 0 10px rgba(0, 230, 118, 0.3); }
+
+.btn-mini {
+  padding: 5px 10px;
+  font-size: 11px;
+  border-radius: 4px;
+}
+
+.action-buttons-sales {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 12px;
+}
+
+/* Bingo 3x9 Grid Preview */
+.preview-cartela-box {
+  background-color: rgba(0,0,0,0.25);
+  border: 1px dashed var(--pdv-border);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.cartela-header-mini {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.cartela-footer-mini {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.cartela-footer-mini span {
+  font-family: var(--font-mono);
+  color: var(--primary);
+}
+
+.cartela-grid-3x9 {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 4px;
+  background-color: #171a2a;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid var(--pdv-border);
+}
+
+.cartela-grid-3x9 .cell {
+  background-color: rgba(255, 255, 255, 0.03);
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.cartela-grid-3x9 .cell.empty {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-color: transparent;
+}
+
+.cartela-grid-3x9 .cell.hit {
+  background-color: rgba(0, 230, 118, 0.15);
+  border-color: var(--success);
+  color: var(--success);
+  text-shadow: 0 0 4px var(--success);
+}
+
+/* Lote Sales */
+.form-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+}
+
+.form-control {
+  background-color: rgba(0,0,0,0.3);
+  border: 1px solid var(--pdv-border);
+  border-radius: 6px;
+  padding: 10px;
+  color: white;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+.form-control:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+#batch-quantity {
+  width: 100px;
+}
+
+.val-total-container {
+  flex-grow: 1;
+}
+
+.val-total-display {
+  background-color: rgba(0, 230, 118, 0.1);
+  border: 1px solid rgba(0, 230, 118, 0.2);
+  border-radius: 6px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--success);
+}
+
+/* Sold Cards Table list */
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.count-badge {
+  background-color: rgba(0, 229, 255, 0.15);
+  color: var(--primary);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+.search-box {
+  margin-bottom: 15px;
+}
+
+.search-box input {
+  width: 100%;
+  background-color: rgba(0,0,0,0.3);
+  border: 1px solid var(--pdv-border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  color: white;
+  font-family: inherit;
+  font-size: 13px;
+}
+.search-box input:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+.table-wrapper {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--pdv-border);
+  border-radius: 6px;
+}
+
+.sold-cards-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.sold-cards-table th {
+  background-color: #0b0d16;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--pdv-border);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.sold-cards-table td {
+  padding: 12px 15px;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.sold-cards-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.01);
+}
+
+.sold-cards-table .empty-row {
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 40px;
+}
+
+.sold-cards-table td strong {
+  font-family: var(--font-mono);
+  color: var(--primary);
+  font-size: 14px;
+}
+
+.sold-cards-table .numbers-cell {
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.sold-cards-table .numbers-cell .number-span {
+  display: inline-block;
+  margin-right: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.sold-cards-table .numbers-cell .number-span.drawn {
+  background: rgba(0, 230, 118, 0.2);
+  color: var(--success);
+  font-weight: 800;
+}
+
+.sold-cards-table .rest-badge {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 14px;
+  text-align: center;
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sold-cards-table tr.alert-3 .rest-badge { background: rgba(255, 215, 0, 0.15); color: var(--neon-gold); }
+.sold-cards-table tr.alert-2 .rest-badge { background: rgba(255, 85, 0, 0.15); color: #ff5500; }
+.sold-cards-table tr.alert-1 .rest-badge { background: rgba(255, 0, 127, 0.15); color: #ff007f; animation: flashRestBadge 0.8s infinite alternate; }
+
+@keyframes flashRestBadge {
+  0% { box-shadow: 0 0 2px rgba(255,0,127,0.3); opacity: 0.6; }
+  100% { box-shadow: 0 0 10px rgba(255,0,127,0.8); opacity: 1; }
+}
+
+
+/* ================= MODAL DE IMPRESSÃO DA CARTELA ================= */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0,0,0,0.8);
+  backdrop-filter: blur(5px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal-box {
+  background-color: var(--pdv-card-bg);
+  border: 1px solid var(--pdv-border);
+  border-radius: 12px;
+  width: 450px;
+  max-width: 90%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+  transform: translateY(20px);
+  transition: transform 0.3s ease;
+}
+
+.modal-overlay.open .modal-box {
+  transform: translateY(0);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--pdv-border);
+}
+.modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.close-modal {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 24px;
+  cursor: pointer;
+}
+.close-modal:hover { color: white; }
+
+.modal-body {
+  padding: 20px;
+  max-height: 450px;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid var(--pdv-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Printable Ticket Mockup */
+.printable-ticket {
+  background-color: var(--ticket-bg);
+  color: var(--ticket-text);
+  width: 290px;
+  padding: 20px 15px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  font-family: 'Share Tech Mono', monospace;
+  text-align: center;
+  border-radius: 2px;
+  border-left: 2px dashed #ccc;
+  border-right: 2px dashed #ccc;
+}
+
+.ticket-brand {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  border-bottom: 2px solid var(--ticket-text);
+  padding-bottom: 5px;
+}
+
+.ticket-details {
+  text-align: left;
+  font-size: 11px;
+  margin-bottom: 12px;
+  border-bottom: 1px dashed var(--ticket-text);
+  padding-bottom: 6px;
+  line-height: 1.4;
+}
+
+.ticket-card-code {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.ticket-card-code span {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.cartela-grid-3x9.printable {
+  background-color: transparent;
+  border: 1px solid var(--ticket-text);
+  padding: 3px;
+  margin-bottom: 12px;
+}
+.cartela-grid-3x9.printable .cell {
+  background-color: transparent;
+  border: 1px solid #111;
+  color: #111;
+  font-size: 13px;
+}
+.cartela-grid-3x9.printable .cell.empty {
+  background-color: #eaeaea;
+}
+
+.ticket-price {
+  font-size: 13px;
+  font-weight: 700;
+  border-top: 1px dashed var(--ticket-text);
+  padding-top: 8px;
+  margin-bottom: 10px;
+}
+
+.ticket-barcode {
+  font-size: 14px;
+  letter-spacing: 1px;
+  opacity: 0.8;
+}

@@ -28,7 +28,6 @@ const noRoundsWarning = document.getElementById('no-rounds-warning');
 const btnSubmitSelection = document.getElementById('btn-submit-selection');
 
 const selectPdvTotem = document.getElementById('select-pdv-totem');
-const pdvCommissionInfo = document.getElementById('pdv-commission-info');
 
 const btnCopyPix = document.getElementById('btn-copy-pix');
 const pixCopiaCola = document.getElementById('pix-copia-cola');
@@ -77,28 +76,6 @@ async function carregarPdvs() {
 }
 
 carregarPdvs();
-
-// Mostrar info de comissão ao selecionar PDV
-selectPdvTotem.addEventListener('change', async () => {
-  const selectedPdv = selectPdvTotem.value;
-  if (!selectedPdv) {
-    pdvCommissionInfo.style.display = 'none';
-    return;
-  }
-  try {
-    const comissao = await FirebaseHelper.buscarComissaoPdv(selectedPdv);
-    if (comissao) {
-      const tipoLabel = comissao.comissaoTipo === 'liquida' ? 'Líquida' : 'Bruta';
-      pdvCommissionInfo.innerHTML = `💰 Comissão ${tipoLabel}: <strong>${comissao.comissaoValor}%</strong>`;
-      pdvCommissionInfo.style.display = 'block';
-    } else {
-      pdvCommissionInfo.innerHTML = '💰 Comissão padrão: <strong>10% Bruta</strong>';
-      pdvCommissionInfo.style.display = 'block';
-    }
-  } catch (e) {
-    pdvCommissionInfo.style.display = 'none';
-  }
-});
 
 // ==========================================
 // 1. MÁSCARA DE TELEFONE CELULAR BRASILEIRO

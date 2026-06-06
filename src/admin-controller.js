@@ -13,8 +13,54 @@ import {
 
 // Estado local do administrador
 let estado = criarEstadoInicial();
-let autoDrawIntervalId = null;
+let autoDrawRunning = false;
 let autoAdvanceTimeoutId = null;
+
+// Web Worker para o Sorteio Automático (evita throttling do navegador em background/minimizado)
+const workerAutoDrawCode = `
+  let timerId = null;
+  let pauseTimeoutId = null;
+  let isPaused = false;
+
+  self.onmessage = function(e) {
+    if (e.data.action === 'start') {
+      if (timerId) clearInterval(timerId);
+      isPaused = false;
+      timerId = setInterval(() => {
+        if (!isPaused) {
+          self.postMessage('tick');
+        }
+      }, e.data.interval);
+    } else if (e.data.action === 'stop') {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+      if (pauseTimeoutId) {
+        clearTimeout(pauseTimeoutId);
+        pauseTimeoutId = null;
+      }
+      isPaused = false;
+    } else if (e.data.action === 'pause') {
+      isPaused = true;
+      if (pauseTimeoutId) clearTimeout(pauseTimeoutId);
+      pauseTimeoutId = setTimeout(() => {
+        isPaused = false;
+        pauseTimeoutId = null;
+        self.postMessage('resumed');
+      }, e.data.duration);
+    }
+  };
+`;
+const blobAutoDraw = new Blob([workerAutoDrawCode], { type: 'application/javascript' });
+const autoDrawWorker = new Worker(URL.createObjectURL(blobAutoDraw));
+autoDrawWorker.onmessage = function(e) {
+  if (e.data === 'tick') {
+    executarTickAutoSorteio();
+  } else if (e.data === 'resumed') {
+    console.log('[AUTO-DRAW-WORKER] Pausa de prêmio encerrada. Sorteio retomado.');
+  }
+};
 let premioPausado = false; // Pausa o auto-sorteio quando sai prêmio
 let winnersAnterior = { quadra: 0, quina: 0, bingo: 0, acumulado: 0 }; // Track winner counts
 let resettingGame = false; // Evita que o reset seja sobrescrito por snapshots antigos
@@ -281,8 +327,8 @@ function renderizarAdmin(novoEstado) {
     checarEAgendarProximaRodadaAutomatica();
   } else {
     btnDrawBall.disabled = false;
-    btnAutoDraw.disabled = (autoDrawIntervalId !== null);
-    btnPauseDraw.disabled = (autoDrawIntervalId === null);
+    btnAutoDraw.disabled = autoDrawRunning;
+    btnPauseDraw.disabled = !autoDrawRunning;
     btnNextRound.disabled = true;
     limparTimeoutAvancoAutomatico();
   }
@@ -330,7 +376,7 @@ btnDrawBall.addEventListener('click', () => {
 
 // Iniciar Auto Sorteio
 btnAutoDraw.addEventListener('click', () => {
-  if (estado.status === 'ENDED' || autoDrawIntervalId !== null) return;
+  if (estado.status === 'ENDED' || autoDrawRunning) return;
   
   if (!estado.cards || estado.cards.length === 0) {
     alert("Não é possível iniciar o sorteio sem nenhuma cartela cadastrada no jogo!");
@@ -348,42 +394,9 @@ btnAutoDraw.addEventListener('click', () => {
     FirebaseHelper.salvarEstadoJogo(estado);
   }
 
-  autoDrawIntervalId = setInterval(() => {
-    // Pausa o auto-sorteio enquanto prêmio está sendo exibido na TV
-    if (premioPausado) return;
-    
-    if (estado.status === 'PLAYING' && estado.ballsLeft.length > 0) {
-      // Snapshot dos winners antes do sorteio
-      const wAntes = {
-        quadra: estado.winners.quadra.length,
-        quina: estado.winners.quina.length,
-        bingo: estado.winners.bingo.length,
-        acumulado: estado.winners.acumulado.length
-      };
-      
-      estado = sortearProximaBola(estado);
-      FirebaseHelper.salvarEstadoJogo(estado);
-      
-      // Verifica se saiu prêmio novo comparando com snapshot anterior
-      const saiuPremio = 
-        estado.winners.quadra.length > wAntes.quadra ||
-        estado.winners.quina.length > wAntes.quina ||
-        estado.winners.bingo.length > wAntes.bingo ||
-        estado.winners.acumulado.length > wAntes.acumulado;
-      
-      if (saiuPremio) {
-        console.log('[AUTO-DRAW] Prêmio detectado! Pausando por 12 segundos...');
-        premioPausado = true;
-        // Retoma após 12 segundos (popup na TV dura 10s + 2s margem)
-        setTimeout(() => {
-          premioPausado = false;
-          console.log('[AUTO-DRAW] Retomando auto-sorteio após pausa de prêmio.');
-        }, 12000);
-      }
-    } else {
-      pararAutoSorteio();
-    }
-  }, segundos);
+  // Ativa o sorteio automático via Web Worker
+  autoDrawWorker.postMessage({ action: 'start', interval: segundos });
+  autoDrawRunning = true;
 
   btnAutoDraw.disabled = true;
   btnPauseDraw.disabled = false;
@@ -393,12 +406,44 @@ btnAutoDraw.addEventListener('click', () => {
 btnPauseDraw.addEventListener('click', pararAutoSorteio);
 
 function pararAutoSorteio() {
-  if (autoDrawIntervalId !== null) {
-    clearInterval(autoDrawIntervalId);
-    autoDrawIntervalId = null;
+  if (autoDrawRunning) {
+    autoDrawWorker.postMessage({ action: 'stop' });
+    autoDrawRunning = false;
   }
   btnAutoDraw.disabled = false;
   btnPauseDraw.disabled = true;
+}
+
+function executarTickAutoSorteio() {
+  // Pausa o auto-sorteio enquanto prêmio está sendo exibido na TV
+  if (premioPausado) return;
+  
+  if (estado.status === 'PLAYING' && estado.ballsLeft.length > 0) {
+    // Snapshot dos winners antes do sorteio
+    const wAntes = {
+      quadra: estado.winners.quadra.length,
+      quina: estado.winners.quina.length,
+      bingo: estado.winners.bingo.length,
+      acumulado: estado.winners.acumulado.length
+    };
+    
+    estado = sortearProximaBola(estado);
+    FirebaseHelper.salvarEstadoJogo(estado);
+    
+    // Verifica se saiu prêmio novo comparando com snapshot anterior
+    const saiuPremio = 
+      estado.winners.quadra.length > wAntes.quadra ||
+      estado.winners.quina.length > wAntes.quina ||
+      estado.winners.bingo.length > wAntes.bingo ||
+      estado.winners.acumulado.length > wAntes.acumulado;
+    
+    if (saiuPremio) {
+      console.log('[AUTO-DRAW] Prêmio detectado! Pausando por 12 segundos via Web Worker...');
+      autoDrawWorker.postMessage({ action: 'pause', duration: 12000 });
+    }
+  } else {
+    pararAutoSorteio();
+  }
 }
 
 // Botão para avançar a próxima rodada
@@ -1245,7 +1290,31 @@ btnCancelCountdown.addEventListener('click', () => {
 });
 
 // TIMER LOOP DE SEGUNDO EM SEGUNDO (ADMIN ENGINE)
-setInterval(() => {
+// Web Worker para a contagem regressiva (evita throttling do navegador em background)
+const workerCountdownCode = `
+  let timerId = null;
+  self.onmessage = function(e) {
+    if (e.data.action === 'start') {
+      if (timerId) clearInterval(timerId);
+      timerId = setInterval(() => {
+        self.postMessage('tick');
+      }, 1000);
+    } else if (e.data.action === 'stop') {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+    }
+  };
+`;
+const blobCountdown = new Blob([workerCountdownCode], { type: 'application/javascript' });
+const countdownWorker = new Worker(URL.createObjectURL(blobCountdown));
+countdownWorker.onmessage = function() {
+  executarTickContagem();
+};
+countdownWorker.postMessage({ action: 'start' });
+
+function executarTickContagem() {
   if (!estado) return;
 
   // 1. Se contagem ativa
@@ -1302,7 +1371,7 @@ setInterval(() => {
       }, 500);
     }
   }
-}, 1000);
+}
 
 function checarEAgendarProximaRodadaAutomatica() {
   if (estado.status !== 'ENDED') return;

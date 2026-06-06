@@ -262,14 +262,14 @@ function obterTextoStatusPdv(status) {
   }
 }
 
-function desenharGrid3x9(grid, conteinerDom, sorteadas = []) {
+function desenharGrid3x9(gridFlat, conteinerDom, sorteadas = []) {
   conteinerDom.innerHTML = '';
   for (let r = 0; r < 3; r++) {
     for (let c = 0; c < 9; c++) {
-      const val = grid[r][c];
+      const val = gridFlat[r * 9 + c];
       const cell = document.createElement('div');
       
-      if (val === null) {
+      if (val === null || val === undefined) {
         cell.className = 'cell empty';
       } else {
         cell.className = 'cell';
@@ -299,7 +299,7 @@ btnGenerateDraft.addEventListener('click', () => {
   
   previewCode.innerText = rascunhoCartela.id;
   previewGameId.innerText = targetId;
-  desenharGrid3x9(rascunhoCartela.grid, previewGrid);
+  desenharGrid3x9(rascunhoCartela.gridFlat, previewGrid);
 
   btnSellCard.disabled = false;
 });
@@ -482,7 +482,7 @@ function abrirModalCartela(card) {
   modalCardCode.innerText = card.id;
 
   const sorteadasDestacar = (estado && card.gameId === estado.gameId) ? estado.drawnBalls : [];
-  desenharGrid3x9(card.grid, modalGrid, sorteadasDestacar);
+  desenharGrid3x9(card.gridFlat, modalGrid, sorteadasDestacar);
 
   cartelaModal.classList.add('open');
 }

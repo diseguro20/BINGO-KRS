@@ -116,7 +116,7 @@ export function gerarCartela90Bolas(pdvNome = "PDV Padrão", gameIdDestino = "#0
     pdv: pdvNome,
     gameId: gameIdDestino, // ID do sorteio associado
     numbers: numbersList, // Lista de 15 números
-    grid: grid, // Array 2D [3][9] contendo números e nulls
+    gridFlat: grid.flat(), // Array 1D [27] contendo números e nulls (3 linhas x 9 colunas)
     drawnCount: 0,
     numbersRemaining: 15,
     missingNumbers: [...numbersList]

@@ -231,9 +231,21 @@ export const FirebaseHelper = {
    */
   assinarEstadoJogo(callback) {
     if (isFirebaseConfigured && db) {
-      return onSnapshot(doc(db, "partidas", "atual"), (docSnap) => {
+      return onSnapshot(doc(db, "partidas", "atual"), async (docSnap) => {
         if (docSnap.exists()) {
           callback(docSnap.data());
+        } else {
+          // Documento não existe ainda (projeto novo) — cria estado inicial
+          console.log("[FIREBASE] Documento 'partidas/atual' não encontrado. Criando estado inicial...");
+          try {
+            const { criarEstadoInicial } = await import('./game.js');
+            const estadoInicial = criarEstadoInicial();
+            await setDoc(doc(db, "partidas", "atual"), estadoInicial);
+            console.log("[FIREBASE] Estado inicial criado com sucesso no Firestore.");
+            // O onSnapshot vai disparar de novo com o novo doc
+          } catch (err) {
+            console.error("[FIREBASE] Erro ao criar estado inicial:", err);
+          }
         }
       });
     } else {

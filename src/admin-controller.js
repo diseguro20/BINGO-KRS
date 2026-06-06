@@ -89,6 +89,16 @@ const metRatio = document.getElementById('met-ratio');
 const metRiggingStatus = document.getElementById('met-rigging-status');
 const metFinancialHealth = document.getElementById('met-financial-health');
 
+// Elementos do DOM - Comissões por PDV
+const comissoesPdvList = document.getElementById('comissoes-pdv-list');
+const inputComissaoPdvNome = document.getElementById('input-comissao-pdv-nome');
+const selectComissaoTipo = document.getElementById('select-comissao-tipo');
+const inputComissaoValor = document.getElementById('input-comissao-valor');
+const btnSaveComissao = document.getElementById('btn-save-comissao');
+
+// Cache de comissões carregadas
+let cacheComissoes = {};
+
 // Flag para não sobrescrever formulário enquanto o usuário digita no carregamento
 let camposPreenchidosIniciais = false;
 
@@ -664,18 +674,42 @@ FirebaseHelper.assinarMetricasFinanceiras((metricas) => {
   if (pdvsSorted.length === 0) {
     metricsPdvTbody.innerHTML = `
       <tr>
-        <td colspan="3" class="empty-log" style="text-align: center; font-style: italic; padding: 40px; color: var(--text-muted);">Nenhum faturamento registrado por PDV.</td>
+        <td colspan="5" class="empty-log" style="text-align: center; font-style: italic; padding: 40px; color: var(--text-muted);">Nenhum faturamento registrado por PDV.</td>
       </tr>`;
   } else {
-    pdvsSorted.forEach(([pdvName, pdvFaturamento]) => {
+    pdvsSorted.forEach(async ([pdvName, pdvFaturamento]) => {
       const precoCupom = estado ? estado.prizes.cupom : 2.0;
       const volVendas = Math.round(pdvFaturamento / precoCupom);
+      
+      // Busca comissão do PDV (com cache)
+      let comissao = cacheComissoes[pdvName];
+      if (!comissao) {
+        try {
+          comissao = await FirebaseHelper.buscarComissaoPdv(pdvName);
+          if (comissao) cacheComissoes[pdvName] = comissao;
+        } catch (e) { /* usa default */ }
+      }
+      const comTipo = comissao ? comissao.comissaoTipo : 'bruta';
+      const comValor = comissao ? comissao.comissaoValor : 10;
+      const comTipoLabel = comTipo === 'liquida' ? 'Líquida' : 'Bruta';
+      
+      // Calcular valor da comissão
+      let valorComissao = 0;
+      if (comTipo === 'bruta') {
+        valorComissao = pdvFaturamento * (comValor / 100);
+      } else {
+        // Líquida: calculada sobre o lucro (faturamento - prêmios proporcionais)
+        const premiosProporcional = premiosPagos > 0 && faturamento > 0 ? (pdvFaturamento / faturamento) * premiosPagos : 0;
+        valorComissao = (pdvFaturamento - premiosProporcional) * (comValor / 100);
+      }
       
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><strong>${pdvName}</strong></td>
         <td>${volVendas} cartelas</td>
         <td style="color: var(--success); font-weight: 700;">R$ ${pdvFaturamento.toFixed(2).replace('.', ',')}</td>
+        <td style="font-size: 12px;">${comTipoLabel} ${comValor}%</td>
+        <td style="color: var(--neon-gold); font-weight: 700;">R$ ${valorComissao.toFixed(2).replace('.', ',')}</td>
       `;
       metricsPdvTbody.appendChild(tr);
     });
@@ -831,3 +865,122 @@ function limparTimeoutAvancoAutomatico() {
     console.log("[PROGRAMAÇÃO] Timeout de avanço automático cancelado.");
   }
 }
+
+// ==========================================
+// GESTÃO DE COMISSÕES DE PDV
+// ==========================================
+
+async function carregarComissoesPdvAdmin() {
+  if (!comissoesPdvList) return;
+  
+  try {
+    const pdvs = await FirebaseHelper.listarPdvsCadastrados();
+    comissoesPdvList.innerHTML = '';
+    
+    if (pdvs.length === 0) {
+      comissoesPdvList.innerHTML = '<div class="empty-log" style="text-align: center; font-style: italic; padding: 30px; color: var(--text-muted);">Nenhum PDV cadastrado no sistema.</div>';
+      return;
+    }
+    
+    for (const pdv of pdvs) {
+      let comissao;
+      try {
+        comissao = await FirebaseHelper.buscarComissaoPdv(pdv.pdvNome);
+      } catch (e) { /* usa default */ }
+      
+      const tipo = comissao ? comissao.comissaoTipo : 'bruta';
+      const valor = comissao ? comissao.comissaoValor : 10;
+      const tipoLabel = tipo === 'liquida' ? 'Líquida' : 'Bruta';
+      
+      // Cache para a tabela de ranking
+      cacheComissoes[pdv.pdvNome] = { comissaoTipo: tipo, comissaoValor: valor };
+      
+      const row = document.createElement('div');
+      row.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--admin-border); border-radius: 8px; flex-wrap: wrap;';
+      row.innerHTML = `
+        <div style="flex: 2; min-width: 120px;">
+          <strong style="font-size: 13px;">${pdv.pdvNome}</strong>
+        </div>
+        <div style="flex: 1; min-width: 90px;">
+          <select class="form-control comissao-tipo-edit" data-pdv="${pdv.pdvNome}" style="padding: 4px 8px; font-size: 11px; height: auto;">
+            <option value="bruta" ${tipo === 'bruta' ? 'selected' : ''}>Bruta</option>
+            <option value="liquida" ${tipo === 'liquida' ? 'selected' : ''}>Líquida</option>
+          </select>
+        </div>
+        <div style="flex: 0 0 70px;">
+          <input type="number" class="form-control comissao-valor-edit" data-pdv="${pdv.pdvNome}" value="${valor}" min="0" max="100" step="0.5" style="padding: 4px 8px; font-size: 11px; width: 65px;">
+        </div>
+        <div style="font-size: 12px; color: var(--neon-gold); font-weight: 700;">%</div>
+        <button class="btn btn-primary btn-mini btn-salvar-comissao-row" data-pdv="${pdv.pdvNome}" style="padding: 5px 10px; font-size: 11px; font-weight: 700;">Salvar</button>
+      `;
+      comissoesPdvList.appendChild(row);
+    }
+    
+    // Event listener para botões "Salvar" inline
+    comissoesPdvList.querySelectorAll('.btn-salvar-comissao-row').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const pdvNome = this.dataset.pdv;
+        const tipoSelect = comissoesPdvList.querySelector(`.comissao-tipo-edit[data-pdv="${pdvNome}"]`);
+        const valorInput = comissoesPdvList.querySelector(`.comissao-valor-edit[data-pdv="${pdvNome}"]`);
+        
+        if (!tipoSelect || !valorInput) return;
+        
+        const tipo = tipoSelect.value;
+        const valor = parseFloat(valorInput.value) || 10;
+        
+        try {
+          await FirebaseHelper.salvarComissaoPdv(pdvNome, tipo, valor);
+          cacheComissoes[pdvNome] = { comissaoTipo: tipo, comissaoValor: valor };
+          this.innerText = '✓ Salvo!';
+          this.style.background = 'var(--success)';
+          setTimeout(() => {
+            this.innerText = 'Salvar';
+            this.style.background = '';
+          }, 2000);
+        } catch (err) {
+          alert('Erro ao salvar comissão: ' + err.message);
+        }
+      });
+    });
+    
+  } catch (err) {
+    console.error('Erro ao carregar comissões:', err);
+    comissoesPdvList.innerHTML = '<div class="empty-log" style="text-align: center; font-style: italic; padding: 30px; color: var(--danger);">Erro ao carregar PDVs.</div>';
+  }
+}
+
+// Salvar comissão manual (formulário inferior)
+if (btnSaveComissao) {
+  btnSaveComissao.addEventListener('click', async () => {
+    const pdvNome = inputComissaoPdvNome?.value?.trim();
+    const tipo = selectComissaoTipo?.value || 'bruta';
+    const valor = parseFloat(inputComissaoValor?.value) || 10;
+    
+    if (!pdvNome) {
+      alert('Por favor, digite o nome do PDV.');
+      return;
+    }
+    
+    try {
+      await FirebaseHelper.salvarComissaoPdv(pdvNome, tipo, valor);
+      cacheComissoes[pdvNome] = { comissaoTipo: tipo, comissaoValor: valor };
+      alert(`✅ Comissão do PDV "${pdvNome}" salva: ${tipo === 'liquida' ? 'Líquida' : 'Bruta'} ${valor}%`);
+      inputComissaoPdvNome.value = '';
+      inputComissaoValor.value = '10';
+      // Recarrega a lista
+      carregarComissoesPdvAdmin();
+    } catch (err) {
+      alert('Erro ao salvar comissão: ' + err.message);
+    }
+  });
+}
+
+// Carregar comissões ao abrir a aba de métricas
+if (tabMetrics) {
+  tabMetrics.addEventListener('click', () => {
+    carregarComissoesPdvAdmin();
+  });
+}
+
+// Carrega comissões inicialmente
+setTimeout(carregarComissoesPdvAdmin, 2000);

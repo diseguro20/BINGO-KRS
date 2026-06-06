@@ -234,10 +234,46 @@ function tentarCriarGrid() {
  * Avança o jogo para a próxima rodada importando as cartelas vendidas antecipadamente
  */
 export function avancarProximaRodada(estado) {
+  // Se havia uma rodada ativa sendo jogada na fila, marca como finalizada antes de carregar a próxima
+  if (estado.rodadasQueue) {
+    const rodadaAtivaAnterior = estado.rodadasQueue.find(r => r.gameId === estado.gameId);
+    if (rodadaAtivaAnterior) {
+      rodadaAtivaAnterior.status = 'FINISHED';
+    }
+  }
+
   // Se houver uma rodada agendada na fila
   let proximaConfig = null;
   if (estado.rodadasQueue && estado.rodadasQueue.length > 0) {
-    proximaConfig = estado.rodadasQueue.shift();
+    // Ordena a fila por data e hora de início antes de selecionar a próxima
+    const obterDataHojeString = () => {
+      const hoje = new Date();
+      const ano = hoje.getFullYear();
+      const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+      const dia = String(hoje.getDate()).padStart(2, '0');
+      return `${ano}-${mes}-${dia}`;
+    };
+    const dataHoje = obterDataHojeString();
+
+    estado.rodadasQueue.sort((a, b) => {
+      if (!a.startTime && !b.startTime) return 0;
+      if (!a.startTime) return 1;
+      if (!b.startTime) return -1;
+      
+      const dateA = a.startDate || dataHoje;
+      const dateB = b.startDate || dataHoje;
+      
+      if (dateA !== dateB) {
+        return dateA.localeCompare(dateB);
+      }
+      return a.startTime.localeCompare(b.startTime);
+    });
+
+    // Encontra a primeira rodada na fila que ainda não foi executada (status 'PENDING' ou undefined)
+    proximaConfig = estado.rodadasQueue.find(r => !r.status || r.status === 'PENDING');
+    if (proximaConfig) {
+      proximaConfig.status = 'PLAYING';
+    }
   }
 
   if (proximaConfig) {

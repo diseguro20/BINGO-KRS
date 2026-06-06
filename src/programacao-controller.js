@@ -144,6 +144,30 @@ function renderizarFila() {
     return;
   }
 
+  // Ordena a fila por data e hora de início antes de exibir
+  const obterDataHojeString = () => {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  };
+  const dataHoje = obterDataHojeString();
+
+  estado.rodadasQueue.sort((a, b) => {
+    if (!a.startTime && !b.startTime) return 0;
+    if (!a.startTime) return 1;
+    if (!b.startTime) return -1;
+    
+    const dateA = a.startDate || dataHoje;
+    const dateB = b.startDate || dataHoje;
+    
+    if (dateA !== dateB) {
+      return dateA.localeCompare(dateB);
+    }
+    return a.startTime.localeCompare(b.startTime);
+  });
+
   estado.rodadasQueue.forEach((rodada, index) => {
     const tr = document.createElement('tr');
     
@@ -175,8 +199,23 @@ function renderizarFila() {
       }
     }
 
+    // Status da rodada
+    let statusLabel = 'Aguardando';
+    let statusClass = 'pending';
+    if (rodada.status === 'PLAYING') {
+      statusLabel = 'Ativo';
+      statusClass = 'playing';
+    } else if (rodada.status === 'FINISHED') {
+      statusLabel = 'Finalizado';
+      statusClass = 'finished';
+    }
+    const statusHtml = `<span class="badge-status ${statusClass}">${statusLabel}</span>`;
+
     const contagemHtml = `
-      <div><span class="${modoBadge}">${rodada.schedulingMode}</span></div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <span class="${modoBadge}">${rodada.schedulingMode}</span>
+        ${statusHtml}
+      </div>
       <div style="margin-top: 6px; font-weight: 600;">${tempoDisplay} <br><span style="font-size: 11px; opacity: 0.85;">${autoDrawText}</span></div>
     `;
 
@@ -189,13 +228,18 @@ function renderizarFila() {
       `;
     }
 
+    const isPlaying = rodada.status === 'PLAYING';
+    const deleteBtnHtml = isPlaying 
+      ? `<button class="btn btn-danger-outline btn-mini btn-delete-round" disabled style="opacity: 0.3; cursor: not-allowed;">Deletar</button>`
+      : `<button class="btn btn-danger-outline btn-mini btn-delete-round" data-index="${index}">Deletar</button>`;
+
     tr.innerHTML = `
       <td><strong style="color: var(--neon-cyan);">${rodada.gameId}</strong></td>
       <td>${premiosHtml}</td>
       <td>${contagemHtml}</td>
       <td>${pdvAlvoHtml}</td>
       <td>
-        <button class="btn btn-danger-outline btn-mini btn-delete-round" data-index="${index}">Deletar</button>
+        ${deleteBtnHtml}
       </td>
     `;
     

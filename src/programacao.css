@@ -281,7 +281,6 @@ body {
   font-style: italic;
 }
 
-/* Auditing indicator */
 .audit-warning {
   margin-top: 15px;
   padding: 12px;
@@ -294,3 +293,15 @@ body {
   align-items: center;
   gap: 8px;
 }
+
+/* Status Badges para Rodadas Programadas */
+.badge-status {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.badge-status.pending { background: rgba(0, 229, 255, 0.1); color: var(--neon-cyan); border: 1px solid rgba(0, 229, 255, 0.2); }
+.badge-status.playing { background: rgba(0, 230, 118, 0.1); color: var(--success); border: 1px solid rgba(0, 230, 118, 0.2); }
+.badge-status.finished { background: rgba(255, 23, 68, 0.1); color: var(--danger); border: 1px solid rgba(255, 23, 68, 0.2); }

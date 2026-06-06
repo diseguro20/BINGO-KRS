@@ -36,6 +36,7 @@ let ultimoNumeroRenderizado = null;
 let estadoGlobal = null;
 let premioEmExibicao = false; // Flag: true when prize popup is showing (pause auto-draw)
 let winnersJaExibidos = { quadra: [], quina: [], bingo: [], acumulado: [] }; // Track which winners have been announced
+let filaAnuncios = []; // Fila de anúncios de ganhadores pendentes
 
 // Inicializa a data local
 valData.innerText = new Date().toLocaleDateString('pt-BR');
@@ -428,13 +429,7 @@ function renderizarApp(estado) {
     ['quadra', 'quina', 'bingo', 'acumulado'].forEach(cat => {
       const listaAtual = estado.winners[cat] || [];
       listaAtual.forEach(w => {
-        if (!winnersJaExibidos[cat].includes(w.cardId)) {
-          winnersJaExibidos[cat].push(w.cardId);
-          // Só mostra popup se não estiver já exibindo um prêmio
-          if (!premioEmExibicao) {
-            mostrarAnuncioGanhadorGigante({ categoria: cat, cardId: w.cardId, pdv: w.pdv });
-          }
-        }
+        adicionarFilaAnuncio({ categoria: cat, cardId: w.cardId, pdv: w.pdv });
       });
     });
   }
@@ -442,11 +437,41 @@ function renderizarApp(estado) {
   // Reset winners tracking quando muda de rodada
   if (estado.status === 'WAITING') {
     winnersJaExibidos = { quadra: [], quina: [], bingo: [], acumulado: [] };
+    filaAnuncios = [];
   }
 }
 
 // Inscreve a TV para escutar atualizações de estado em tempo real
 const unsubscribe = FirebaseHelper.assinarEstadoJogo(renderizarApp);
+
+// Gerenciador de fila de anúncios de prêmios para evitar sobreposição ou perda
+function adicionarFilaAnuncio(payload) {
+  const { categoria, cardId } = payload;
+  const cat = categoria.toLowerCase();
+  
+  if (!winnersJaExibidos[cat]) {
+    winnersJaExibidos[cat] = [];
+  }
+  
+  // Evita adicionar duplicado se já foi exibido ou está na fila
+  if (winnersJaExibidos[cat].includes(cardId)) {
+    return;
+  }
+  
+  winnersJaExibidos[cat].push(cardId);
+  filaAnuncios.push(payload);
+  
+  verificarProximoAnuncio();
+}
+
+function verificarProximoAnuncio() {
+  if (premioEmExibicao || filaAnuncios.length === 0) {
+    return;
+  }
+  
+  const proximo = filaAnuncios.shift();
+  mostrarAnuncioGanhadorGigante(proximo);
+}
 
 // Função para exibir o anúncio gigante de ganhador na tela com fogos e som
 function mostrarAnuncioGanhadorGigante(payload) {
@@ -528,6 +553,8 @@ function mostrarAnuncioGanhadorGigante(payload) {
     // Libera a flag de pausa após a animação de saída
     setTimeout(() => {
       premioEmExibicao = false;
+      // Procura o próximo anúncio da fila
+      verificarProximoAnuncio();
     }, 500);
   }, 10000);
 }
@@ -536,7 +563,7 @@ function mostrarAnuncioGanhadorGigante(payload) {
 FirebaseHelper.assinarComandos((comando, payload) => {
   if (comando === 'NOVO_GANHADOR') {
     console.log("Novo ganhador detectado no sorteio:", payload);
-    mostrarAnuncioGanhadorGigante(payload);
+    adicionarFilaAnuncio(payload);
   }
 });
 

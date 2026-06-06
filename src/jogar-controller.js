@@ -17,6 +17,8 @@ let currentTab = 'buy';
 let lastGameIdChecked = null;
 let shownGlobalWinners = new Set();
 let hidePrizeAlertTimeout = null;
+let alertQueue = [];
+let isAlertShowing = false;
 let lastGameStatus = null;
 
 // Seletores DOM - Autenticação
@@ -912,18 +914,18 @@ function verificarGanhadoresGerais() {
   if (!estadoJogo) return;
   const activeGameId = estadoJogo.gameId || 'default';
 
-  // Se iniciou/mudou de rodada, limpa o set de alertas exibidos
+  // Se iniciou/mudou de rodada, limpa o set de alertas exibidos e a fila
   if (activeGameId !== lastGameIdChecked) {
     lastGameIdChecked = activeGameId;
     shownGlobalWinners.clear();
+    alertQueue = [];
+    isAlertShowing = false;
   }
 
   const winners = estadoJogo.winners;
   if (!winners) return;
 
   const categorias = ['acumulado', 'bingo', 'quina', 'quadra'];
-  let novoGanhadorDetectado = false;
-  let novoGanhadorInfo = null;
 
   for (const cat of categorias) {
     const listWinners = winners[cat] || [];
@@ -931,22 +933,24 @@ function verificarGanhadoresGerais() {
       const winKey = `${activeGameId}_${cat}_${w.cardId}`;
       if (!shownGlobalWinners.has(winKey)) {
         shownGlobalWinners.add(winKey);
-
-        if (!novoGanhadorDetectado) {
-          novoGanhadorDetectado = true;
-          novoGanhadorInfo = {
-            categoria: cat,
-            cardId: w.cardId,
-            pdv: w.pdv || 'Online'
-          };
-        }
+        alertQueue.push({
+          categoria: cat,
+          cardId: w.cardId,
+          pdv: w.pdv || 'Online'
+        });
       }
     }
   }
 
-  if (novoGanhadorDetectado && novoGanhadorInfo) {
-    exibirAlertaGanhadorGeral(novoGanhadorInfo.categoria, novoGanhadorInfo.cardId, novoGanhadorInfo.pdv);
-  }
+  processarProximoAlerta();
+}
+
+function processarProximoAlerta() {
+  if (isAlertShowing || alertQueue.length === 0) return;
+  
+  const proximo = alertQueue.shift();
+  isAlertShowing = true;
+  exibirAlertaGanhadorGeral(proximo.categoria, proximo.cardId, proximo.pdv);
 }
 
 // Exibe o overlay gigante de vitória geral
@@ -974,20 +978,29 @@ function exibirAlertaGanhadorGeral(categoria, cardId, pdv) {
     clearTimeout(hidePrizeAlertTimeout);
   }
   hidePrizeAlertTimeout = setTimeout(() => {
-    livePrizeAlert.classList.remove('active');
+    fecharAlertaGanhadorGeral();
   }, 4000);
+}
+
+function fecharAlertaGanhadorGeral() {
+  if (livePrizeAlert) {
+    livePrizeAlert.classList.remove('active');
+  }
+  if (hidePrizeAlertTimeout) {
+    clearTimeout(hidePrizeAlertTimeout);
+    hidePrizeAlertTimeout = null;
+  }
+  isAlertShowing = false;
+  // Dá um pequeno tempo para a transição terminar antes de processar o próximo alerta
+  setTimeout(() => {
+    processarProximoAlerta();
+  }, 400);
 }
 
 // Fechamento manual do popup geral
 if (btnClosePrizeAlert) {
   btnClosePrizeAlert.addEventListener('click', () => {
-    if (livePrizeAlert) {
-      livePrizeAlert.classList.remove('active');
-    }
-    if (hidePrizeAlertTimeout) {
-      clearTimeout(hidePrizeAlertTimeout);
-      hidePrizeAlertTimeout = null;
-    }
+    fecharAlertaGanhadorGeral();
   });
 }
 

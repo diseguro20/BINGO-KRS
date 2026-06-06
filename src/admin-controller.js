@@ -15,6 +15,8 @@ import {
 let estado = criarEstadoInicial();
 let autoDrawIntervalId = null;
 let autoAdvanceTimeoutId = null;
+let premioPausado = false; // Pausa o auto-sorteio quando sai prêmio
+let winnersAnterior = { quadra: 0, quina: 0, bingo: 0, acumulado: 0 }; // Track winner counts
 
 // Elementos do DOM - Console e Sorteio
 const gameStatusText = document.getElementById('game-status-text');
@@ -246,9 +248,37 @@ btnAutoDraw.addEventListener('click', () => {
   }
 
   autoDrawIntervalId = setInterval(() => {
+    // Pausa o auto-sorteio enquanto prêmio está sendo exibido na TV
+    if (premioPausado) return;
+    
     if (estado.status === 'PLAYING' && estado.ballsLeft.length > 0) {
+      // Snapshot dos winners antes do sorteio
+      const wAntes = {
+        quadra: estado.winners.quadra.length,
+        quina: estado.winners.quina.length,
+        bingo: estado.winners.bingo.length,
+        acumulado: estado.winners.acumulado.length
+      };
+      
       estado = sortearProximaBola(estado);
       FirebaseHelper.salvarEstadoJogo(estado);
+      
+      // Verifica se saiu prêmio novo comparando com snapshot anterior
+      const saiuPremio = 
+        estado.winners.quadra.length > wAntes.quadra ||
+        estado.winners.quina.length > wAntes.quina ||
+        estado.winners.bingo.length > wAntes.bingo ||
+        estado.winners.acumulado.length > wAntes.acumulado;
+      
+      if (saiuPremio) {
+        console.log('[AUTO-DRAW] Prêmio detectado! Pausando por 12 segundos...');
+        premioPausado = true;
+        // Retoma após 12 segundos (popup na TV dura 10s + 2s margem)
+        setTimeout(() => {
+          premioPausado = false;
+          console.log('[AUTO-DRAW] Retomando auto-sorteio após pausa de prêmio.');
+        }, 12000);
+      }
     } else {
       pararAutoSorteio();
     }

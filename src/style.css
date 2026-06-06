@@ -1136,14 +1136,14 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(3, 3, 16, 0.85);
-  backdrop-filter: blur(12px);
+  background: rgba(3, 3, 16, 0.92);
+  backdrop-filter: blur(16px);
   z-index: 9999;
   display: flex;
   justify-content: center;
   align-items: center;
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.5s ease;
   pointer-events: none;
 }
 
@@ -1153,130 +1153,193 @@ body {
 }
 
 .winner-card-container {
-  background: rgba(12, 14, 28, 0.95);
+  background: rgba(12, 14, 28, 0.97);
   border: 3px solid var(--neon-pink);
-  border-radius: 24px;
-  padding: 40px;
-  max-width: 650px;
+  border-radius: 28px;
+  padding: 50px 60px;
+  max-width: 750px;
   width: 90%;
   text-align: center;
-  box-shadow: 0 0 50px rgba(255, 0, 127, 0.3), inset 0 0 30px rgba(255, 0, 127, 0.1);
-  transform: scale(0.75);
-  transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 0 60px rgba(255, 0, 127, 0.4), inset 0 0 40px rgba(255, 0, 127, 0.1);
+  transform: scale(0.6) rotateX(10deg);
+  transition: transform 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
   overflow: hidden;
 }
 
 .winner-overlay.active .winner-card-container {
-  transform: scale(1);
+  transform: scale(1) rotateX(0deg);
+}
+
+/* Sparkle animated background inside the card */
+.winner-sparkle-bg {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(255, 0, 127, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(0, 243, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.06) 0%, transparent 40%);
+  animation: sparkleRotate 8s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes sparkleRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.winner-card-container > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Cores específicas de borda e sombra por categoria */
 .winner-card-container.cat-quadra {
   border-color: var(--neon-blue);
-  box-shadow: 0 0 50px rgba(0, 68, 255, 0.5), inset 0 0 30px rgba(0, 68, 255, 0.15);
+  box-shadow: 0 0 60px rgba(0, 68, 255, 0.6), 0 0 120px rgba(0, 68, 255, 0.2), inset 0 0 30px rgba(0, 68, 255, 0.15);
 }
 .winner-card-container.cat-quina {
   border-color: var(--neon-cyan);
-  box-shadow: 0 0 50px rgba(0, 243, 255, 0.5), inset 0 0 30px rgba(0, 243, 255, 0.15);
+  box-shadow: 0 0 60px rgba(0, 243, 255, 0.6), 0 0 120px rgba(0, 243, 255, 0.2), inset 0 0 30px rgba(0, 243, 255, 0.15);
 }
 .winner-card-container.cat-bingo {
   border-color: var(--neon-pink);
-  box-shadow: 0 0 50px rgba(255, 0, 127, 0.6), inset 0 0 30px rgba(255, 0, 127, 0.2);
+  box-shadow: 0 0 60px rgba(255, 0, 127, 0.7), 0 0 120px rgba(255, 0, 127, 0.3), inset 0 0 30px rgba(255, 0, 127, 0.2);
 }
 .winner-card-container.cat-acumulado {
   border-color: var(--neon-gold);
-  box-shadow: 0 0 60px rgba(255, 215, 0, 0.7), inset 0 0 35px rgba(255, 215, 0, 0.25);
+  box-shadow: 0 0 80px rgba(255, 215, 0, 0.8), 0 0 150px rgba(255, 215, 0, 0.3), inset 0 0 40px rgba(255, 215, 0, 0.25);
 }
 
 .winner-title {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 800;
-  letter-spacing: 4px;
+  letter-spacing: 5px;
   text-transform: uppercase;
   color: var(--text-muted);
   margin-bottom: 10px;
+  animation: fadeInUp 0.5s ease 0.2s both;
 }
 
 .winner-prize-name {
-  font-size: 52px;
+  font-size: 58px;
   font-weight: 900;
   text-transform: uppercase;
+  margin-bottom: 10px;
+  letter-spacing: 3px;
+  animation: neonPulseTitle 1.2s infinite alternate, bounceIn 0.6s ease 0.3s both;
+}
+
+.winner-prize-value {
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--neon-gold);
+  text-shadow: 0 0 15px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.3);
   margin-bottom: 25px;
-  letter-spacing: 2px;
-  animation: neonPulseTitle 1.5s infinite alternate;
+  animation: fadeInUp 0.5s ease 0.5s both;
 }
 
 /* Animações de neon piscante para o título do prêmio */
 .cat-quadra .winner-prize-name {
   color: #fff;
-  text-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue), 0 0 40px var(--neon-blue);
+  text-shadow: 0 0 10px var(--neon-blue), 0 0 25px var(--neon-blue), 0 0 50px var(--neon-blue);
 }
 .cat-quina .winner-prize-name {
   color: #fff;
-  text-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-cyan);
+  text-shadow: 0 0 10px var(--neon-cyan), 0 0 25px var(--neon-cyan), 0 0 50px var(--neon-cyan);
 }
 .cat-bingo .winner-prize-name {
   color: #fff;
-  text-shadow: 0 0 10px var(--neon-pink), 0 0 20px var(--neon-pink), 0 0 40px var(--neon-pink);
+  text-shadow: 0 0 10px var(--neon-pink), 0 0 25px var(--neon-pink), 0 0 50px var(--neon-pink);
 }
 .cat-acumulado .winner-prize-name {
   color: #fff;
-  text-shadow: 0 0 10px var(--neon-gold), 0 0 25px var(--neon-gold), 0 0 50px var(--neon-gold);
+  text-shadow: 0 0 15px var(--neon-gold), 0 0 30px var(--neon-gold), 0 0 60px var(--neon-gold);
 }
 
 .winner-card-serial {
   font-family: var(--font-mono);
-  font-size: 42px;
+  font-size: 48px;
   font-weight: 900;
   color: #ffffff;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px dashed rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  padding: 15px 30px;
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  padding: 18px 36px;
   display: inline-block;
   margin-bottom: 25px;
-  box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
-  letter-spacing: 3px;
+  box-shadow: inset 0 2px 12px rgba(0,0,0,0.5);
+  letter-spacing: 4px;
+  animation: fadeInUp 0.5s ease 0.6s both;
 }
 
 .winner-meta-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin-top: 15px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 20px;
+  gap: 18px;
+  margin-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 22px;
+  animation: fadeInUp 0.5s ease 0.7s both;
 }
 
 .winner-meta-item {
   text-align: left;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 10px;
-  padding: 12px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 14px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .winner-meta-label {
   font-size: 11px;
   text-transform: uppercase;
   color: var(--text-muted);
-  letter-spacing: 1px;
-  margin-bottom: 4px;
+  letter-spacing: 1.5px;
+  margin-bottom: 5px;
 }
 
 .winner-meta-value {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: #ffffff;
 }
 
+.cat-quadra .winner-meta-value.pdv-glow {
+  color: var(--neon-blue);
+  text-shadow: 0 0 8px rgba(0, 68, 255, 0.5);
+}
+.cat-quina .winner-meta-value.pdv-glow {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+}
+.cat-bingo .winner-meta-value.pdv-glow {
+  color: var(--neon-pink);
+  text-shadow: 0 0 8px rgba(255, 0, 127, 0.5);
+}
 .cat-acumulado .winner-meta-value.pdv-glow {
   color: var(--neon-gold);
-  text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
 }
 
 @keyframes neonPulseTitle {
-  0% { opacity: 0.95; }
-  100% { opacity: 1; filter: brightness(1.2); }
+  0% { opacity: 0.92; }
+  100% { opacity: 1; filter: brightness(1.3); }
 }
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bounceIn {
+  0% { opacity: 0; transform: scale(0.3); }
+  50% { opacity: 1; transform: scale(1.05); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+

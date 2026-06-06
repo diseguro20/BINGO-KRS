@@ -4,6 +4,7 @@
 
 import { FirebaseHelper } from './firebase-helper.js';
 import { obterRankingTop20, ACUMULADO_LIMITE_ORDEM } from './game.js';
+import { launchFireworks, playSirenSound, playApplauseSound, playCelebrationHorn, narrarBola, narrarPremio, playBallDrawSound } from './effects.js';
 
 // Elementos do DOM
 const containerApp = document.getElementById('broadcast-app');
@@ -33,6 +34,8 @@ const valHora = document.getElementById('val-hora');
 // Estado local de rastreamento do último número sorteado para animação
 let ultimoNumeroRenderizado = null;
 let estadoGlobal = null;
+let premioEmExibicao = false; // Flag: true when prize popup is showing (pause auto-draw)
+let winnersJaExibidos = { quadra: [], quina: [], bingo: [], acumulado: [] }; // Track which winners have been announced
 
 // Inicializa a data local
 valData.innerText = new Date().toLocaleDateString('pt-BR');
@@ -282,6 +285,9 @@ function renderizarApp(estado) {
         void giantBall.offsetWidth;
         giantBall.classList.add('drawn-pulse');
         ultimoNumeroRenderizado = atual;
+        // Narração e som da bola
+        playBallDrawSound();
+        narrarBola(atual);
       }
     } else {
       currentBallNum.innerText = '--';
@@ -415,15 +421,51 @@ function renderizarApp(estado) {
         <div class="info-content-text">${config.text}</div>`;
     }
   }
+
+  // 9. Detecção de Prêmios via Estado (funciona mesmo sem BroadcastChannel)
+  // Compara os winners atuais com os já exibidos para detectar novos prêmios
+  if (estado.status === 'PLAYING' || estado.status === 'ENDED') {
+    ['quadra', 'quina', 'bingo', 'acumulado'].forEach(cat => {
+      const listaAtual = estado.winners[cat] || [];
+      listaAtual.forEach(w => {
+        if (!winnersJaExibidos[cat].includes(w.cardId)) {
+          winnersJaExibidos[cat].push(w.cardId);
+          // Só mostra popup se não estiver já exibindo um prêmio
+          if (!premioEmExibicao) {
+            mostrarAnuncioGanhadorGigante({ categoria: cat, cardId: w.cardId, pdv: w.pdv });
+          }
+        }
+      });
+    });
+  }
+
+  // Reset winners tracking quando muda de rodada
+  if (estado.status === 'WAITING') {
+    winnersJaExibidos = { quadra: [], quina: [], bingo: [], acumulado: [] };
+  }
 }
 
 // Inscreve a TV para escutar atualizações de estado em tempo real
 const unsubscribe = FirebaseHelper.assinarEstadoJogo(renderizarApp);
 
-// Função para exibir o anúncio gigante de ganhador na tela com design premium neon
+// Função para exibir o anúncio gigante de ganhador na tela com fogos e som
 function mostrarAnuncioGanhadorGigante(payload) {
   const { categoria, cardId, pdv } = payload;
   const rodadaId = estadoGlobal ? estadoGlobal.gameId : '--';
+
+  // Marca que está em exibição de prêmio (pausa o auto-draw)
+  premioEmExibicao = true;
+
+  // Dispara os efeitos sonoros
+  playSirenSound();
+  setTimeout(() => playCelebrationHorn(), 500);
+  setTimeout(() => playApplauseSound(), 1000);
+  
+  // Narração do prêmio
+  setTimeout(() => narrarPremio(categoria, cardId, pdv), 1500);
+
+  // Lança fogos de artifício por 10 segundos
+  launchFireworks(10000);
 
   // Nomes amigáveis das premiações
   const nomesPremios = {
@@ -434,6 +476,15 @@ function mostrarAnuncioGanhadorGigante(payload) {
   };
   const premioTexto = nomesPremios[categoria.toLowerCase()] || 'PRÊMIO SAÍDO!';
 
+  // Valores dos prêmios
+  const valoresPremios = estadoGlobal ? {
+    quadra: estadoGlobal.prizes.quadra,
+    quina: estadoGlobal.prizes.quina,
+    bingo: estadoGlobal.prizes.bingo,
+    acumulado: estadoGlobal.prizes.acumulado
+  } : {};
+  const valorPremio = valoresPremios[categoria.toLowerCase()] || 0;
+
   // Cria elemento do overlay se não existir
   let overlay = document.getElementById('tv-winner-overlay');
   if (!overlay) {
@@ -443,17 +494,19 @@ function mostrarAnuncioGanhadorGigante(payload) {
     document.body.appendChild(overlay);
   }
 
-  // Preenche o HTML interno com visual de luxo
+  // Preenche o HTML com visual de luxo premium
   overlay.innerHTML = `
     <div class="winner-card-container cat-${categoria.toLowerCase()}">
-      <div class="winner-title">🏆 Prêmio Confirmado</div>
+      <div class="winner-sparkle-bg"></div>
+      <div class="winner-title">🏆 Prêmio Confirmado 🏆</div>
       <div class="winner-prize-name">${premioTexto}</div>
-      <div class="winner-meta-label" style="font-size: 13px; margin-bottom: 8px;">CARTELA VENCEDORA:</div>
+      ${valorPremio > 0 ? `<div class="winner-prize-value">R$ ${valorPremio.toFixed(2).replace('.', ',')}</div>` : ''}
+      <div class="winner-meta-label" style="font-size: 14px; margin-bottom: 8px; letter-spacing: 3px;">CARTELA VENCEDORA</div>
       <div class="winner-card-serial">${cardId}</div>
       
       <div class="winner-meta-grid">
         <div class="winner-meta-item">
-          <div class="winner-meta-label">Ponto de Venda (PDV)</div>
+          <div class="winner-meta-label">Ponto de Venda (BAR/PDV)</div>
           <div class="winner-meta-value pdv-glow">${pdv}</div>
         </div>
         <div class="winner-meta-item">
@@ -469,10 +522,14 @@ function mostrarAnuncioGanhadorGigante(payload) {
     overlay.classList.add('active');
   }, 50);
 
-  // Mantém na tela por 8 segundos
+  // Mantém na tela por 10 segundos, depois remove e retoma
   setTimeout(() => {
     overlay.classList.remove('active');
-  }, 8000);
+    // Libera a flag de pausa após a animação de saída
+    setTimeout(() => {
+      premioEmExibicao = false;
+    }, 500);
+  }, 10000);
 }
 
 // Escuta por comandos diretos do Admin
@@ -482,3 +539,11 @@ FirebaseHelper.assinarComandos((comando, payload) => {
     mostrarAnuncioGanhadorGigante(payload);
   }
 });
+
+// Enable audio context on first user interaction (required by browsers)
+document.addEventListener('click', () => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    ctx.resume();
+  } catch(e) {}
+}, { once: true });

@@ -140,13 +140,15 @@
       <!-- Seletor do Nome do Ponto de Venda (Travado por perfil logado) -->
       <div class="pdv-selector">
         <label for="select-pdv-name">PONTO DE VENDA (IDENTIFICAÇÃO):</label>
-        <div class="input-wrapper" style="display: flex; gap: 8px; align-items: center;">
-          <input type="text" id="select-pdv-name" value="Carregando..." readonly style="background: rgba(255,255,255,0.02); color: var(--text-muted); cursor: not-allowed; border-color: transparent;">
-          <span class="status-badge" id="pdv-name-status">Ativo</span>
-          <button id="btn-connect-printer" class="btn btn-secondary btn-mini" style="width: auto; margin: 0; padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px; border: 1px solid var(--pdv-border);">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <div class="input-wrapper">
+            <input type="text" id="select-pdv-name" value="Carregando..." readonly style="background: rgba(255,255,255,0.02); color: var(--text-muted); cursor: not-allowed; border-color: var(--pdv-border);">
+            <span class="status-badge" id="pdv-name-status">Ativo</span>
+          </div>
+          <button id="btn-connect-printer" class="btn btn-secondary btn-mini" style="width: auto; margin: 0; padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px; border: 1px solid var(--pdv-border); height: 35px;">
             <span id="printer-icon">📶</span> <span id="printer-status-label">Impressora</span>
           </button>
-          <button id="btn-logout" class="btn btn-danger-outline btn-mini" style="width: auto; margin: 0; padding: 6px 12px; font-size: 11px;">Sair</button>
+          <button id="btn-logout" class="btn btn-danger-outline btn-mini" style="width: auto; margin: 0; padding: 6px 12px; font-size: 11px; height: 35px;">Sair</button>
         </div>
       </div>
 

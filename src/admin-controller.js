@@ -76,10 +76,24 @@ const btnLogout = document.getElementById('btn-logout');
 const tabGame = document.getElementById('tab-game');
 const tabMetrics = document.getElementById('tab-metrics');
 const tabPdvs = document.getElementById('tab-pdvs');
+const tabApi = document.getElementById('tab-api');
 const containerTabGame = document.getElementById('container-tab-game');
 const containerTabMetrics = document.getElementById('container-tab-metrics');
 const containerTabPdvs = document.getElementById('container-tab-pdvs');
+const containerTabApi = document.getElementById('container-tab-api');
 const pdvsListTbody = document.getElementById('pdvs-list-tbody');
+
+// Elementos do Formulário de Gateway Pix
+const formGatewayPix = document.getElementById('form-gateway-pix');
+const selectGatewayType = document.getElementById('select-gateway-type');
+const sectionGatewayEstatico = document.getElementById('section-gateway-estatico');
+const inputEstaticoChave = document.getElementById('input-estatico-chave');
+const inputEstaticoNome = document.getElementById('input-estatico-nome');
+const inputEstaticoCidade = document.getElementById('input-estatico-cidade');
+const sectionGatewayMercadopago = document.getElementById('section-gateway-mercadopago');
+const inputMpToken = document.getElementById('input-mp-token');
+const inputMpChavePix = document.getElementById('input-mp-chave-pix');
+const btnSaveGateway = document.getElementById('btn-save-gateway');
 
 // Elementos do Modal de PDVs
 const modalPdvAdmin = document.getElementById('modal-pdv-admin');
@@ -601,28 +615,46 @@ tabGame.addEventListener('click', () => {
   tabGame.classList.add('active');
   tabMetrics.classList.remove('active');
   tabPdvs.classList.remove('active');
+  tabApi.classList.remove('active');
   containerTabGame.style.display = 'grid';
   containerTabMetrics.style.display = 'none';
   containerTabPdvs.style.display = 'none';
+  containerTabApi.style.display = 'none';
 });
 
 tabMetrics.addEventListener('click', () => {
   tabMetrics.classList.add('active');
   tabGame.classList.remove('active');
   tabPdvs.classList.remove('active');
+  tabApi.classList.remove('active');
   containerTabMetrics.style.display = 'block';
   containerTabGame.style.display = 'none';
   containerTabPdvs.style.display = 'none';
+  containerTabApi.style.display = 'none';
 });
 
 tabPdvs.addEventListener('click', () => {
   tabPdvs.classList.add('active');
   tabGame.classList.remove('active');
   tabMetrics.classList.remove('active');
+  tabApi.classList.remove('active');
   containerTabPdvs.style.display = 'block';
   containerTabGame.style.display = 'none';
   containerTabMetrics.style.display = 'none';
+  containerTabApi.style.display = 'none';
   carregarPdvsAdmin();
+});
+
+tabApi.addEventListener('click', () => {
+  tabApi.classList.add('active');
+  tabGame.classList.remove('active');
+  tabMetrics.classList.remove('active');
+  tabPdvs.classList.remove('active');
+  containerTabApi.style.display = 'block';
+  containerTabGame.style.display = 'none';
+  containerTabMetrics.style.display = 'none';
+  containerTabPdvs.style.display = 'none';
+  carregarConfiguracaoGatewayAdmin();
 });
 
 // ==========================================
@@ -1207,6 +1239,90 @@ if (formPdvAdmin) {
     } finally {
       btnPdvSaveSubmit.disabled = false;
       btnPdvSaveSubmit.innerText = 'Salvar PDV';
+    }
+  });
+}
+
+// ==========================================
+// CONFIGURAÇÕES DE INTEGRAÇÃO PIX - ADMIN
+// ==========================================
+
+// Alterna a exibição das seções dependendo do tipo selecionado no dropdown
+if (selectGatewayType) {
+  selectGatewayType.addEventListener('change', () => {
+    const type = selectGatewayType.value;
+    if (type === 'estatico') {
+      sectionGatewayEstatico.style.display = 'block';
+      sectionGatewayMercadopago.style.display = 'none';
+      
+      inputEstaticoChave.setAttribute('required', 'required');
+      inputEstaticoNome.setAttribute('required', 'required');
+      inputEstaticoCidade.setAttribute('required', 'required');
+      
+      inputMpToken.removeAttribute('required');
+    } else {
+      sectionGatewayEstatico.style.display = 'none';
+      sectionGatewayMercadopago.style.display = 'block';
+      
+      inputEstaticoChave.removeAttribute('required');
+      inputEstaticoNome.removeAttribute('required');
+      inputEstaticoCidade.removeAttribute('required');
+      
+      inputMpToken.setAttribute('required', 'required');
+    }
+  });
+}
+
+// Carrega as configurações de gateway do banco e preenche o form
+async function carregarConfiguracaoGatewayAdmin() {
+  try {
+    const config = await FirebaseHelper.buscarConfiguracaoGateway();
+    if (!config) return;
+
+    selectGatewayType.value = config.type || 'estatico';
+    
+    // Dispara o change handler para exibir a seção correta
+    selectGatewayType.dispatchEvent(new Event('change'));
+
+    // Estático
+    inputEstaticoChave.value = config.estaticoChave || '';
+    inputEstaticoNome.value = config.estaticoNome || '';
+    inputEstaticoCidade.value = config.estaticoCidade || 'SAO PAULO';
+
+    // Mercado Pago
+    inputMpToken.value = config.mpToken || '';
+    inputMpChavePix.value = config.mpChavePix || '';
+  } catch (err) {
+    console.error('Erro ao carregar configurações de gateway:', err);
+  }
+}
+
+// Salva as configurações de gateway ao submeter o formulário
+if (formGatewayPix) {
+  formGatewayPix.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const type = selectGatewayType.value;
+    const configData = {
+      type,
+      estaticoChave: inputEstaticoChave.value.trim(),
+      estaticoNome: inputEstaticoNome.value.trim(),
+      estaticoCidade: inputEstaticoCidade.value.trim(),
+      mpToken: inputMpToken.value.trim(),
+      mpChavePix: inputMpChavePix.value.trim()
+    };
+
+    btnSaveGateway.disabled = true;
+    btnSaveGateway.innerText = 'Salvando Configurações...';
+
+    try {
+      await FirebaseHelper.salvarConfiguracaoGateway(configData);
+      alert('Configurações de Gateway Pix salvas com sucesso!');
+    } catch (err) {
+      alert('Erro ao salvar configurações de gateway: ' + err.message);
+    } finally {
+      btnSaveGateway.disabled = false;
+      btnSaveGateway.innerText = 'Salvar Configurações de Gateway';
     }
   });
 }

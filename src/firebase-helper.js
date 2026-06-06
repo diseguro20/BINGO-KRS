@@ -1095,5 +1095,43 @@ export const FirebaseHelper = {
       
       localChannel.postMessage({ type: 'AUTH_CHANGED' });
     }
+  },
+
+  /**
+   * Salva as configurações de integração do Gateway Pix
+   */
+  async salvarConfiguracaoGateway(configData) {
+    if (isFirebaseConfigured && db) {
+      await setDoc(doc(db, "configuracoes", "gateway_pix"), {
+        ...configData,
+        updatedAt: Date.now()
+      });
+    } else {
+      // MODO SIMULADO
+      localStorage.setItem('bingokrs_gateway_pix', JSON.stringify({
+        ...configData,
+        updatedAt: Date.now()
+      }));
+    }
+    localChannel.postMessage({ type: 'GATEWAY_CONFIG_CHANGED' });
+    return configData;
+  },
+
+  /**
+   * Busca as configurações de integração do Gateway Pix
+   */
+  async buscarConfiguracaoGateway() {
+    if (isFirebaseConfigured && db) {
+      const docRef = doc(db, "configuracoes", "gateway_pix");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return docSnap.data();
+      }
+      return null;
+    } else {
+      // MODO SIMULADO
+      const saved = localStorage.getItem('bingokrs_gateway_pix');
+      return saved ? JSON.parse(saved) : null;
+    }
   }
 };

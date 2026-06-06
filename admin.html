@@ -212,6 +212,7 @@
       <button class="btn-tab active" id="tab-game">Console de Sorteio</button>
       <button class="btn-tab" id="tab-metrics">Métricas & Faturamento</button>
       <button class="btn-tab" id="tab-pdvs">Gerenciar PDVs</button>
+      <button class="btn-tab" id="tab-api">Integração Pix</button>
     </div>
 
     <!-- TAB 1: CONSOLE DO SORTEIO -->
@@ -532,6 +533,63 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: CONFIGURAÇÕES DE INTEGRAÇÃO PIX -->
+    <div id="container-tab-api" style="display: none;">
+      <div class="admin-card" style="margin-bottom: 25px;">
+        <h2>Integração Gateway Pix</h2>
+        <p class="card-subtitle">Configure as credenciais e métodos de recebimento via Pix para as vendas automáticas (Totem de Autoatendimento).</p>
+        
+        <form id="form-gateway-pix">
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="select-gateway-type">Método de Recebimento Pix: *</label>
+            <select id="select-gateway-type" class="form-control" style="height: auto;">
+              <option value="estatico" selected>Pix Estático (Chave Pix Direta - Grátis e Imediato)</option>
+              <option value="mercadopago">Mercado Pago (PIX Dinâmico com Baixa Automática)</option>
+            </select>
+          </div>
+
+          <!-- Seção 1: Pix Estático -->
+          <div id="section-gateway-estatico" style="display: block; padding: 15px; border: 1px solid var(--admin-border); border-radius: 8px; background: rgba(255,255,255,0.01); margin-bottom: 20px;">
+            <h3 style="font-size: 14px; color: var(--neon-gold); margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid var(--admin-border); padding-bottom: 6px;">⚙️ Configurações do Pix Estático</h3>
+            
+            <div class="form-group">
+              <label for="input-estatico-chave">Chave Pix (E-mail, CPF, CNPJ, Celular ou Chave Aleatória): *</label>
+              <input type="text" id="input-estatico-chave" class="form-control" placeholder="Ex: sua-chave@pix.com">
+            </div>
+
+            <div class="grid-2-cols">
+              <div class="form-group">
+                <label for="input-estatico-nome">Nome do Beneficiário (Nome Completo ou Razão Social): *</label>
+                <input type="text" id="input-estatico-nome" class="form-control" placeholder="Ex: BINGO KRS LTDA">
+              </div>
+              <div class="form-group">
+                <label for="input-estatico-cidade">Cidade do Beneficiário: *</label>
+                <input type="text" id="input-estatico-cidade" class="form-control" placeholder="Ex: SAO PAULO" value="SAO PAULO">
+              </div>
+            </div>
+          </div>
+
+          <!-- Seção 2: Mercado Pago -->
+          <div id="section-gateway-mercadopago" style="display: none; padding: 15px; border: 1px solid var(--admin-border); border-radius: 8px; background: rgba(255,255,255,0.01); margin-bottom: 20px;">
+            <h3 style="font-size: 14px; color: var(--primary); margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid var(--admin-border); padding-bottom: 6px;">⚙️ Configurações do Mercado Pago</h3>
+            
+            <div class="form-group">
+              <label for="input-mp-token">Token de Acesso (Production Access Token / API Key): *</label>
+              <input type="password" id="input-mp-token" class="form-control" placeholder="Ex: APP_USR-XXXXXX-XXXXXX">
+              <small style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">Obtenha o seu token no menu de credenciais de produção no painel do Mercado Pago Developers.</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="input-mp-chave-pix">Chave Pix associada à conta do Mercado Pago (para identificação):</label>
+              <input type="text" id="input-mp-chave-pix" class="form-control" placeholder="Ex: sua-chave@pix.com">
+            </div>
+          </div>
+
+          <button type="submit" id="btn-save-gateway" class="btn btn-success" style="width: auto; font-weight: bold; padding: 12px 25px; align-self: flex-start;">Salvar Configurações de Gateway</button>
+        </form>
       </div>
     </div>
 

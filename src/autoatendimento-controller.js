@@ -10,6 +10,55 @@ let estado = null;
 let ticketPrice = 2.0;
 let selectedQty = 3;
 let cartelasGeradas = [];
+let pollingInterval = null;
+
+// Funções auxiliares para gerar Pix Estático BR Code (EMV)
+function formatEMV(id, value) {
+  const len = value.length.toString().padStart(2, '0');
+  return id + len + value;
+}
+
+function calculateCRC16(str) {
+  let crc = 0xFFFF;
+  for (let i = 0; i < str.length; i++) {
+    let charCode = str.charCodeAt(i);
+    crc ^= (charCode << 8);
+    for (let j = 0; j < 8; j++) {
+      if ((crc & 0x8000) !== 0) {
+        crc = (crc << 1) ^ 0x1021;
+      } else {
+        crc = crc << 1;
+      }
+      crc &= 0xFFFF;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+function gerarPixEstatico(chave, nome, cidade, valor, txid = '***') {
+  let payload = '';
+  payload += formatEMV('00', '01'); // Format Indicator
+  payload += formatEMV('01', '11'); // Único (11)
+  
+  let merchantInfo = '';
+  merchantInfo += formatEMV('00', 'br.gov.bcb.pix');
+  merchantInfo += formatEMV('01', chave);
+  payload += formatEMV('26', merchantInfo);
+  
+  payload += formatEMV('52', '0000'); // Merchant Category Code
+  payload += formatEMV('53', '986'); // Currency (BRL)
+  payload += formatEMV('54', valor.toFixed(2)); // Amount
+  payload += formatEMV('58', 'BR'); // Country Code
+  payload += formatEMV('59', nome.substring(0, 25)); // Merchant Name
+  payload += formatEMV('60', cidade.substring(0, 15)); // Merchant City
+  
+  let additionalData = formatEMV('05', txid);
+  payload += formatEMV('62', additionalData);
+  
+  payload += '6304';
+  const crc = calculateCRC16(payload);
+  return payload + crc;
+}
 
 // Seletores DOM
 const stepSelection = document.getElementById('step-selection');
@@ -140,7 +189,7 @@ function transitionTo(stepId) {
 }
 
 // Submeter identificação e ir para Pix
-formSelection.addEventListener('submit', (e) => {
+formSelection.addEventListener('submit', async (e) => {
   e.preventDefault();
   
   const selectedPdv = selectPdvTotem.value;
@@ -155,9 +204,191 @@ formSelection.addEventListener('submit', (e) => {
     return;
   }
   
-  // Atualiza valor total no copia-cola se quiser
+  // Avança para tela de pagamento e dispara a geração do Pix
   transitionTo('step-payment');
+  await gerarPixCobrançaTotem();
 });
+
+// Lógica de finalização de venda realizada com sucesso
+async function finalizarVendaRealizada() {
+  const phone = clientPhone.value.trim();
+  const name = clientName.value.trim() || 'Cliente Totem';
+  const customVal = parseInt(customQty.value);
+  const qty = (!isNaN(customVal) && customVal > 0) ? customVal : selectedQty;
+  
+  const targetGameId = selectGameRound.value;
+  if (!targetGameId) {
+    throw new Error("Nenhum sorteio selecionado ou disponível.");
+  }
+  
+  const cartelas = [];
+  for (let i = 0; i < qty; i++) {
+    cartelas.push(gerarCartela90Bolas(selectPdvTotem.value || "Autoatendimento", targetGameId));
+  }
+  
+  await FirebaseHelper.registrarCartelasVenda(cartelas, { nome: name, celular: phone });
+  cartelasGeradas = cartelas;
+  renderizarRecibosVisual(cartelas);
+  transitionTo('step-receipt');
+}
+
+// Gera cobrança Pix com base nas credenciais cadastradas pelo administrador
+async function gerarPixCobrançaTotem() {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+
+  const customVal = parseInt(customQty.value);
+  const qty = (!isNaN(customVal) && customVal > 0) ? customVal : selectedQty;
+  const amount = qty * ticketPrice;
+  const name = clientName.value.trim() || 'Cliente Totem';
+
+  const qrCodeBox = document.querySelector('.qr-code-box');
+  const paymentStatusText = document.querySelector('.payment-status-box span');
+  const paymentStatusSpinner = document.querySelector('.payment-status-box .spinner');
+
+  if (paymentStatusSpinner) paymentStatusSpinner.style.display = 'block';
+  paymentStatusText.innerText = 'Aguardando confirmação do pagamento...';
+
+  try {
+    const config = await FirebaseHelper.buscarConfiguracaoGateway();
+
+    if (!config) {
+      console.warn("Nenhum gateway configurado. Usando Pix Estático de demonstração.");
+      const demoPayload = gerarPixEstatico("krsbingo-auto-pix-key-placeholder", "KRS BINGO", "SAO PAULO", amount);
+      pixCopiaCola.value = demoPayload;
+      
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(demoPayload)}`;
+      qrCodeBox.innerHTML = `<img src="${qrUrl}" alt="Pix QR Code" style="max-width: 200px; display: block;" />`;
+      if (paymentStatusSpinner) paymentStatusSpinner.style.display = 'none';
+      paymentStatusText.innerText = 'Pix Estático de Testes Gerado. Efetue o pagamento e simule aprovação.';
+      return;
+    }
+
+    if (config.type === 'estatico') {
+      const chave = config.estaticoChave || "krsbingo-auto-pix-key-placeholder";
+      const nome = config.estaticoNome || "KRS BINGO";
+      const cidade = config.estaticoCidade || "SAO PAULO";
+      
+      const payload = gerarPixEstatico(chave, nome, cidade, amount);
+      pixCopiaCola.value = payload;
+
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(payload)}`;
+      qrCodeBox.innerHTML = `<img src="${qrUrl}" alt="Pix QR Code" style="max-width: 200px; display: block;" />`;
+      
+      paymentStatusText.innerText = 'Pix Estático Gerado. Realize o pagamento e confirme.';
+      if (paymentStatusSpinner) paymentStatusSpinner.style.display = 'none';
+
+    } else if (config.type === 'mercadopago') {
+      const accessToken = config.mpToken;
+      const chavePix = config.mpChavePix;
+      
+      if (!accessToken) {
+        throw new Error("Token do Mercado Pago não configurado.");
+      }
+
+      const idempotencyKey = 'idemp_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+      
+      try {
+        paymentStatusText.innerText = 'Gerando Pix no Mercado Pago...';
+        
+        const response = await fetch("https://api.mercadopago.com/v1/payments", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+            "X-Idempotency-Key": idempotencyKey
+          },
+          body: JSON.stringify({
+            transaction_amount: parseFloat(amount.toFixed(2)),
+            description: `KRS BINGO - ${qty} cartelas`,
+            payment_method_id: "pix",
+            payer: {
+              email: "cliente@totem.com",
+              first_name: name.split(' ')[0] || "Cliente",
+              last_name: name.split(' ').slice(1).join(' ') || "Totem",
+              identification: {
+                type: "CPF",
+                number: "00000000000"
+              }
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || `HTTP ${response.status}`);
+        }
+
+        const paymentData = await response.json();
+        
+        const pixPayload = paymentData.point_of_interaction.transaction_data.qr_code;
+        const qrCodeBase64 = paymentData.point_of_interaction.transaction_data.qr_code_base64;
+        const paymentId = paymentData.id;
+
+        pixCopiaCola.value = pixPayload;
+        qrCodeBox.innerHTML = `<img src="data:image/png;base64,${qrCodeBase64}" alt="Pix QR Code" style="max-width: 200px; display: block;" />`;
+        
+        paymentStatusText.innerText = 'Aguardando pagamento automático...';
+
+        // Iniciar polling de 5 segundos
+        pollingInterval = setInterval(async () => {
+          try {
+            const checkRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+              headers: {
+                "Authorization": `Bearer ${accessToken}`
+              }
+            });
+            if (checkRes.ok) {
+              const checkData = await checkRes.json();
+              if (checkData.status === 'approved') {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                paymentStatusText.innerText = 'Pagamento aprovado com sucesso!';
+                
+                try {
+                  await finalizarVendaRealizada();
+                } catch (vendaErr) {
+                  console.error("Erro ao faturar venda automatica:", vendaErr);
+                  alert("Pagamento recebido, mas houve um erro ao registrar as cartelas: " + vendaErr.message);
+                }
+              } else if (checkData.status === 'rejected' || checkData.status === 'cancelled') {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                paymentStatusText.innerText = 'Pagamento recusado/cancelado. Tente novamente.';
+                if (paymentStatusSpinner) paymentStatusSpinner.style.display = 'none';
+              }
+            }
+          } catch (pollingErr) {
+            console.error("Erro ao verificar status do pagamento:", pollingErr);
+          }
+        }, 5000);
+
+      } catch (mpErr) {
+        console.warn("Mercado Pago API failed or CORS blocked. Falling back to Static Pix.", mpErr);
+        
+        // Fallback para Pix Estático usando mpChavePix ou estaticoChave
+        const fallbackChave = chavePix || config.estaticoChave || "krsbingo-auto-pix-key-placeholder";
+        const fallbackNome = config.estaticoNome || "KRS BINGO";
+        const fallbackCidade = config.estaticoCidade || "SAO PAULO";
+        
+        const payload = gerarPixEstatico(fallbackChave, fallbackNome, fallbackCidade, amount);
+        pixCopiaCola.value = payload;
+
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(payload)}`;
+        qrCodeBox.innerHTML = `<img src="${qrUrl}" alt="Pix QR Code" style="max-width: 200px; display: block;" />`;
+        
+        paymentStatusText.innerText = 'Aprovação manual (Fallback Pix): Realize o pagamento e confirme.';
+        if (paymentStatusSpinner) paymentStatusSpinner.style.display = 'none';
+      }
+    }
+  } catch (err) {
+    console.error("Erro geral na geração do Pix:", err);
+    paymentStatusText.innerText = 'Erro ao gerar Pix. Use a simulação abaixo para testar.';
+    if (paymentStatusSpinner) paymentStatusSpinner.style.display = 'none';
+  }
+}
 
 // ==========================================
 // 4. PAGAMENTO SIMULADO E COPÍA E COLA
@@ -201,44 +432,21 @@ function fallbackCopyText(text) {
   document.body.removeChild(textArea);
 }
 
-btnSimulatePayment.addEventListener('click', () => {
+btnSimulatePayment.addEventListener('click', async () => {
   btnSimulatePayment.disabled = true;
   btnSimulatePayment.innerText = '💰 Confirmando Transação...';
   
-  setTimeout(async () => {
-    try {
-      const phone = clientPhone.value.trim();
-      const name = clientName.value.trim() || 'Cliente Totem';
-      const customVal = parseInt(customQty.value);
-      const qty = (!isNaN(customVal) && customVal > 0) ? customVal : selectedQty;
-      
-      const targetGameId = selectGameRound.value;
-      if (!targetGameId) {
-        throw new Error("Nenhum sorteio selecionado ou disponível.");
-      }
-      
-      const cartelas = [];
-      for (let i = 0; i < qty; i++) {
-        // Usa o nome do PDV padrão de totem "Autoatendimento"
-        cartelas.push(gerarCartela90Bolas(selectPdvTotem.value || "Autoatendimento", targetGameId));
-      }
-      
-      // Registrar no Firebase / LocalStorage
-      await FirebaseHelper.registrarCartelasVenda(cartelas, { nome: name, celular: phone });
-      
-      cartelasGeradas = cartelas;
-      
-      // Renderizar visualmente as cartelas
-      renderizarRecibosVisual(cartelas);
-      
-      // Avançar para tela de sucesso
-      transitionTo('step-receipt');
-    } catch (err) {
-      alert("Erro ao faturar compra simulada: " + err.message);
-      btnSimulatePayment.disabled = false;
-      btnSimulatePayment.innerText = '💰 Simular Pagamento Aprovado (Pix Pago)';
+  try {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      pollingInterval = null;
     }
-  }, 1200);
+    await finalizarVendaRealizada();
+  } catch (err) {
+    alert("Erro ao faturar compra: " + err.message);
+    btnSimulatePayment.disabled = false;
+    btnSimulatePayment.innerText = '💰 Simular Pagamento Aprovado (Pix Pago)';
+  }
 });
 
 // ==========================================
@@ -547,6 +755,10 @@ btnPrintAll.addEventListener('click', async () => {
 
 // Reiniciar totem
 btnRestartTotem.addEventListener('click', () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
   clientPhone.value = '';
   clientName.value = '';
   customQty.value = '';

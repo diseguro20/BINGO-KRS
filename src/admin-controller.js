@@ -86,13 +86,10 @@ const pdvsListTbody = document.getElementById('pdvs-list-tbody');
 // Elementos do Formulário de Gateway Pix
 const formGatewayPix = document.getElementById('form-gateway-pix');
 const selectGatewayType = document.getElementById('select-gateway-type');
-const sectionGatewayEstatico = document.getElementById('section-gateway-estatico');
-const inputEstaticoChave = document.getElementById('input-estatico-chave');
-const inputEstaticoNome = document.getElementById('input-estatico-nome');
-const inputEstaticoCidade = document.getElementById('input-estatico-cidade');
-const sectionGatewayMercadopago = document.getElementById('section-gateway-mercadopago');
-const inputMpToken = document.getElementById('input-mp-token');
-const inputMpChavePix = document.getElementById('input-mp-chave-pix');
+const inputApiUrl = document.getElementById('input-api-url');
+const inputClientId = document.getElementById('input-client-id');
+const inputClientSecret = document.getElementById('input-client-secret');
+const inputChavePix = document.getElementById('input-chave-pix');
 const btnSaveGateway = document.getElementById('btn-save-gateway');
 
 // Elementos do Modal de PDVs
@@ -1247,28 +1244,12 @@ if (formPdvAdmin) {
 // CONFIGURAÇÕES DE INTEGRAÇÃO PIX - ADMIN
 // ==========================================
 
-// Alterna a exibição das seções dependendo do tipo selecionado no dropdown
+// Atualiza a URL padrão quando o tipo de gateway é alterado
 if (selectGatewayType) {
   selectGatewayType.addEventListener('change', () => {
     const type = selectGatewayType.value;
-    if (type === 'estatico') {
-      sectionGatewayEstatico.style.display = 'block';
-      sectionGatewayMercadopago.style.display = 'none';
-      
-      inputEstaticoChave.setAttribute('required', 'required');
-      inputEstaticoNome.setAttribute('required', 'required');
-      inputEstaticoCidade.setAttribute('required', 'required');
-      
-      inputMpToken.removeAttribute('required');
-    } else {
-      sectionGatewayEstatico.style.display = 'none';
-      sectionGatewayMercadopago.style.display = 'block';
-      
-      inputEstaticoChave.removeAttribute('required');
-      inputEstaticoNome.removeAttribute('required');
-      inputEstaticoCidade.removeAttribute('required');
-      
-      inputMpToken.setAttribute('required', 'required');
+    if (type === 'pixup') {
+      inputApiUrl.value = 'https://api.pixupbr.com/v2';
     }
   });
 }
@@ -1279,19 +1260,11 @@ async function carregarConfiguracaoGatewayAdmin() {
     const config = await FirebaseHelper.buscarConfiguracaoGateway();
     if (!config) return;
 
-    selectGatewayType.value = config.type || 'estatico';
-    
-    // Dispara o change handler para exibir a seção correta
-    selectGatewayType.dispatchEvent(new Event('change'));
-
-    // Estático
-    inputEstaticoChave.value = config.estaticoChave || '';
-    inputEstaticoNome.value = config.estaticoNome || '';
-    inputEstaticoCidade.value = config.estaticoCidade || 'SAO PAULO';
-
-    // Mercado Pago
-    inputMpToken.value = config.mpToken || '';
-    inputMpChavePix.value = config.mpChavePix || '';
+    selectGatewayType.value = config.type || 'pixup';
+    inputApiUrl.value = config.apiUrl || 'https://api.pixupbr.com/v2';
+    inputClientId.value = config.clientId || '';
+    inputClientSecret.value = config.clientSecret || '';
+    inputChavePix.value = config.chavePix || '';
   } catch (err) {
     console.error('Erro ao carregar configurações de gateway:', err);
   }
@@ -1305,11 +1278,10 @@ if (formGatewayPix) {
     const type = selectGatewayType.value;
     const configData = {
       type,
-      estaticoChave: inputEstaticoChave.value.trim(),
-      estaticoNome: inputEstaticoNome.value.trim(),
-      estaticoCidade: inputEstaticoCidade.value.trim(),
-      mpToken: inputMpToken.value.trim(),
-      mpChavePix: inputMpChavePix.value.trim()
+      apiUrl: inputApiUrl.value.trim(),
+      clientId: inputClientId.value.trim(),
+      clientSecret: inputClientSecret.value.trim(),
+      chavePix: inputChavePix.value.trim()
     };
 
     btnSaveGateway.disabled = true;

@@ -243,6 +243,7 @@ async function gerarPixCobrançaTotem() {
   const qty = (!isNaN(customVal) && customVal > 0) ? customVal : selectedQty;
   const amount = qty * ticketPrice;
   const name = clientName.value.trim() || 'Cliente Totem';
+  const phone = clientPhone.value.trim();
 
   const qrCodeBox = document.querySelector('.qr-code-box');
   const paymentStatusText = document.querySelector('.payment-status-box span');
@@ -254,145 +255,154 @@ async function gerarPixCobrançaTotem() {
   try {
     const config = await FirebaseHelper.buscarConfiguracaoGateway();
 
-    if (!config) {
-      console.warn("Nenhum gateway configurado. Usando Pix Estático de demonstração.");
-      const demoPayload = gerarPixEstatico("krsbingo-auto-pix-key-placeholder", "KRS BINGO", "SAO PAULO", amount);
-      pixCopiaCola.value = demoPayload;
-      
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(demoPayload)}`;
+    if (!config || !config.clientId || !config.clientSecret) {
+      console.warn("Nenhum gateway configurado. Usando Pix simulado para demonstração.");
+      pixCopiaCola.value = "00020101021226830014br.gov.bcb.pix0136krsbingo-auto-pix-key-placeholder5204000053039865802BR5915KRS_BINGO_LOTTO6009SAO_PAULO62070503***6304ABCD";
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pixCopiaCola.value)}`;
       qrCodeBox.innerHTML = `<img src="${qrUrl}" alt="Pix QR Code" style="max-width: 200px; display: block;" />`;
       if (paymentStatusSpinner) paymentStatusSpinner.style.display = 'none';
-      paymentStatusText.innerText = 'Pix Estático de Testes Gerado. Efetue o pagamento e simule aprovação.';
+      paymentStatusText.innerText = 'Demonstração: Gateway de API PixUP/Customizado não configurado no Admin.';
       return;
     }
 
-    if (config.type === 'estatico') {
-      const chave = config.estaticoChave || "krsbingo-auto-pix-key-placeholder";
-      const nome = config.estaticoNome || "KRS BINGO";
-      const cidade = config.estaticoCidade || "SAO PAULO";
-      
-      const payload = gerarPixEstatico(chave, nome, cidade, amount);
-      pixCopiaCola.value = payload;
+    const apiUrl = config.apiUrl || "https://api.pixupbr.com/v2";
+    const clientId = config.clientId;
+    const clientSecret = config.clientSecret;
+    const chavePix = config.chavePix;
 
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(payload)}`;
-      qrCodeBox.innerHTML = `<img src="${qrUrl}" alt="Pix QR Code" style="max-width: 200px; display: block;" />`;
+    try {
+      paymentStatusText.innerText = 'Autenticando com o Gateway Pix...';
       
-      paymentStatusText.innerText = 'Pix Estático Gerado. Realize o pagamento e confirme.';
-      if (paymentStatusSpinner) paymentStatusSpinner.style.display = 'none';
+      // 1. Obter Access Token via OAuth2 (Client Credentials)
+      const tokenUrl = `${apiUrl.replace(/\/$/, '')}/oauth/token`;
+      const basicAuth = btoa(`${clientId}:${clientSecret}`);
+      
+      const tokenResponse = await fetch(tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${basicAuth}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'grant_type=client_credentials'
+      });
 
-    } else if (config.type === 'mercadopago') {
-      const accessToken = config.mpToken;
-      const chavePix = config.mpChavePix;
-      
-      if (!accessToken) {
-        throw new Error("Token do Mercado Pago não configurado.");
+      if (!tokenResponse.ok) {
+        throw new Error(`Erro de autenticação: HTTP ${tokenResponse.status}`);
       }
 
-      const idempotencyKey = 'idemp_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
+
+      paymentStatusText.innerText = 'Gerando QR Code do Pix...';
+
+      // 2. Criar cobrança Pix (qrcode)
+      const qrCodeUrl = `${apiUrl.replace(/\/$/, '')}/pix/qrcode`;
+      const txid = 'tx_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
       
-      try {
-        paymentStatusText.innerText = 'Gerando Pix no Mercado Pago...';
-        
-        const response = await fetch("https://api.mercadopago.com/v1/payments", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-            "X-Idempotency-Key": idempotencyKey
-          },
-          body: JSON.stringify({
-            transaction_amount: parseFloat(amount.toFixed(2)),
-            description: `KRS BINGO - ${qty} cartelas`,
-            payment_method_id: "pix",
-            payer: {
-              email: "cliente@totem.com",
-              first_name: name.split(' ')[0] || "Cliente",
-              last_name: name.split(' ').slice(1).join(' ') || "Totem",
-              identification: {
-                type: "CPF",
-                number: "00000000000"
-              }
-            }
-          })
-        });
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.message || `HTTP ${response.status}`);
-        }
-
-        const paymentData = await response.json();
-        
-        const pixPayload = paymentData.point_of_interaction.transaction_data.qr_code;
-        const qrCodeBase64 = paymentData.point_of_interaction.transaction_data.qr_code_base64;
-        const paymentId = paymentData.id;
-
-        pixCopiaCola.value = pixPayload;
-        qrCodeBox.innerHTML = `<img src="data:image/png;base64,${qrCodeBase64}" alt="Pix QR Code" style="max-width: 200px; display: block;" />`;
-        
-        paymentStatusText.innerText = 'Aguardando pagamento automático...';
-
-        // Iniciar polling de 5 segundos
-        pollingInterval = setInterval(async () => {
-          try {
-            const checkRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-              headers: {
-                "Authorization": `Bearer ${accessToken}`
-              }
-            });
-            if (checkRes.ok) {
-              const checkData = await checkRes.json();
-              if (checkData.status === 'approved') {
-                clearInterval(pollingInterval);
-                pollingInterval = null;
-                paymentStatusText.innerText = 'Pagamento aprovado com sucesso!';
-                
-                try {
-                  await finalizarVendaRealizada();
-                } catch (vendaErr) {
-                  console.error("Erro ao faturar venda automatica:", vendaErr);
-                  alert("Pagamento recebido, mas houve um erro ao registrar as cartelas: " + vendaErr.message);
-                }
-              } else if (checkData.status === 'rejected' || checkData.status === 'cancelled') {
-                clearInterval(pollingInterval);
-                pollingInterval = null;
-                paymentStatusText.innerText = 'Pagamento recusado/cancelado. Tente novamente.';
-                if (paymentStatusSpinner) paymentStatusSpinner.style.display = 'none';
-              }
-            }
-          } catch (pollingErr) {
-            console.error("Erro ao verificar status do pagamento:", pollingErr);
+      const cobResponse = await fetch(qrCodeUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          amount: parseFloat(amount.toFixed(2)),
+          key: chavePix,
+          description: `KRS BINGO - ${qty} cartela(s)`,
+          txid: txid,
+          payer: {
+            name: name,
+            phone: phone.replace(/\D/g, '')
           }
-        }, 5000);
+        })
+      });
 
-      } catch (mpErr) {
-        console.warn("Mercado Pago API failed or CORS blocked. Falling back to Static Pix.", mpErr);
-        
-        // Fallback para Pix Estático usando mpChavePix ou estaticoChave
-        const fallbackChave = chavePix || config.estaticoChave || "krsbingo-auto-pix-key-placeholder";
-        const fallbackNome = config.estaticoNome || "KRS BINGO";
-        const fallbackCidade = config.estaticoCidade || "SAO PAULO";
-        
-        const payload = gerarPixEstatico(fallbackChave, fallbackNome, fallbackCidade, amount);
-        pixCopiaCola.value = payload;
-
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(payload)}`;
-        qrCodeBox.innerHTML = `<img src="${qrUrl}" alt="Pix QR Code" style="max-width: 200px; display: block;" />`;
-        
-        paymentStatusText.innerText = 'Aprovação manual (Fallback Pix): Realize o pagamento e confirme.';
-        if (paymentStatusSpinner) paymentStatusSpinner.style.display = 'none';
+      if (!cobResponse.ok) {
+        throw new Error(`Erro ao gerar Pix: HTTP ${cobResponse.status}`);
       }
+
+      const paymentData = await cobResponse.json();
+
+      // Mapeamento dinâmico dos retornos da API (PixUP ou outros)
+      const emvString = paymentData.qrcode || paymentData.emv || paymentData.pix_code || paymentData.qr_code || paymentData.code || paymentData.payload || paymentData.copiacola;
+      const qrCodeBase64 = paymentData.base64 || paymentData.qr_code_base64 || paymentData.qrcode_base64 || paymentData.image_base64 || paymentData.image;
+      const paymentId = paymentData.id || paymentData.txid || paymentData.payment_id || txid;
+
+      if (!emvString) {
+        throw new Error("Resposta da API PixUP sem código Copia e Cola.");
+      }
+
+      pixCopiaCola.value = emvString;
+
+      if (qrCodeBase64) {
+        const imgSrc = qrCodeBase64.startsWith('data:') ? qrCodeBase64 : `data:image/png;base64,${qrCodeBase64}`;
+        qrCodeBox.innerHTML = `<img src="${imgSrc}" alt="Pix QR Code" style="max-width: 200px; display: block;" />`;
+      } else {
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(emvString)}`;
+        qrCodeBox.innerHTML = `<img src="${qrUrl}" alt="Pix QR Code" style="max-width: 200px; display: block;" />`;
+      }
+
+      paymentStatusText.innerText = 'Aguardando pagamento automático...';
+
+      // 3. Iniciar Polling de 5 segundos para verificar o status
+      pollingInterval = setInterval(async () => {
+        try {
+          // Consultar endpoint do pagamento
+          const checkUrl = `${apiUrl.replace(/\/$/, '')}/pix/qrcode/${paymentId}`;
+          const checkRes = await fetch(checkUrl, {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`
+            }
+          });
+
+          if (checkRes.ok) {
+            const checkData = await checkRes.json();
+            
+            // Aceita múltiplos formatos de retorno de status comuns
+            const status = (checkData.status || checkData.status_pagamento || '').toLowerCase();
+            const isPaid = status === 'approved' || status === 'paid' || status === 'pago' || status === 'liquidado' || checkData.paid === true || checkData.pago === true;
+
+            if (isPaid) {
+              clearInterval(pollingInterval);
+              pollingInterval = null;
+              paymentStatusText.innerText = 'Pagamento aprovado com sucesso!';
+              
+              try {
+                await finalizarVendaRealizada();
+              } catch (vendaErr) {
+                console.error("Erro ao faturar venda automatica:", vendaErr);
+                alert("Pagamento recebido, mas houve um erro ao registrar as cartelas: " + vendaErr.message);
+              }
+            } else if (status === 'rejected' || status === 'cancelled' || status === 'recusado' || status === 'cancelado') {
+              clearInterval(pollingInterval);
+              pollingInterval = null;
+              paymentStatusText.innerText = 'Pagamento recusado ou cancelado. Tente gerar novamente.';
+              if (paymentStatusSpinner) paymentStatusSpinner.style.display = 'none';
+            }
+          }
+        } catch (pollingErr) {
+          console.error("Erro no polling de status Pix:", pollingErr);
+        }
+      }, 5000);
+
+    } catch (apiErr) {
+      console.error("Erro na comunicação com a API do Gateway:", apiErr);
+      paymentStatusText.innerText = 'Falha na API: ' + apiErr.message;
+      if (paymentStatusSpinner) paymentStatusSpinner.style.display = 'none';
+      
+      // Renderizar feedback de erro de API / CORS
+      pixCopiaCola.value = "ERRO_API:_" + apiErr.message;
+      qrCodeBox.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--danger); font-weight: bold;">⚠️ Erro de API / CORS<br><span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">${apiErr.message}</span></div>`;
     }
   } catch (err) {
     console.error("Erro geral na geração do Pix:", err);
-    paymentStatusText.innerText = 'Erro ao gerar Pix. Use a simulação abaixo para testar.';
+    paymentStatusText.innerText = 'Erro na geração da cobrança Pix.';
     if (paymentStatusSpinner) paymentStatusSpinner.style.display = 'none';
   }
 }
 
 // ==========================================
 // 4. PAGAMENTO SIMULADO E COPÍA E COLA
-// ==========================================
 btnCopyPix.addEventListener('click', () => {
   const pixStr = pixCopiaCola.value;
   if (navigator.clipboard && navigator.clipboard.writeText) {

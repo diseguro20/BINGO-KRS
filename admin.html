@@ -540,51 +540,40 @@
     <div id="container-tab-api" style="display: none;">
       <div class="admin-card" style="margin-bottom: 25px;">
         <h2>Integração Gateway Pix</h2>
-        <p class="card-subtitle">Configure as credenciais e métodos de recebimento via Pix para as vendas automáticas (Totem de Autoatendimento).</p>
+        <p class="card-subtitle">Configure as credenciais do seu gateway de pagamento Pix (tipo PixUP) para gerar QR Codes dinâmicos e receber confirmações automáticas no Totem de Autoatendimento.</p>
         
         <form id="form-gateway-pix">
           <div class="form-group" style="margin-bottom: 20px;">
-            <label for="select-gateway-type">Método de Recebimento Pix: *</label>
+            <label for="select-gateway-type">Gateway de Pagamento: *</label>
             <select id="select-gateway-type" class="form-control" style="height: auto;">
-              <option value="estatico" selected>Pix Estático (Chave Pix Direta - Grátis e Imediato)</option>
-              <option value="mercadopago">Mercado Pago (PIX Dinâmico com Baixa Automática)</option>
+              <option value="pixup" selected>PixUP (Recomendado - Baixa Automática)</option>
+              <option value="custom">Outro Gateway API (Customizado)</option>
             </select>
           </div>
 
-          <!-- Seção 1: Pix Estático -->
-          <div id="section-gateway-estatico" style="display: block; padding: 15px; border: 1px solid var(--admin-border); border-radius: 8px; background: rgba(255,255,255,0.01); margin-bottom: 20px;">
-            <h3 style="font-size: 14px; color: var(--neon-gold); margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid var(--admin-border); padding-bottom: 6px;">⚙️ Configurações do Pix Estático</h3>
+          <!-- Campos de Configuração -->
+          <div id="section-gateway-config" style="padding: 20px; border: 1px solid var(--admin-border); border-radius: 8px; background: rgba(255,255,255,0.01); margin-bottom: 20px;">
+            <h3 style="font-size: 14px; color: var(--neon-cyan); margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid var(--admin-border); padding-bottom: 6px;">⚙️ Credenciais da API Pix</h3>
             
-            <div class="form-group">
-              <label for="input-estatico-chave">Chave Pix (E-mail, CPF, CNPJ, Celular ou Chave Aleatória): *</label>
-              <input type="text" id="input-estatico-chave" class="form-control" placeholder="Ex: sua-chave@pix.com">
+            <div class="form-group" style="margin-bottom: 15px;">
+              <label for="input-api-url">URL Base da API (Endpoint): *</label>
+              <input type="text" id="input-api-url" class="form-control" placeholder="Ex: https://api.pixupbr.com/v2" value="https://api.pixupbr.com/v2" required>
             </div>
 
-            <div class="grid-2-cols">
+            <div class="grid-2-cols" style="margin-bottom: 15px;">
               <div class="form-group">
-                <label for="input-estatico-nome">Nome do Beneficiário (Nome Completo ou Razão Social): *</label>
-                <input type="text" id="input-estatico-nome" class="form-control" placeholder="Ex: BINGO KRS LTDA">
+                <label for="input-client-id">Client ID (ID do App / Usuário API): *</label>
+                <input type="text" id="input-client-id" class="form-control" placeholder="Insira o Client ID" required>
               </div>
               <div class="form-group">
-                <label for="input-estatico-cidade">Cidade do Beneficiário: *</label>
-                <input type="text" id="input-estatico-cidade" class="form-control" placeholder="Ex: SAO PAULO" value="SAO PAULO">
+                <label for="input-client-secret">Client Secret (Chave do App / Senha API): *</label>
+                <input type="password" id="input-client-secret" class="form-control" placeholder="Insira o Client Secret" required>
               </div>
             </div>
-          </div>
 
-          <!-- Seção 2: Mercado Pago -->
-          <div id="section-gateway-mercadopago" style="display: none; padding: 15px; border: 1px solid var(--admin-border); border-radius: 8px; background: rgba(255,255,255,0.01); margin-bottom: 20px;">
-            <h3 style="font-size: 14px; color: var(--primary); margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid var(--admin-border); padding-bottom: 6px;">⚙️ Configurações do Mercado Pago</h3>
-            
             <div class="form-group">
-              <label for="input-mp-token">Token de Acesso (Production Access Token / API Key): *</label>
-              <input type="password" id="input-mp-token" class="form-control" placeholder="Ex: APP_USR-XXXXXX-XXXXXX">
-              <small style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">Obtenha o seu token no menu de credenciais de produção no painel do Mercado Pago Developers.</small>
-            </div>
-            
-            <div class="form-group">
-              <label for="input-mp-chave-pix">Chave Pix associada à conta do Mercado Pago (para identificação):</label>
-              <input type="text" id="input-mp-chave-pix" class="form-control" placeholder="Ex: sua-chave@pix.com">
+              <label for="input-chave-pix">Chave Pix associada à conta: *</label>
+              <input type="text" id="input-chave-pix" class="form-control" placeholder="Ex: sua-chave@pix.com" required>
             </div>
           </div>
 

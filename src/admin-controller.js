@@ -634,80 +634,120 @@ async function atualizarPainelDirecionamento() {
     }
   }
 
-  // 4. Renderiza o Resumo de Prêmios e Estatísticas Geral (Mostra Sempre)
+  // 4. Renderiza o Relatório de Direcionamentos Aplicados
   if (riggingSummaryContent) {
-    const valQuadra = roundPrizes.quadra ? parseFloat(roundPrizes.quadra) : 0;
-    const valQuina = roundPrizes.quina ? parseFloat(roundPrizes.quina) : 0;
-    const valBingo = roundPrizes.bingo ? parseFloat(roundPrizes.bingo) : 0;
-    const valAcumulado = roundPrizes.acumulado ? parseFloat(roundPrizes.acumulado) : 0;
+    const appliedRounds = [];
+    
+    // Verifica rodada ativa
+    if (estado && estado.forcedPdvWinner && estado.forcedPdvWinner !== 'NENHUM') {
+      appliedRounds.push({
+        gameId: estado.gameId,
+        label: `Rodada Ativa (${estado.gameId})`,
+        status: estado.status,
+        forcedPdvWinner: estado.forcedPdvWinner,
+        forcedRiggingProbability: estado.forcedRiggingProbability || 75,
+        prizes: estado.prizes,
+        pdvDailySales: estado.pdvDailySales || {}
+      });
+    }
 
-    let summaryHtml = `
-      <div style="border-bottom: 1px solid rgba(255, 193, 7, 0.2); padding-bottom: 8px; margin-bottom: 8px;">
-        <span style="color: var(--neon-cyan); font-weight: bold; text-shadow: 0 0 5px rgba(0, 243, 255, 0.3);">💰 Valores dos Prêmios:</span><br>
-        • Quadra: <span style="color: var(--success); font-weight: bold;">R$ ${valQuadra.toFixed(2).replace('.', ',')}</span><br>
-        • Quina: <span style="color: var(--success); font-weight: bold;">R$ ${valQuina.toFixed(2).replace('.', ',')}</span><br>
-        • Bingo: <span style="color: var(--success); font-weight: bold;">R$ ${valBingo.toFixed(2).replace('.', ',')}</span><br>
-        • Acumulado: <span style="color: var(--success); font-weight: bold;">R$ ${valAcumulado.toFixed(2).replace('.', ',')}</span> <span style="font-size: 10px; color: var(--text-muted);">(até a bola 44)</span>
-      </div>
-      <div style="margin-bottom: 6px;"><span style="color: var(--neon-cyan); font-weight: bold; text-shadow: 0 0 5px rgba(0, 243, 255, 0.3);">🎯 Alvos de Direcionamento:</span></div>
-    `;
+    // Verifica fila de rodadas agendadas
+    if (estado && estado.rodadasQueue) {
+      estado.rodadasQueue.forEach(r => {
+        if (r.status !== 'FINISHED' && r.forcedPdvWinner && r.forcedPdvWinner !== 'NENHUM') {
+          appliedRounds.push({
+            gameId: r.gameId,
+            label: `Rodada Agendada (${r.gameId}${r.startTime ? ' - às ' + r.startTime : ''})`,
+            status: r.status || 'PENDING',
+            forcedPdvWinner: r.forcedPdvWinner,
+            forcedRiggingProbability: r.forcedRiggingProbability || 75,
+            prizes: r.prizes,
+            pdvDailySales: r.pdvDailySales || {}
+          });
+        }
+      });
+    }
 
-    if (currentForcedPdv === "INTELIGENTE") {
-      summaryHtml += `<strong>Modo Ativo:</strong> <span style="color: var(--primary); font-weight: bold;">Prioritário Inteligente</span><br>`;
-      if (cardsCount === 0) {
-        summaryHtml += `<span style="color: var(--text-muted); font-style: italic;">Aguardando vendas de cartelas para listar as probabilidades dos bares.</span>`;
-      } else {
-        const activePdvs = [...new Set(cartelasRodada.map(c => c.pdv))];
-        const sales = (estado && estado.pdvDailySales) ? estado.pdvDailySales : (ultimoMetricas ? ultimoMetricas.rankingPdvs : {});
-        let totalWeight = 0;
-        const weights = activePdvs.map(pdv => {
-          const weight = Math.max(10, parseFloat(sales && sales[pdv] ? sales[pdv] : 10));
-          totalWeight += weight;
-          return { pdv, weight };
-        });
+    // Busca as cartelas para todas as rodadas aplicadas em paralelo para poder computar estatísticas reais
+    const roundsWithCards = await Promise.all(
+      appliedRounds.map(async (round) => {
+        let cards = [];
+        try {
+          cards = await FirebaseHelper.buscarCartelasPorGameId(round.gameId);
+        } catch (e) {
+          console.error("Erro ao buscar cartelas para o relatório de direcionamento:", e);
+        }
+        return { ...round, cards };
+      })
+    );
 
-        weights.forEach(item => {
-          const prob = ((item.weight / totalWeight) * 100).toFixed(1);
-          const valVenda = sales && sales[item.pdv] ? `R$ ${parseFloat(sales[item.pdv]).toFixed(2).replace('.', ',')}` : 'R$ 0,00';
-          summaryHtml += `
-            <div style="margin-top: 6px; padding-left: 8px; border-left: 2px solid var(--primary);">
-              <strong>${item.pdv}</strong>: <span style="color: var(--neon-gold); font-weight: 700;">${prob}% de chance de ganhar</span><br>
-              <span style="font-size: 10px; color: var(--text-muted);">Métrica Diária: ${valVenda} | Alvo provável dos prêmios</span>
-            </div>
-          `;
-        });
-      }
-    } else if (currentForcedPdv !== "NENHUM") {
-      summaryHtml += `<strong>Modo Ativo:</strong> <span style="color: var(--warning); font-weight: bold;">Manual (PDV Fixo)</span><br>`;
-      summaryHtml += `
-        <div style="margin-top: 6px; padding-left: 8px; border-left: 2px solid var(--warning);">
-          <strong>${currentForcedPdv}</strong>: <span style="color: var(--warning); font-weight: 700;">${currentRiggingProb}% de direcionamento</span><br>
-          <span style="font-size: 10px; color: var(--text-muted);">Este bar receberá prioritariamente os prêmios da rodada se tiver cartelas vendidas.</span>
+    let summaryHtml = "";
+    if (roundsWithCards.length === 0) {
+      summaryHtml = `
+        <div style="text-align: center; color: var(--text-muted); padding: 30px; font-style: italic; border: 1px dashed rgba(255, 193, 7, 0.2); border-radius: 8px; font-size: 13px;">
+          Nenhum direcionamento de prioritário (Inteligente ou Manual) aplicado ou configurado no momento.
         </div>
       `;
     } else {
-      summaryHtml += `<strong>Modo Ativo:</strong> <span style="color: var(--text-muted); font-weight: bold;">Sorteio 100% Aleatório</span><br>`;
-      if (cardsCount === 0) {
-        summaryHtml += `<span style="color: var(--text-muted); font-style: italic;">Aguardando vendas de cartelas para estimar chances naturais.</span>`;
-      } else {
-        const pdvCounts = {};
-        cartelasRodada.forEach(c => {
-          pdvCounts[c.pdv] = (pdvCounts[c.pdv] || 0) + 1;
-        });
-        const activePdvs = Object.keys(pdvCounts);
-        activePdvs.forEach(pdv => {
-          const count = pdvCounts[pdv];
-          const prob = ((count / cardsCount) * 100).toFixed(1);
-          summaryHtml += `
-            <div style="margin-top: 6px; padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.2);">
-              <strong>${pdv}</strong>: <span style="color: #fff; font-weight: 700;">${prob}% de chance natural</span><br>
-              <span style="font-size: 10px; color: var(--text-muted);">Vendeu ${count} cartelas (${prob}% do total da rodada)</span>
+      roundsWithCards.forEach(round => {
+        const valQuadra = round.prizes.quadra ? parseFloat(round.prizes.quadra) : 0;
+        const valQuina = round.prizes.quina ? parseFloat(round.prizes.quina) : 0;
+        const valBingo = round.prizes.bingo ? parseFloat(round.prizes.bingo) : 0;
+        const valAcumulado = round.prizes.acumulado ? parseFloat(round.prizes.acumulado) : 0;
+
+        let detailsHtml = "";
+        if (round.forcedPdvWinner === "INTELIGENTE") {
+          detailsHtml += `<strong>Tipo:</strong> <span style="color: var(--primary); font-weight: bold;">🤖 Prioritário Inteligente (IA)</span><br>`;
+          if (round.cards.length === 0) {
+            detailsHtml += `<span style="color: var(--text-muted); font-style: italic; font-size: 11px;">(Aguardando venda de cartelas para calcular probabilidades dos bares)</span>`;
+          } else {
+            const activePdvs = [...new Set(round.cards.map(c => c.pdv))];
+            const sales = round.pdvDailySales || {};
+            let totalWeight = 0;
+            const weights = activePdvs.map(pdv => {
+              const weight = Math.max(10, parseFloat(sales && sales[pdv] ? sales[pdv] : 10));
+              totalWeight += weight;
+              return { pdv, weight };
+            });
+
+            detailsHtml += `<span style="color: var(--neon-cyan); font-weight: bold; font-size: 11px;">Chances dos Bares Ativos:</span><br>`;
+            weights.forEach(item => {
+              const prob = ((item.weight / totalWeight) * 100).toFixed(1);
+              const valVenda = sales && sales[item.pdv] ? `R$ ${parseFloat(sales[item.pdv]).toFixed(2).replace('.', ',')}` : 'R$ 0,00';
+              detailsHtml += `• <strong>${item.pdv}</strong>: <span style="color: var(--neon-gold); font-weight: 700;">${prob}%</span> <span style="font-size: 10px; color: var(--text-muted);">(Vendas diárias: ${valVenda})</span><br>`;
+            });
+          }
+        } else {
+          detailsHtml += `<strong>Tipo:</strong> <span style="color: var(--warning); font-weight: bold;">🎯 Direcionamento Manual (PDV Fixo)</span><br>`;
+          detailsHtml += `• <strong>Bar Alvo:</strong> ${round.forcedPdvWinner}<br>`;
+          detailsHtml += `• <strong>Força da Manipulação:</strong> ${round.forcedRiggingProbability}% de chance`;
+        }
+
+        summaryHtml += `
+          <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 193, 7, 0.15); border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 6px; margin-bottom: 8px;">
+              <span style="color: var(--warning); font-weight: bold; font-size: 13px;">${round.label}</span>
+              <span class="badge-status" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(0, 243, 255, 0.1); color: var(--neon-cyan); border: 1px solid rgba(0, 243, 255, 0.2); text-transform: uppercase;">
+                ${round.status === 'WAITING' ? 'Aguardando' : (round.status === 'PLAYING' ? 'Em Sorteio' : 'Finalizado')}
+              </span>
             </div>
-          `;
-        });
-      }
+            
+            <div style="font-size: 11px; margin-bottom: 8px; color: var(--text-muted); line-height: 1.4;">
+              <span style="color: #fff; font-weight: bold;">Valores dos Prêmios:</span> <br>
+              Bingo: <span style="color: var(--success); font-weight: 700;">R$ ${valBingo.toFixed(2).replace('.', ',')}</span> | 
+              Quina: <span style="color: var(--success); font-weight: 700;">R$ ${valQuina.toFixed(2).replace('.', ',')}</span> | 
+              Quadra: <span style="color: var(--success); font-weight: 700;">R$ ${valQuadra.toFixed(2).replace('.', ',')}</span> | 
+              Acumulado: <span style="color: var(--success); font-weight: 700;">R$ ${valAcumulado.toFixed(2).replace('.', ',')}</span>
+            </div>
+
+            <div style="font-size: 12px; line-height: 1.5; color: #eee; border-top: 1px dashed rgba(255,255,255,0.05); padding-top: 6px; margin-top: 6px;">
+              ${detailsHtml}
+            </div>
+          </div>
+        `;
+      });
     }
-    
+
     riggingSummaryContent.innerHTML = summaryHtml;
   }
 }

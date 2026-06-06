@@ -2,7 +2,7 @@
  * BINGOKRS - Adaptador de Sincronização em Tempo Real (Firebase & Fallback Local)
  */
 
-import { initializeApp } from 'firebase/app';
+import { initializeApp, deleteApp } from 'firebase/app';
 import { 
   getFirestore, doc, onSnapshot, setDoc, getDoc, updateDoc, 
   collection, query, where, getDocs, runTransaction 
@@ -149,28 +149,38 @@ export const FirebaseHelper = {
     }
   },
 
-  /**
-   * Cadastra um novo operador de PDV exigindo a autorização de um operador ou administrador existente
-   */
   async cadastrarOperadorComAutorizacao(emailNovo, passwordNovo, pdvNome, operadorName, emailAutorizador, passwordAutorizador) {
     if (isFirebaseConfigured && auth && db) {
-      // 1. Tenta autenticar o autorizador em segundo plano
+      let profileAuth;
+      let tempApp = null;
       try {
-        const userCredAuth = await signInWithEmailAndPassword(auth, emailAutorizador.trim(), passwordAutorizador);
-        const docRef = doc(db, "operadores", userCredAuth.user.uid);
+        // Inicializa um Firebase App secundário e temporário para não interferir na sessão principal
+        tempApp = initializeApp(firebaseConfig, "TempAuthApp_" + Date.now());
+        const tempAuth = getAuth(tempApp);
+        const tempDb = getFirestore(tempApp);
+        
+        const userCredAuth = await signInWithEmailAndPassword(tempAuth, emailAutorizador.trim(), passwordAutorizador);
+        const docRef = doc(tempDb, "operadores", userCredAuth.user.uid);
         const userDoc = await getDoc(docRef);
+        
         if (!userDoc.exists()) {
           throw new Error("Perfil do autorizador não encontrado.");
         }
-        const profileAuth = userDoc.data();
+        profileAuth = userDoc.data();
+        
         if (profileAuth.tipo !== 'operador' && profileAuth.tipo !== 'admin') {
           throw new Error("Apenas operadores ativos ou administradores podem autorizar.");
         }
-        
-        // Desloga o autorizador para limpar a sessão temporária
-        await signOut(auth);
       } catch (err) {
-        throw new Error("Autorização falhou: E-mail ou senha do autorizador incorretos ou permissão insuficiente.");
+        throw new Error("Autorização falhou: E-mail ou senha do autorizador incorretos ou permissão insuficiente. " + err.message);
+      } finally {
+        if (tempApp) {
+          try {
+            await deleteApp(tempApp);
+          } catch (e) {
+            console.error("Erro ao deletar app temporário:", e);
+          }
+        }
       }
 
       // 2. Autorização confirmada, cria o novo operador e faz login

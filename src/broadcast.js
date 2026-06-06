@@ -264,6 +264,17 @@ function renderizarApp(estado) {
       text: "Sorteio hoje às 20h! Compre sua cartela nos pontos credenciados."
     };
 
+    // Se a rodada foi resetada ou está em WAITING, limpa qualquer popup de prêmio ativo imediatamente
+    if (status === 'WAITING') {
+      premioEmExibicao = false;
+      filaAnuncios = [];
+      winnersJaExibidos = { quadra: [], quina: [], bingo: [], acumulado: [] };
+      const overlay = document.getElementById('tv-winner-overlay');
+      if (overlay) {
+        overlay.classList.remove('active');
+      }
+    }
+
     // 1. Atualizar valores das premiações e sorteio (Sidebar Esquerda)
     if (valQuadra) valQuadra.innerText = `R$ ${prizeQuadra.toFixed(2).replace('.', ',')}`;
     if (valQuina) valQuina.innerText = `R$ ${prizeQuina.toFixed(2).replace('.', ',')}`;
@@ -715,7 +726,40 @@ FirebaseHelper.assinarComandos((comando, payload) => {
   }
 });
 
-// Enable audio context on first user interaction (required by browsers)
+// Enable audio context on first user interaction (required by browsers) and handle voice button
+const btnToggleVoice = document.getElementById('btn-toggle-voice');
+const tvVoiceStatusText = document.getElementById('tv-voice-status-text');
+
+let vozMuda = localStorage.getItem('bingokrs_mudo_voz') === 'true';
+
+function atualizarBotaoVoz() {
+  if (btnToggleVoice && tvVoiceStatusText) {
+    if (vozMuda) {
+      btnToggleVoice.style.borderColor = 'var(--neon-pink)';
+      btnToggleVoice.style.textShadow = '0 0 5px var(--neon-pink)';
+      tvVoiceStatusText.innerText = 'SOM MUTADO';
+      const iconSpan = btnToggleVoice.querySelector('span:first-child');
+      if (iconSpan) iconSpan.innerText = '🔇';
+    } else {
+      btnToggleVoice.style.borderColor = 'var(--neon-cyan)';
+      btnToggleVoice.style.textShadow = '0 0 5px var(--neon-cyan)';
+      tvVoiceStatusText.innerText = 'SOM ATIVO';
+      const iconSpan = btnToggleVoice.querySelector('span:first-child');
+      if (iconSpan) iconSpan.innerText = '🔊';
+    }
+  }
+}
+
+if (btnToggleVoice) {
+  btnToggleVoice.addEventListener('click', (e) => {
+    e.stopPropagation(); // Evita ativar listener de clique geral abaixo
+    vozMuda = !vozMuda;
+    localStorage.setItem('bingokrs_mudo_voz', vozMuda ? 'true' : 'false');
+    atualizarBotaoVoz();
+  });
+  atualizarBotaoVoz();
+}
+
 document.addEventListener('click', () => {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();

@@ -168,6 +168,7 @@ function getAudioContext() {
 
 export function playSirenSound() {
   try {
+    if (localStorage.getItem('bingokrs_mudo_voz') === 'true') return;
     const ctx = getAudioContext();
     const now = ctx.currentTime;
     const duration = 3;
@@ -221,6 +222,7 @@ export function playSirenSound() {
 
 export function playApplauseSound() {
   try {
+    if (localStorage.getItem('bingokrs_mudo_voz') === 'true') return;
     const ctx = getAudioContext();
     const now = ctx.currentTime;
     const duration = 5;
@@ -262,6 +264,7 @@ export function playApplauseSound() {
 // Short celebration jingle/horn
 export function playCelebrationHorn() {
   try {
+    if (localStorage.getItem('bingokrs_mudo_voz') === 'true') return;
     const ctx = getAudioContext();
     const now = ctx.currentTime;
 
@@ -322,40 +325,49 @@ if (window.speechSynthesis) {
 
 export function narrarBola(numero) {
   try {
+    if (localStorage.getItem('bingokrs_mudo_voz') === 'true') return;
     if (!window.speechSynthesis) return;
     
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel();
-    
-    carregarVoz();
-    
-    const numStr = numero.toString();
-    let texto = `Bola ${numero}`;
-    
-    // Add flair for special numbers
-    if (numero % 10 === 0) {
-      texto = `Bola redonda, ${numero}`;
-    } else if (numero === 13) {
-      texto = `Bola ${numero}, o gato preto!`;
-    } else if (numero === 7 || numero === 77) {
-      texto = `Bola da sorte, ${numero}!`;
-    } else if (numero === 90) {
-      texto = `A última bola, ${numero}!`;
-    } else if (numero === 1) {
-      texto = `A primeira, bola ${numero}!`;
+    // Cancel any ongoing speech only if speaking to prevent chrome engine hangs
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
     }
     
-    const utterance = new SpeechSynthesisUtterance(texto);
-    utterance.lang = 'pt-BR';
-    utterance.rate = 0.95;
-    utterance.pitch = 1.1;
-    utterance.volume = 1;
-    
-    if (vozFeminina) {
-      utterance.voice = vozFeminina;
-    }
-    
-    window.speechSynthesis.speak(utterance);
+    setTimeout(() => {
+      try {
+        carregarVoz();
+        
+        const numStr = numero.toString();
+        let texto = `Bola ${numero}`;
+        
+        // Add flair for special numbers
+        if (numero % 10 === 0) {
+          texto = `Bola redonda, ${numero}`;
+        } else if (numero === 13) {
+          texto = `Bola ${numero}, o gato preto!`;
+        } else if (numero === 7 || numero === 77) {
+          texto = `Bola da sorte, ${numero}!`;
+        } else if (numero === 90) {
+          texto = `A última bola, ${numero}!`;
+        } else if (numero === 1) {
+          texto = `A primeira, bola ${numero}!`;
+        }
+        
+        const utterance = new SpeechSynthesisUtterance(texto);
+        utterance.lang = 'pt-BR';
+        utterance.rate = 0.95;
+        utterance.pitch = 1.1;
+        utterance.volume = 1;
+        
+        if (vozFeminina) {
+          utterance.voice = vozFeminina;
+        }
+        
+        window.speechSynthesis.speak(utterance);
+      } catch (inner) {
+        console.warn('[NARRAÇÃO] Erro interno ao narrar bola:', inner);
+      }
+    }, 100);
   } catch (e) {
     console.warn('[NARRAÇÃO] Erro ao narrar bola:', e);
   }
@@ -363,32 +375,42 @@ export function narrarBola(numero) {
 
 export function narrarPremio(categoria, cardId, pdv) {
   try {
+    if (localStorage.getItem('bingokrs_mudo_voz') === 'true') return;
     if (!window.speechSynthesis) return;
     
-    window.speechSynthesis.cancel();
-    carregarVoz();
-    
-    const nomesCategorias = {
-      quadra: 'Quadra',
-      quina: 'Quina',
-      bingo: 'Bingo',
-      acumulado: 'Prêmio Acumulado'
-    };
-    
-    const catNome = nomesCategorias[categoria.toLowerCase()] || categoria;
-    const texto = `Atenção! Saiu ${catNome}! A cartela vencedora é ${cardId}, do ponto de venda ${pdv}! Parabéns ao ganhador!`;
-    
-    const utterance = new SpeechSynthesisUtterance(texto);
-    utterance.lang = 'pt-BR';
-    utterance.rate = 0.85;
-    utterance.pitch = 1.1;
-    utterance.volume = 1;
-    
-    if (vozFeminina) {
-      utterance.voice = vozFeminina;
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
     }
     
-    window.speechSynthesis.speak(utterance);
+    setTimeout(() => {
+      try {
+        carregarVoz();
+        
+        const nomesCategorias = {
+          quadra: 'Quadra',
+          quina: 'Quina',
+          bingo: 'Bingo',
+          acumulado: 'Prêmio Acumulado'
+        };
+        
+        const catNome = nomesCategorias[categoria.toLowerCase()] || categoria;
+        const texto = `Atenção! Saiu ${catNome}! A cartela vencedora é ${cardId}, do ponto de venda ${pdv}! Parabéns ao ganhador!`;
+        
+        const utterance = new SpeechSynthesisUtterance(texto);
+        utterance.lang = 'pt-BR';
+        utterance.rate = 0.85;
+        utterance.pitch = 1.1;
+        utterance.volume = 1;
+        
+        if (vozFeminina) {
+          utterance.voice = vozFeminina;
+        }
+        
+        window.speechSynthesis.speak(utterance);
+      } catch (inner) {
+        console.warn('[NARRAÇÃO] Erro interno ao narrar prêmio:', inner);
+      }
+    }, 100);
   } catch (e) {
     console.warn('[NARRAÇÃO] Erro ao narrar prêmio:', e);
   }
@@ -397,6 +419,7 @@ export function narrarPremio(categoria, cardId, pdv) {
 // Convenience: play a tick/ding sound when a ball is drawn
 export function playBallDrawSound() {
   try {
+    if (localStorage.getItem('bingokrs_mudo_voz') === 'true') return;
     const ctx = getAudioContext();
     const now = ctx.currentTime;
     

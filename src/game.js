@@ -37,7 +37,7 @@ export function criarEstadoInicial() {
     rodadasQueue: [], // Fila de rodadas programadas
     forcedPdvWinner: "NENHUM", // PDV alvo para ganhar o prêmio principal
     forcedCardId: null, // Cartela específica selecionada para ganhar
-    forcedRiggingProbability: 75, // Probabilidade de manipulação (0 a 100)
+    forcedRiggingProbability: 100, // Probabilidade de manipulação (0 a 100)
     autoStartDraw: false, // Iniciar sorteio automático ao fim da contagem
     drawSpeed: 3, // Velocidade do auto sorteio em segundos
     prizes: {
@@ -287,7 +287,7 @@ export function avancarProximaRodada(estado) {
     estado.prizes = { ...proximaConfig.prizes };
     estado.schedulingMode = proximaConfig.schedulingMode || "MANUAL";
     estado.forcedPdvWinner = proximaConfig.forcedPdvWinner || "NENHUM";
-    estado.forcedRiggingProbability = proximaConfig.forcedRiggingProbability !== undefined ? proximaConfig.forcedRiggingProbability : 75;
+    estado.forcedRiggingProbability = proximaConfig.forcedRiggingProbability !== undefined ? proximaConfig.forcedRiggingProbability : 100;
     estado.autoStartDraw = proximaConfig.autoStartDraw || false;
     estado.drawSpeed = proximaConfig.drawSpeed || 3;
     estado.forcedCardId = null; // Reseta cartela manipulada para escolher uma nova no início do sorteio
@@ -328,7 +328,7 @@ export function avancarProximaRodada(estado) {
     estado.aiActive = false;
     estado.forcedPdvWinner = "NENHUM";
     estado.forcedCardId = null;
-    estado.forcedRiggingProbability = 75;
+    estado.forcedRiggingProbability = 100;
     estado.autoStartDraw = false;
     estado.drawSpeed = 3;
     estado.pdvDailySales = {};
@@ -542,7 +542,7 @@ export function sortearProximaBola(estado) {
   if (estado.forcedCardId) {
     const forcedCard = (estado.cards || []).find(c => c.id === estado.forcedCardId);
     if (forcedCard && forcedCard.numbersRemaining > 0) {
-      const prob = estado.forcedRiggingProbability !== undefined ? estado.forcedRiggingProbability : 75;
+      const prob = estado.forcedRiggingProbability !== undefined ? estado.forcedRiggingProbability : 100;
       const roll = Math.random() * 100;
       if (roll <= prob) {
         // Encontra os números restantes da cartela manipulada que ainda estão no globo

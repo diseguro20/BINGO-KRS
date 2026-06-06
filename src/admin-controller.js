@@ -557,16 +557,16 @@ async function atualizarPainelDirecionamento() {
   
   // Determina qual é a configuração atual no banco
   let currentForcedPdv = "NENHUM";
-  let currentRiggingProb = 75;
+  let currentRiggingProb = 100;
   
   if (targetRoundId === "ATIVO") {
     currentForcedPdv = estado.forcedPdvWinner || "NENHUM";
-    currentRiggingProb = estado.forcedRiggingProbability || 75;
+    currentRiggingProb = estado.forcedRiggingProbability || 100;
   } else {
     const roundObj = estado.rodadasQueue ? estado.rodadasQueue.find(r => r.gameId === targetRoundId) : null;
     if (roundObj) {
       currentForcedPdv = roundObj.forcedPdvWinner || "NENHUM";
-      currentRiggingProb = roundObj.forcedRiggingProbability || 75;
+      currentRiggingProb = roundObj.forcedRiggingProbability || 100;
     }
   }
 
@@ -645,7 +645,7 @@ async function atualizarPainelDirecionamento() {
         label: `Rodada Ativa (${estado.gameId})`,
         status: estado.status,
         forcedPdvWinner: estado.forcedPdvWinner,
-        forcedRiggingProbability: estado.forcedRiggingProbability || 75,
+        forcedRiggingProbability: estado.forcedRiggingProbability || 100,
         prizes: estado.prizes,
         pdvDailySales: estado.pdvDailySales || {}
       });
@@ -660,7 +660,7 @@ async function atualizarPainelDirecionamento() {
             label: `Rodada Agendada (${r.gameId}${r.startTime ? ' - às ' + r.startTime : ''})`,
             status: r.status || 'PENDING',
             forcedPdvWinner: r.forcedPdvWinner,
-            forcedRiggingProbability: r.forcedRiggingProbability || 75,
+            forcedRiggingProbability: r.forcedRiggingProbability || 100,
             prizes: r.prizes,
             pdvDailySales: r.pdvDailySales || {}
           });
@@ -697,48 +697,75 @@ async function atualizarPainelDirecionamento() {
         const totalPrizes = valBingo + valQuina + valQuadra;
 
         let detailsHtml = "";
-        if (round.forcedPdvWinner === "INTELIGENTE") {
-          detailsHtml += `<strong>Tipo:</strong> <span style="color: var(--primary); font-weight: bold;">🤖 Prioritário Inteligente (IA)</span><br>`;
-          if (round.cards.length === 0) {
-            detailsHtml += `<span style="color: var(--text-muted); font-style: italic; font-size: 11px;">(Aguardando venda de cartelas para calcular probabilidades e valores dos bares)</span>`;
-          } else {
-            const activePdvs = [...new Set(round.cards.map(c => c.pdv))];
-            const sales = round.pdvDailySales || {};
-            let totalWeight = 0;
-            const weights = activePdvs.map(pdv => {
-              const weight = Math.max(10, parseFloat(sales && sales[pdv] ? sales[pdv] : 10));
-              totalWeight += weight;
-              return { pdv, weight };
-            });
+        
+        // Verifica se a rodada já tem um bar/cartela alvo selecionado na certeza (quando o sorteio já iniciou/finalizou)
+        let lockedBar = null;
+        if (round.forcedCardId) {
+          const targetCard = round.cards.find(c => c.id === round.forcedCardId);
+          if (targetCard) lockedBar = targetCard.pdv;
+        }
 
-            detailsHtml += `<span style="color: var(--neon-cyan); font-weight: bold; font-size: 11px;">Métricas e Valores por Bar:</span><br>`;
-            weights.forEach(item => {
-              const probNum = (item.weight / totalWeight) * 100;
-              const prob = probNum.toFixed(1);
-              const valVenda = sales && sales[item.pdv] ? `R$ ${parseFloat(sales[item.pdv]).toFixed(2).replace('.', ',')}` : 'R$ 0,00';
-              const estRecebimento = (probNum / 100) * totalPrizes;
-              
-              detailsHtml += `
-                <div style="margin-top: 5px; padding-left: 8px; border-left: 2px solid var(--neon-gold); font-size: 11px; margin-bottom: 6px;">
-                  • <strong>${item.pdv}</strong>: <span style="color: var(--neon-gold); font-weight: bold;">${prob}% de chance</span><br>
-                  &nbsp;&nbsp;↳ Recebimento Estimado: <span style="color: var(--success); font-weight: bold;">R$ ${estRecebimento.toFixed(2).replace('.', ',')}</span> <span style="color: var(--text-muted); font-size: 9.5px;">(de R$ ${totalPrizes.toFixed(2).replace('.', ',')} totais)</span><br>
-                  &nbsp;&nbsp;↳ Vendas Diárias: <span style="color: var(--text-muted);">${valVenda}</span>
-                </div>
-              `;
-            });
-          }
-        } else {
-          detailsHtml += `<strong>Tipo:</strong> <span style="color: var(--warning); font-weight: bold;">🎯 Direcionamento Manual (PDV Fixo)</span><br>`;
-          const probNum = parseFloat(round.forcedRiggingProbability || 75);
-          const estRecebimento = (probNum / 100) * totalPrizes;
-          
+        if (lockedBar) {
           detailsHtml += `
-            <div style="margin-top: 5px; padding-left: 8px; border-left: 2px solid var(--warning); font-size: 11px;">
-              • <strong>Bar Alvo:</strong> ${round.forcedPdvWinner}<br>
-              • <strong>Chance de Receber:</strong> <span style="color: var(--neon-gold); font-weight: bold;">${probNum}%</span><br>
-              &nbsp;&nbsp;↳ Recebimento Estimado: <span style="color: var(--success); font-weight: bold;">R$ ${estRecebimento.toFixed(2).replace('.', ',')}</span> <span style="color: var(--text-muted); font-size: 9.5px;">(de R$ ${totalPrizes.toFixed(2).replace('.', ',')} totais)</span>
+            <div style="margin-top: 5px; padding: 10px; background: rgba(0, 243, 255, 0.05); border: 1px solid var(--primary); border-radius: 6px; font-size: 11px;">
+              <span style="color: var(--neon-cyan); font-weight: bold; font-size: 12px;">🏆 Bar Vencedor Confirmado (Na Certeza):</span><br>
+              <strong style="font-size: 13px; color: var(--neon-gold);">${lockedBar}</strong><br>
+              <div style="margin-top: 6px; font-weight: bold; color: #fff;">Valores Certeiros a Receber:</div>
+              • Bingo: <span style="color: var(--success); font-weight: bold;">R$ ${valBingo.toFixed(2).replace('.', ',')}</span><br>
+              • Quina: <span style="color: var(--success); font-weight: bold;">R$ ${valQuina.toFixed(2).replace('.', ',')}</span><br>
+              • Quadra: <span style="color: var(--success); font-weight: bold;">R$ ${valQuadra.toFixed(2).replace('.', ',')}</span><br>
+              • Acumulado: <span style="color: var(--success); font-weight: bold;">R$ ${valAcumulado.toFixed(2).replace('.', ',')}</span> <span style="font-size: 9px; color: var(--text-muted);">(se bater até a bola 44)</span><br>
+              <strong style="color: var(--neon-cyan); display: block; margin-top: 6px;">Total Principal: R$ ${totalPrizes.toFixed(2).replace('.', ',')}</strong>
             </div>
           `;
+        } else {
+          if (round.forcedPdvWinner === "INTELIGENTE") {
+            detailsHtml += `<strong>Tipo:</strong> <span style="color: var(--primary); font-weight: bold;">🤖 Prioritário Inteligente (IA)</span><br>`;
+            if (round.cards.length === 0) {
+              detailsHtml += `<span style="color: var(--text-muted); font-style: italic; font-size: 11px;">(Aguardando venda de cartelas para definir os bares beneficiados)</span>`;
+            } else {
+              const activePdvs = [...new Set(round.cards.map(c => c.pdv))];
+              const sales = round.pdvDailySales || {};
+              let totalWeight = 0;
+              const weights = activePdvs.map(pdv => {
+                const weight = Math.max(10, parseFloat(sales && sales[pdv] ? sales[pdv] : 10));
+                totalWeight += weight;
+                return { pdv, weight };
+              });
+
+              detailsHtml += `<span style="color: var(--neon-cyan); font-weight: bold; font-size: 11px;">Distribuição Probabilística de Prêmios (100% Certeiros):</span><br>`;
+              weights.forEach(item => {
+                const probNum = (item.weight / totalWeight) * 100;
+                const prob = probNum.toFixed(1);
+                const valVenda = sales && sales[item.pdv] ? `R$ ${parseFloat(sales[item.pdv]).toFixed(2).replace('.', ',')}` : 'R$ 0,00';
+                
+                detailsHtml += `
+                  <div style="margin-top: 5px; padding-left: 8px; border-left: 2px solid var(--neon-gold); font-size: 11px; margin-bottom: 6px;">
+                    • <strong>${item.pdv}</strong>: <span style="color: var(--neon-gold); font-weight: bold;">${prob}% de chance de vitória</span><br>
+                    &nbsp;&nbsp;↳ Se sorteado, recebe na certeza: <span style="color: var(--success); font-weight: bold;">R$ ${totalPrizes.toFixed(2).replace('.', ',')}</span> <span style="color: var(--text-muted); font-size: 9.5px;">(Bingo + Quina + Quadra)</span><br>
+                    &nbsp;&nbsp;↳ Vendas Diárias: <span style="color: var(--text-muted);">${valVenda}</span>
+                  </div>
+                `;
+              });
+            }
+          } else {
+            detailsHtml += `<strong>Tipo:</strong> <span style="color: var(--warning); font-weight: bold;">🎯 Direcionamento Manual (PDV Fixo)</span><br>`;
+            const probNum = parseFloat(round.forcedRiggingProbability || 100);
+            const estRecebimento = (probNum / 100) * totalPrizes;
+            
+            detailsHtml += `
+              <div style="margin-top: 5px; padding: 10px; background: rgba(255, 193, 7, 0.05); border: 1px solid var(--warning); border-radius: 6px; font-size: 11px;">
+                <span style="color: var(--warning); font-weight: bold; font-size: 12px;">🎯 Bar Vencedor Configurado (Na Certeza):</span><br>
+                <strong style="font-size: 13px; color: var(--neon-gold);">${round.forcedPdvWinner}</strong><br>
+                <div style="margin-top: 6px; font-weight: bold; color: #fff;">Valores Certeiros a Receber (Força: ${probNum}%):</div>
+                • Bingo: <span style="color: var(--success); font-weight: bold;">R$ ${valBingo.toFixed(2).replace('.', ',')}</span><br>
+                • Quina: <span style="color: var(--success); font-weight: bold;">R$ ${valQuina.toFixed(2).replace('.', ',')}</span><br>
+                • Quadra: <span style="color: var(--success); font-weight: bold;">R$ ${valQuadra.toFixed(2).replace('.', ',')}</span><br>
+                • Acumulado: <span style="color: var(--success); font-weight: bold;">R$ ${valAcumulado.toFixed(2).replace('.', ',')}</span> <span style="font-size: 9px; color: var(--text-muted);">(se bater até a bola 44)</span><br>
+                <strong style="color: var(--warning); display: block; margin-top: 6px;">Total Principal Estimado: R$ ${estRecebimento.toFixed(2).replace('.', ',')}</strong>
+              </div>
+            `;
+          }
         }
 
         summaryHtml += `

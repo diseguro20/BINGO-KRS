@@ -245,7 +245,7 @@ function renderizarFila() {
     if (rodada.forcedPdvWinner && rodada.forcedPdvWinner !== 'NENHUM') {
       pdvAlvoHtml = `
         <div><span class="badge-forced">${rodada.forcedPdvWinner}</span></div>
-        <div style="font-size: 11px; color: var(--neon-gold); margin-top: 4px;">Força: ${rodada.forcedRiggingProbability || 75}%</div>
+        <div style="font-size: 11px; color: var(--neon-gold); margin-top: 4px;">Força: ${rodada.forcedRiggingProbability || 100}%</div>
       `;
     }
 
@@ -368,7 +368,7 @@ formScheduler.addEventListener('submit', (e) => {
       drawSpeed: parseInt(selectDrawSpeed.value) || 3,
       autoStartDraw: inputAutoStart.checked,
       forcedPdvWinner: forcedPdvValue,
-      forcedRiggingProbability: parseInt(selectRiggingProb.value) || 75
+      forcedRiggingProbability: parseInt(selectRiggingProb.value) || 100
     };
 
     // Adiciona na fila
@@ -567,7 +567,7 @@ btnIaGenerateDay.addEventListener('click', async () => {
           drawSpeed: parseInt(selectDrawSpeed.value) || 3,
           autoStartDraw: inputAutoStart.checked,
           forcedPdvWinner: 'NENHUM',
-          forcedRiggingProbability: 75
+          forcedRiggingProbability: 100
         };
 
         estado.rodadasQueue.push(novaRodada);

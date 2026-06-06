@@ -425,7 +425,7 @@ export function processarEstadoJogo(estado) {
         }
         
         // QUINA: 5 acertos
-        if (card.drawnCount >= 5) {
+        if (card.drawnCount === 5) {
           const podeGanharQuina = estado.winners.quina.length === 0 || estado.winners.quina.some(w => w.ordemSorteio === ordem);
           if (podeGanharQuina) {
             adicionarVencedor(estado, 'quina', card.id, card.pdv, ordem);
@@ -433,7 +433,7 @@ export function processarEstadoJogo(estado) {
         }
         
         // QUADRA: 4 acertos
-        if (card.drawnCount >= 4) {
+        if (card.drawnCount === 4) {
           const podeGanharQuadra = estado.winners.quadra.length === 0 || estado.winners.quadra.some(w => w.ordemSorteio === ordem);
           if (podeGanharQuadra) {
             adicionarVencedor(estado, 'quadra', card.id, card.pdv, ordem);

@@ -17,6 +17,7 @@ let currentTab = 'buy';
 let lastGameIdChecked = null;
 let shownGlobalWinners = new Set();
 let hidePrizeAlertTimeout = null;
+let lastGameStatus = null;
 
 // Seletores DOM - Autenticação
 const screenAuth = document.getElementById('screen-auth');
@@ -918,28 +919,31 @@ FirebaseHelper.assinarEstadoJogo((gameData) => {
   if (!estadoJogo) return;
 
   // 1. Atualizar informações básicas da rodada
-  labelActiveRound.innerText = `Rodada #${estadoJogo.gameId || '---'}`;
+  const activeGameId = estadoJogo.gameId || '---';
+  labelActiveRound.innerText = `Rodada ${activeGameId.startsWith('#') ? activeGameId : '#' + activeGameId}`;
   ticketPrice = parseFloat(estadoJogo.prizes?.cupom || 2.0);
   labelTicketPrice.innerText = ticketPrice.toFixed(2).replace('.', ',');
   updateBuyPrice();
 
   // 2. Atualizar Badge de Status da Rodada
   badgeGameStatus.className = 'game-status-badge ' + (estadoJogo.status || 'waiting').toLowerCase();
+  
+  // A aba do jogo ao vivo fica sempre visível para o jogador ver a cartela e o globo a qualquer momento
+  btnTabLive.style.display = 'block';
+
   if (estadoJogo.status === 'PLAYING') {
     badgeGameStatus.innerText = 'Em Andamento';
-    btnTabLive.style.display = 'block'; // Mostra botão de JOGO AO VIVO
+    // Se a rodada começou agora, redireciona o jogador automaticamente para a aba do jogo ao vivo
+    if (lastGameStatus !== 'PLAYING') {
+      switchTab('live');
+    }
   } else if (estadoJogo.status === 'WAITING') {
     badgeGameStatus.innerText = 'Aguardando';
-    btnTabLive.style.display = 'none'; // Esconde aba do ao vivo
-    
-    // Se estava na aba live, volta para cartelas
-    if (btnTabLive.classList.contains('active')) {
-      switchTab('cards');
-    }
   } else if (estadoJogo.status === 'ENDED') {
     badgeGameStatus.innerText = 'Finalizado';
-    btnTabLive.style.display = 'block';
   }
+
+  lastGameStatus = estadoJogo.status;
 
   // 3. Atualizar Bola Sorteada Principal
   const bolasSorteadas = estadoJogo.drawnBalls || [];

@@ -20,6 +20,10 @@
   --ticket-text: #111111;
 }
 
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body {
   font-family: 'Outfit', sans-serif;
   background-color: var(--pdv-bg);

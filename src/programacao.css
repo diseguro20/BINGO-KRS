@@ -18,6 +18,10 @@
   --danger: #ff1744;
 }
 
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body {
   font-family: 'Outfit', sans-serif;
   background-color: var(--prog-bg);

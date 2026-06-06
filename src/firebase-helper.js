@@ -14,12 +14,12 @@ import {
 
 // Cole suas configurações reais do Firebase Console aqui
 export const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "SEU_PROJETO.firebaseapp.com",
-  projectId: "SEU_PROJETO",
-  storageBucket: "SEU_PROJETO.appspot.com",
-  messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-  appId: "SEU_APP_ID"
+  apiKey: "AIzaSyB5XxQ6ymvnXV58cmbSzlmnTU-mkAzL1Us",
+  authDomain: "bingokrs-251b2.firebaseapp.com",
+  projectId: "bingokrs-251b2",
+  storageBucket: "bingokrs-251b2.firebasestorage.app",
+  messagingSenderId: "1061685532450",
+  appId: "1:1061685532450:web:fcf3fcf53714b2aef3777b"
 };
 
 // Verifica se o Firebase está configurado com chaves reais

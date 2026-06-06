@@ -74,10 +74,12 @@ const btnLogout = document.getElementById('btn-logout');
 
 // Elementos do DOM - Abas
 const tabGame = document.getElementById('tab-game');
+const tabRigging = document.getElementById('tab-rigging');
 const tabMetrics = document.getElementById('tab-metrics');
 const tabPdvs = document.getElementById('tab-pdvs');
 const tabApi = document.getElementById('tab-api');
 const containerTabGame = document.getElementById('container-tab-game');
+const containerTabRigging = document.getElementById('container-tab-rigging');
 const containerTabMetrics = document.getElementById('container-tab-metrics');
 const containerTabPdvs = document.getElementById('container-tab-pdvs');
 const containerTabApi = document.getElementById('container-tab-api');
@@ -610,22 +612,40 @@ selectBottomPanel.addEventListener('change', (e) => {
 // ==========================================
 tabGame.addEventListener('click', () => {
   tabGame.classList.add('active');
+  tabRigging.classList.remove('active');
   tabMetrics.classList.remove('active');
   tabPdvs.classList.remove('active');
   tabApi.classList.remove('active');
   containerTabGame.style.display = 'grid';
+  containerTabRigging.style.display = 'none';
   containerTabMetrics.style.display = 'none';
   containerTabPdvs.style.display = 'none';
   containerTabApi.style.display = 'none';
 });
 
+tabRigging.addEventListener('click', () => {
+  tabRigging.classList.add('active');
+  tabGame.classList.remove('active');
+  tabMetrics.classList.remove('active');
+  tabPdvs.classList.remove('active');
+  tabApi.classList.remove('active');
+  containerTabRigging.style.display = 'block';
+  containerTabGame.style.display = 'none';
+  containerTabMetrics.style.display = 'none';
+  containerTabPdvs.style.display = 'none';
+  containerTabApi.style.display = 'none';
+  atualizarPainelDirecionamento();
+});
+
 tabMetrics.addEventListener('click', () => {
   tabMetrics.classList.add('active');
   tabGame.classList.remove('active');
+  tabRigging.classList.remove('active');
   tabPdvs.classList.remove('active');
   tabApi.classList.remove('active');
   containerTabMetrics.style.display = 'block';
   containerTabGame.style.display = 'none';
+  containerTabRigging.style.display = 'none';
   containerTabPdvs.style.display = 'none';
   containerTabApi.style.display = 'none';
 });
@@ -633,10 +653,12 @@ tabMetrics.addEventListener('click', () => {
 tabPdvs.addEventListener('click', () => {
   tabPdvs.classList.add('active');
   tabGame.classList.remove('active');
+  tabRigging.classList.remove('active');
   tabMetrics.classList.remove('active');
   tabApi.classList.remove('active');
   containerTabPdvs.style.display = 'block';
   containerTabGame.style.display = 'none';
+  containerTabRigging.style.display = 'none';
   containerTabMetrics.style.display = 'none';
   containerTabApi.style.display = 'none';
   carregarPdvsAdmin();
@@ -645,10 +667,12 @@ tabPdvs.addEventListener('click', () => {
 tabApi.addEventListener('click', () => {
   tabApi.classList.add('active');
   tabGame.classList.remove('active');
+  tabRigging.classList.remove('active');
   tabMetrics.classList.remove('active');
   tabPdvs.classList.remove('active');
   containerTabApi.style.display = 'block';
   containerTabGame.style.display = 'none';
+  containerTabRigging.style.display = 'none';
   containerTabMetrics.style.display = 'none';
   containerTabPdvs.style.display = 'none';
   carregarConfiguracaoGatewayAdmin();

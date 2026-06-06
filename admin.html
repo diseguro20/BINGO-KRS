@@ -153,6 +153,11 @@
       font-size: 14px;
       border-bottom: 1px solid rgba(255,255,255,0.02);
     }
+    .btn-tab.active#tab-rigging {
+      color: var(--warning) !important;
+      background: rgba(255, 193, 7, 0.08) !important;
+      border-bottom: 2px solid var(--warning) !important;
+    }
   </style>
 </head>
 <body>
@@ -210,6 +215,7 @@
     <!-- Menu de Abas -->
     <div class="admin-tabs">
       <button class="btn-tab active" id="tab-game">Console de Sorteio</button>
+      <button class="btn-tab" id="tab-rigging" style="color: #ffc107;">Prioritário</button>
       <button class="btn-tab" id="tab-metrics">Métricas & Faturamento</button>
       <button class="btn-tab" id="tab-pdvs">Gerenciar PDVs</button>
       <button class="btn-tab" id="tab-api">Integração Pix</button>
@@ -342,45 +348,7 @@
           </div>
         </div>
 
-        <!-- Painel de Direcionamento de Prêmio (Forçar Vencedor) -->
-        <div id="rigging-control-box" style="margin-top: 20px; padding: 15px; background: rgba(255, 193, 7, 0.05); border: 1px dashed var(--warning); border-radius: 8px;">
-          <h3 style="font-size: 14px; color: var(--warning); margin-top: 0; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; font-weight: bold;">
-            🎯 Direcionar Prêmio (Forçar Vencedor)
-          </h3>
-          
-          <!-- Seletor de Rodada -->
-          <div class="form-group" style="margin-bottom: 12px;">
-            <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: block; font-weight: bold;">Selecione o Sorteio/Rodada:</label>
-            <select id="select-admin-rigging-round" class="form-control" style="padding: 6px 10px; font-size: 12px; height: auto; background: rgba(0,0,0,0.3); border: 1px solid var(--admin-border); color: #fff;">
-              <!-- Preenchido via JS -->
-            </select>
-          </div>
 
-          <div id="rigging-status-msg" style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">
-            Aguardando venda de cartelas para permitir direcionamento.
-          </div>
-          
-          <div id="rigging-fields" style="display: none; flex-direction: column; gap: 10px; margin-top: 5px;">
-            <div class="form-group" style="margin-bottom: 0;">
-              <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: block; font-weight: bold;">Selecione o PDV/Bar Alvo:</label>
-              <select id="select-admin-forced-pdv" class="form-control" style="padding: 6px 10px; font-size: 12px; height: auto;">
-                <!-- Preenchido via JS -->
-              </select>
-            </div>
-            
-            <div class="form-group" style="margin-bottom: 0;">
-              <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: block; font-weight: bold;">Força da Manipulação:</label>
-              <select id="select-admin-rigging-prob" class="form-control" style="padding: 6px 10px; font-size: 12px; height: auto;">
-                <option value="50">50% (Levemente inclinado)</option>
-                <option value="75" selected>75% (Altamente provável)</option>
-                <option value="90">90% (Quase garantido)</option>
-                <option value="100">100% (Manipulação Absoluta)</option>
-              </select>
-            </div>
-            
-            <button id="btn-save-admin-rigging" class="btn btn-warning btn-mini" style="width: 100%; font-weight: bold; margin-top: 5px; background: var(--warning); color: #111; border: none; padding: 8px 12px;">Aplicar Direcionamento</button>
-          </div>
-        </div>
 
         <div class="winners-log" style="margin-top: 25px;">
           <h3>Vencedores Identificados na Rodada:</h3>
@@ -579,6 +547,49 @@
 
           <button type="submit" id="btn-save-gateway" class="btn btn-success" style="width: auto; font-weight: bold; padding: 12px 25px; align-self: flex-start;">Salvar Configurações de Gateway</button>
         </form>
+      </div>
+    </div>
+
+    <!-- TAB 5: DIRECIONAMENTO DE PRÊMIOS (PRIORITÁRIO) -->
+    <div id="container-tab-rigging" style="display: none;">
+      <div class="admin-card" style="margin-bottom: 25px; border-color: var(--warning); box-shadow: 0 0 25px rgba(255, 193, 7, 0.15);">
+        <h2>🎯 Direcionar Prêmio (Prioritário)</h2>
+        <p class="card-subtitle">Configure direcionamentos prioritários para forçar o vencedor de uma rodada específica com base nas cartelas ativas dos PDVs.</p>
+        
+        <div id="rigging-control-box" style="padding: 20px; background: rgba(0, 0, 0, 0.2); border: 1px dashed var(--warning); border-radius: 10px; margin-top: 15px;">
+          <!-- Seletor de Rodada -->
+          <div class="form-group" style="margin-bottom: 18px;">
+            <label style="font-size: 13px; color: var(--text-main); margin-bottom: 6px; display: block; font-weight: bold;">Selecione o Sorteio/Rodada:</label>
+            <select id="select-admin-rigging-round" class="form-control" style="padding: 10px 15px; font-size: 14px; background: rgba(0,0,0,0.4); border: 1px solid var(--admin-border); color: #fff;">
+              <!-- Preenchido via JS -->
+            </select>
+          </div>
+
+          <div id="rigging-status-msg" style="font-size: 13px; color: var(--text-muted); line-height: 1.5; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 10px;">
+            Aguardando venda de cartelas para permitir direcionamento.
+          </div>
+          
+          <div id="rigging-fields" style="display: none; flex-direction: column; gap: 15px;">
+            <div class="form-group">
+              <label style="font-size: 13px; color: var(--text-main); margin-bottom: 6px; display: block; font-weight: bold;">Selecione o PDV/Bar Alvo:</label>
+              <select id="select-admin-forced-pdv" class="form-control" style="padding: 10px 15px; font-size: 14px;">
+                <!-- Preenchido via JS -->
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label style="font-size: 13px; color: var(--text-main); margin-bottom: 6px; display: block; font-weight: bold;">Força da Manipulação:</label>
+              <select id="select-admin-rigging-prob" class="form-control" style="padding: 10px 15px; font-size: 14px;">
+                <option value="50">50% (Levemente inclinado)</option>
+                <option value="75" selected>75% (Altamente provável)</option>
+                <option value="90">90% (Quase garantido)</option>
+                <option value="100">100% (Manipulação Absoluta)</option>
+              </select>
+            </div>
+            
+            <button id="btn-save-admin-rigging" class="btn btn-warning" style="width: 100%; font-weight: bold; margin-top: 10px; background: var(--warning); color: #111; border: none; padding: 12px 20px; font-size: 15px; text-transform: uppercase; letter-spacing: 1px;">Aplicar Direcionamento</button>
+          </div>
+        </div>
       </div>
     </div>
 

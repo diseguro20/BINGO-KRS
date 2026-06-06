@@ -309,6 +309,7 @@ export function avancarProximaRodada(estado) {
 export function processarEstadoJogo(estado) {
   const sorteadas = estado.drawnBalls;
   const ordem = sorteadas.length;
+  let alguemBateuBingo = false;
 
   // 1. Atualizar informações de acerto para cada cartela
   estado.cards.forEach(card => {
@@ -318,17 +319,17 @@ export function processarEstadoJogo(estado) {
 
     // Verificar vencedores (apenas se o jogo estiver rolando)
     if (estado.status === "PLAYING") {
-      // BINGO: 15 acertos (restam 0)
+      // BINGO/KENO: 15 acertos (restam 0)
       if (card.numbersRemaining === 0) {
         adicionarVencedor(estado, 'bingo', card.id, card.pdv, ordem);
         // Se fechou até a bola 44, ganha Acumulado
         if (ordem <= ACUMULADO_LIMITE_ORDEM) {
           adicionarVencedor(estado, 'acumulado', card.id, card.pdv, ordem);
         }
-        estado.status = "ENDED"; // Encerra o jogo quando alguém bate BINGO!
+        alguemBateuBingo = true;
       }
       
-      // QUINA: 5 acertos (ou seja, tirou 5 números da cartela)
+      // QUINA: 5 acertos
       if (card.drawnCount >= 5) {
         adicionarVencedor(estado, 'quina', card.id, card.pdv, ordem);
       }
@@ -339,6 +340,11 @@ export function processarEstadoJogo(estado) {
       }
     }
   });
+
+  // Encerra a rodada imediatamente quando o último prêmio (BINGO) for conquistado
+  if (alguemBateuBingo) {
+    estado.status = "ENDED";
+  }
 
   return estado;
 }

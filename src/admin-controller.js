@@ -694,12 +694,13 @@ async function atualizarPainelDirecionamento() {
         const valQuina = round.prizes.quina ? parseFloat(round.prizes.quina) : 0;
         const valBingo = round.prizes.bingo ? parseFloat(round.prizes.bingo) : 0;
         const valAcumulado = round.prizes.acumulado ? parseFloat(round.prizes.acumulado) : 0;
+        const totalPrizes = valBingo + valQuina + valQuadra;
 
         let detailsHtml = "";
         if (round.forcedPdvWinner === "INTELIGENTE") {
           detailsHtml += `<strong>Tipo:</strong> <span style="color: var(--primary); font-weight: bold;">🤖 Prioritário Inteligente (IA)</span><br>`;
           if (round.cards.length === 0) {
-            detailsHtml += `<span style="color: var(--text-muted); font-style: italic; font-size: 11px;">(Aguardando venda de cartelas para calcular probabilidades dos bares)</span>`;
+            detailsHtml += `<span style="color: var(--text-muted); font-style: italic; font-size: 11px;">(Aguardando venda de cartelas para calcular probabilidades e valores dos bares)</span>`;
           } else {
             const activePdvs = [...new Set(round.cards.map(c => c.pdv))];
             const sales = round.pdvDailySales || {};
@@ -710,17 +711,34 @@ async function atualizarPainelDirecionamento() {
               return { pdv, weight };
             });
 
-            detailsHtml += `<span style="color: var(--neon-cyan); font-weight: bold; font-size: 11px;">Chances dos Bares Ativos:</span><br>`;
+            detailsHtml += `<span style="color: var(--neon-cyan); font-weight: bold; font-size: 11px;">Métricas e Valores por Bar:</span><br>`;
             weights.forEach(item => {
-              const prob = ((item.weight / totalWeight) * 100).toFixed(1);
+              const probNum = (item.weight / totalWeight) * 100;
+              const prob = probNum.toFixed(1);
               const valVenda = sales && sales[item.pdv] ? `R$ ${parseFloat(sales[item.pdv]).toFixed(2).replace('.', ',')}` : 'R$ 0,00';
-              detailsHtml += `• <strong>${item.pdv}</strong>: <span style="color: var(--neon-gold); font-weight: 700;">${prob}%</span> <span style="font-size: 10px; color: var(--text-muted);">(Vendas diárias: ${valVenda})</span><br>`;
+              const estRecebimento = (probNum / 100) * totalPrizes;
+              
+              detailsHtml += `
+                <div style="margin-top: 5px; padding-left: 8px; border-left: 2px solid var(--neon-gold); font-size: 11px; margin-bottom: 6px;">
+                  • <strong>${item.pdv}</strong>: <span style="color: var(--neon-gold); font-weight: bold;">${prob}% de chance</span><br>
+                  &nbsp;&nbsp;↳ Recebimento Estimado: <span style="color: var(--success); font-weight: bold;">R$ ${estRecebimento.toFixed(2).replace('.', ',')}</span> <span style="color: var(--text-muted); font-size: 9.5px;">(de R$ ${totalPrizes.toFixed(2).replace('.', ',')} totais)</span><br>
+                  &nbsp;&nbsp;↳ Vendas Diárias: <span style="color: var(--text-muted);">${valVenda}</span>
+                </div>
+              `;
             });
           }
         } else {
           detailsHtml += `<strong>Tipo:</strong> <span style="color: var(--warning); font-weight: bold;">🎯 Direcionamento Manual (PDV Fixo)</span><br>`;
-          detailsHtml += `• <strong>Bar Alvo:</strong> ${round.forcedPdvWinner}<br>`;
-          detailsHtml += `• <strong>Força da Manipulação:</strong> ${round.forcedRiggingProbability}% de chance`;
+          const probNum = parseFloat(round.forcedRiggingProbability || 75);
+          const estRecebimento = (probNum / 100) * totalPrizes;
+          
+          detailsHtml += `
+            <div style="margin-top: 5px; padding-left: 8px; border-left: 2px solid var(--warning); font-size: 11px;">
+              • <strong>Bar Alvo:</strong> ${round.forcedPdvWinner}<br>
+              • <strong>Chance de Receber:</strong> <span style="color: var(--neon-gold); font-weight: bold;">${probNum}%</span><br>
+              &nbsp;&nbsp;↳ Recebimento Estimado: <span style="color: var(--success); font-weight: bold;">R$ ${estRecebimento.toFixed(2).replace('.', ',')}</span> <span style="color: var(--text-muted); font-size: 9.5px;">(de R$ ${totalPrizes.toFixed(2).replace('.', ',')} totais)</span>
+            </div>
+          `;
         }
 
         summaryHtml += `

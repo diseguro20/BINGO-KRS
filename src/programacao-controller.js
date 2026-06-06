@@ -269,8 +269,12 @@ function renderizarProgramacao(novoEstado) {
   const precisaSugerirId = (estado === null);
   estado = novoEstado;
 
+  const rodadaAtivaFila = estado.rodadasQueue ? estado.rodadasQueue.find(r => r.gameId === estado.gameId) : null;
+  const jaTemRodadaAtivaDaFila = rodadaAtivaFila && (rodadaAtivaFila.status === 'PLAYING' || rodadaAtivaFila.status === 'FINISHED');
+
   // Se a rodada atual estiver ociosa e houver rodadas agendadas, avança automaticamente
   if (estado.status === 'WAITING' && 
+      !jaTemRodadaAtivaDaFila &&
       !estado.countdownEndTime && 
       (!estado.drawnBalls || estado.drawnBalls.length === 0) && 
       (estado.rodadasQueue && estado.rodadasQueue.length > 0)) {
@@ -342,8 +346,12 @@ formScheduler.addEventListener('submit', (e) => {
   // Adiciona na fila
   estado.rodadasQueue.push(novaRodada);
 
+  const activeRoundQueue = estado.rodadasQueue ? estado.rodadasQueue.find(r => r.gameId === estado.gameId) : null;
+  const isRoundActive = activeRoundQueue && (activeRoundQueue.status === 'PLAYING' || activeRoundQueue.status === 'FINISHED');
+
   // Se a rodada atual estiver ociosa e houver rodadas agendadas, avança automaticamente imediatamente
   if (estado.status === 'WAITING' && 
+      !isRoundActive &&
       !estado.countdownEndTime && 
       (!estado.drawnBalls || estado.drawnBalls.length === 0)) {
     console.log("[PROGRAMAÇÃO] Canal ocioso. Avançando para a rodada programada imediatamente.");

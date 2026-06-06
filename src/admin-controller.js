@@ -87,8 +87,12 @@ function renderizarAdmin(novoEstado) {
   if (!novoEstado) return;
   estado = novoEstado;
 
+  const rodadaAtivaFila = estado.rodadasQueue ? estado.rodadasQueue.find(r => r.gameId === estado.gameId) : null;
+  const jaTemRodadaAtivaDaFila = rodadaAtivaFila && (rodadaAtivaFila.status === 'PLAYING' || rodadaAtivaFila.status === 'FINISHED');
+
   // Se a rodada atual estiver ociosa e houver rodadas agendadas, avança automaticamente
   if (estado.status === 'WAITING' && 
+      !jaTemRodadaAtivaDaFila &&
       !estado.countdownEndTime && 
       (!estado.drawnBalls || estado.drawnBalls.length === 0) && 
       (estado.rodadasQueue && estado.rodadasQueue.length > 0)) {

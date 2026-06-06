@@ -4,7 +4,7 @@
 
 import { initializeApp, deleteApp } from 'firebase/app';
 import { 
-  getFirestore, doc, onSnapshot, setDoc, getDoc, updateDoc, 
+  getFirestore, doc, onSnapshot, setDoc, getDoc, updateDoc, deleteDoc,
   collection, query, where, getDocs, runTransaction 
 } from 'firebase/firestore';
 import { 
@@ -716,35 +716,98 @@ export const FirebaseHelper = {
    * Lista todos os PDVs cadastrados (nomes únicos extraídos dos operadores)
    */
   async listarPdvsCadastrados() {
+    let pdvMap = {};
+    
     if (isFirebaseConfigured && db) {
-      const q = query(collection(db, "operadores"));
-      const querySnap = await getDocs(q);
-      const pdvMap = {};
-      querySnap.forEach(docSnap => {
-        const data = docSnap.data();
-        if (data.pdvNome && !pdvMap[data.pdvNome]) {
-          pdvMap[data.pdvNome] = {
-            pdvNome: data.pdvNome,
-            comissaoTipo: data.comissaoTipo || 'bruta',
-            comissaoValor: data.comissaoValor || 10
-          };
-        }
-      });
+      try {
+        const qPdvs = query(collection(db, "pdvs"));
+        const querySnapPdvs = await getDocs(qPdvs);
+        querySnapPdvs.forEach(docSnap => {
+          const data = docSnap.data();
+          if (data.pdvNome) {
+            pdvMap[data.pdvNome] = {
+              pdvNome: data.pdvNome,
+              endereco: data.endereco || '',
+              whatsapp: data.whatsapp || '',
+              comissaoTipo: data.comissaoTipo || 'bruta',
+              comissaoValor: data.comissaoValor || 10,
+              operadores: []
+            };
+          }
+        });
+      } catch (err) {
+        console.warn("[FIREBASE] Erro ao carregar coleção pdvs, tentando operadores:", err);
+      }
+      
+      try {
+        const qOps = query(collection(db, "operadores"));
+        const querySnapOps = await getDocs(qOps);
+        querySnapOps.forEach(docSnap => {
+          const data = docSnap.data();
+          if (data.pdvNome && data.tipo === 'operador') {
+            if (!pdvMap[data.pdvNome]) {
+              pdvMap[data.pdvNome] = {
+                pdvNome: data.pdvNome,
+                endereco: '',
+                whatsapp: '',
+                comissaoTipo: 'bruta',
+                comissaoValor: 10,
+                operadores: []
+              };
+            }
+            if (!pdvMap[data.pdvNome].operadores) {
+              pdvMap[data.pdvNome].operadores = [];
+            }
+            pdvMap[data.pdvNome].operadores.push({
+              nome: data.nome,
+              email: data.email,
+              uid: data.uid
+            });
+          }
+        });
+      } catch (err) {
+        console.error("[FIREBASE] Erro ao carregar operadores:", err);
+      }
+      
       return Object.values(pdvMap);
     } else {
       // MODO SIMULADO
-      const saved = localStorage.getItem('bingokrs_operadores') || '[]';
-      const operadores = JSON.parse(saved);
-      const pdvMap = {};
+      const savedPdvs = localStorage.getItem('bingokrs_pdvs') || '{}';
+      const pdvs = JSON.parse(savedPdvs);
+      Object.keys(pdvs).forEach(k => {
+        pdvMap[k] = { 
+          pdvNome: pdvs[k].pdvNome,
+          endereco: pdvs[k].endereco || '',
+          whatsapp: pdvs[k].whatsapp || '',
+          comissaoTipo: pdvs[k].comissaoTipo || 'bruta',
+          comissaoValor: pdvs[k].comissaoValor || 10,
+          operadores: [] 
+        };
+      });
+      
+      const savedOps = localStorage.getItem('bingokrs_operadores') || '[]';
+      const operadores = JSON.parse(savedOps);
       operadores.forEach(op => {
-        if (op.pdvNome && !pdvMap[op.pdvNome]) {
-          pdvMap[op.pdvNome] = {
-            pdvNome: op.pdvNome,
-            comissaoTipo: op.comissaoTipo || 'bruta',
-            comissaoValor: op.comissaoValor || 10
-          };
+        if (op.pdvNome && op.tipo === 'operador') {
+          if (!pdvMap[op.pdvNome]) {
+            pdvMap[op.pdvNome] = {
+              pdvNome: op.pdvNome,
+              endereco: '',
+              whatsapp: '',
+              comissaoTipo: 'bruta',
+              comissaoValor: 10,
+              operadores: []
+            };
+          }
+          if (!pdvMap[op.pdvNome].operadores) pdvMap[op.pdvNome].operadores = [];
+          pdvMap[op.pdvNome].operadores.push({
+            nome: op.nome,
+            email: op.email,
+            uid: op.uid
+          });
         }
       });
+      
       return Object.values(pdvMap);
     }
   },
@@ -788,6 +851,249 @@ export const FirebaseHelper = {
       const saved = localStorage.getItem('bingokrs_pdv_comissoes') || '{}';
       const comissoes = JSON.parse(saved);
       return comissoes[pdvNome] || null;
+    }
+  },
+
+  /**
+   * Cadastra um novo operador e o PDV associado pelo Administrador
+   */
+  async cadastrarOperadorPorAdmin(email, password, pdvNome, operadorName, comissaoTipo, comissaoValor, endereco, whatsapp) {
+    const comValor = parseFloat(comissaoValor) || 10;
+    const comTipo = comissaoTipo || 'bruta';
+    const cleanPdvNome = pdvNome.trim();
+
+    if (isFirebaseConfigured && auth && db) {
+      let tempApp = null;
+      try {
+        // Inicializa Firebase App temporário para evitar deslogar o Admin
+        tempApp = initializeApp(firebaseConfig, "TempPdvApp_" + Date.now());
+        const tempAuth = getAuth(tempApp);
+        const tempDb = getFirestore(tempApp);
+        
+        // Cria credencial no Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(tempAuth, email.trim(), password);
+        
+        // Cria documento do operador
+        const profile = {
+          uid: userCredential.user.uid,
+          email: email.trim(),
+          nome: operadorName,
+          pdvNome: cleanPdvNome,
+          tipo: "operador"
+        };
+        await setDoc(doc(tempDb, "operadores", userCredential.user.uid), profile);
+        
+        // Salva dados cadastrais em pdvs
+        const pdvDetails = {
+          pdvNome: cleanPdvNome,
+          endereco: endereco || '',
+          whatsapp: whatsapp || '',
+          comissaoTipo: comTipo,
+          comissaoValor: comValor,
+          updatedAt: Date.now()
+        };
+        await setDoc(doc(tempDb, "pdvs", cleanPdvNome), pdvDetails);
+        
+        // Salva na coleção legada pdv_comissoes para faturamento
+        await setDoc(doc(tempDb, "pdv_comissoes", cleanPdvNome), {
+          pdvNome: cleanPdvNome,
+          comissaoTipo: comTipo,
+          comissaoValor: comValor,
+          updatedAt: Date.now()
+        });
+
+        return { uid: userCredential.user.uid, pdvNome: cleanPdvNome };
+      } catch (err) {
+        throw new Error(err.message);
+      } finally {
+        if (tempApp) {
+          try {
+            await deleteApp(tempApp);
+          } catch (e) {
+            console.error("Erro ao limpar app temporário:", e);
+          }
+        }
+      }
+    } else {
+      // MODO SIMULADO
+      const savedOps = localStorage.getItem('bingokrs_operadores') || '[]';
+      const operadores = JSON.parse(savedOps);
+      if (operadores.some(o => o.email === email.trim())) {
+        throw new Error("E-mail de operador já cadastrado.");
+      }
+      
+      const newUid = "user-" + Date.now();
+      const profile = {
+        uid: newUid,
+        email: email.trim(),
+        password,
+        nome: operadorName,
+        pdvNome: cleanPdvNome,
+        tipo: "operador"
+      };
+      operadores.push(profile);
+      localStorage.setItem('bingokrs_operadores', JSON.stringify(operadores));
+      
+      // Salva em pdvs simulado
+      const savedPdvs = localStorage.getItem('bingokrs_pdvs') || '{}';
+      const pdvs = JSON.parse(savedPdvs);
+      pdvs[cleanPdvNome] = {
+        pdvNome: cleanPdvNome,
+        endereco: endereco || '',
+        whatsapp: whatsapp || '',
+        comissaoTipo: comTipo,
+        comissaoValor: comValor,
+        updatedAt: Date.now()
+      };
+      localStorage.setItem('bingokrs_pdvs', JSON.stringify(pdvs));
+      
+      // Salva comissões simuladas
+      const savedCom = localStorage.getItem('bingokrs_pdv_comissoes') || '{}';
+      const comissoes = JSON.parse(savedCom);
+      comissoes[cleanPdvNome] = {
+        pdvNome: cleanPdvNome,
+        comissaoTipo: comTipo,
+        comissaoValor: comValor,
+        updatedAt: Date.now()
+      };
+      localStorage.setItem('bingokrs_pdv_comissoes', JSON.stringify(comissoes));
+      
+      localChannel.postMessage({ type: 'AUTH_CHANGED' });
+      return { uid: newUid, pdvNome: cleanPdvNome };
+    }
+  },
+
+  /**
+   * Atualiza as informações e comissões de um PDV
+   */
+  async atualizarPdvPorAdmin(pdvNomeOriginal, pdvNomeNovo, comissaoTipo, comissaoValor, endereco, whatsapp) {
+    const comValor = parseFloat(comissaoValor) || 10;
+    const comTipo = comissaoTipo || 'bruta';
+    const cleanPdvNomeNovo = pdvNomeNovo.trim();
+    const cleanPdvNomeOriginal = pdvNomeOriginal.trim();
+
+    if (isFirebaseConfigured && db) {
+      const pdvDetails = {
+        pdvNome: cleanPdvNomeNovo,
+        endereco: endereco || '',
+        whatsapp: whatsapp || '',
+        comissaoTipo: comTipo,
+        comissaoValor: comValor,
+        updatedAt: Date.now()
+      };
+      
+      // Salva novos dados do estabelecimento
+      await setDoc(doc(db, "pdvs", cleanPdvNomeNovo), pdvDetails);
+      await setDoc(doc(db, "pdv_comissoes", cleanPdvNomeNovo), {
+        pdvNome: cleanPdvNomeNovo,
+        comissaoTipo: comTipo,
+        comissaoValor: comValor,
+        updatedAt: Date.now()
+      });
+      
+      // Se mudou o nome, limpa as referências ao nome anterior e atualiza os operadores associados
+      if (cleanPdvNomeOriginal !== cleanPdvNomeNovo) {
+        try {
+          await deleteDoc(doc(db, "pdvs", cleanPdvNomeOriginal));
+          await deleteDoc(doc(db, "pdv_comissoes", cleanPdvNomeOriginal));
+        } catch (e) {
+          console.error("Erro ao deletar PDV antigo:", e);
+        }
+        
+        const q = query(collection(db, "operadores"), where("pdvNome", "==", cleanPdvNomeOriginal));
+        const querySnap = await getDocs(q);
+        const batchPromise = [];
+        querySnap.forEach(docSnap => {
+          const docRef = doc(db, "operadores", docSnap.id);
+          batchPromise.push(updateDoc(docRef, { pdvNome: cleanPdvNomeNovo }));
+        });
+        await Promise.all(batchPromise);
+      }
+      
+      return pdvDetails;
+    } else {
+      // MODO SIMULADO
+      const savedPdvs = localStorage.getItem('bingokrs_pdvs') || '{}';
+      const pdvs = JSON.parse(savedPdvs);
+      
+      const pdvDetails = {
+        pdvNome: cleanPdvNomeNovo,
+        endereco: endereco || '',
+        whatsapp: whatsapp || '',
+        comissaoTipo: comTipo,
+        comissaoValor: comValor,
+        updatedAt: Date.now()
+      };
+      
+      delete pdvs[cleanPdvNomeOriginal];
+      pdvs[cleanPdvNomeNovo] = pdvDetails;
+      localStorage.setItem('bingokrs_pdvs', JSON.stringify(pdvs));
+      
+      // Sincroniza comissões
+      const savedCom = localStorage.getItem('bingokrs_pdv_comissoes') || '{}';
+      const comissoes = JSON.parse(savedCom);
+      delete comissoes[cleanPdvNomeOriginal];
+      comissoes[cleanPdvNomeNovo] = {
+        pdvNome: cleanPdvNomeNovo,
+        comissaoTipo: comTipo,
+        comissaoValor: comValor,
+        updatedAt: Date.now()
+      };
+      localStorage.setItem('bingokrs_pdv_comissoes', JSON.stringify(comissoes));
+      
+      // Atualiza operadores no LocalStorage
+      if (cleanPdvNomeOriginal !== cleanPdvNomeNovo) {
+        const savedOps = localStorage.getItem('bingokrs_operadores') || '[]';
+        const operadores = JSON.parse(savedOps);
+        operadores.forEach(op => {
+          if (op.pdvNome === cleanPdvNomeOriginal) {
+            op.pdvNome = cleanPdvNomeNovo;
+          }
+        });
+        localStorage.setItem('bingokrs_operadores', JSON.stringify(operadores));
+      }
+      
+      localChannel.postMessage({ type: 'AUTH_CHANGED' });
+      return pdvDetails;
+    }
+  },
+
+  /**
+   * Remove um PDV e seus operadores do sistema
+   */
+  async excluirPdvPorAdmin(pdvNome) {
+    const cleanPdvNome = pdvNome.trim();
+    if (isFirebaseConfigured && db) {
+      await deleteDoc(doc(db, "pdvs", cleanPdvNome));
+      await deleteDoc(doc(db, "pdv_comissoes", cleanPdvNome));
+      
+      // Remove operadores daquele PDV no Firestore (eles perdem o acesso ao caixa)
+      const q = query(collection(db, "operadores"), where("pdvNome", "==", cleanPdvNome));
+      const querySnap = await getDocs(q);
+      const batchPromise = [];
+      querySnap.forEach(docSnap => {
+        const docRef = doc(db, "operadores", docSnap.id);
+        batchPromise.push(deleteDoc(docRef));
+      });
+      await Promise.all(batchPromise);
+    } else {
+      // MODO SIMULADO
+      const savedPdvs = localStorage.getItem('bingokrs_pdvs') || '{}';
+      const pdvs = JSON.parse(savedPdvs);
+      delete pdvs[cleanPdvNome];
+      localStorage.setItem('bingokrs_pdvs', JSON.stringify(pdvs));
+      
+      const savedCom = localStorage.getItem('bingokrs_pdv_comissoes') || '{}';
+      const comissoes = JSON.parse(savedCom);
+      delete comissoes[cleanPdvNome];
+      localStorage.setItem('bingokrs_pdv_comissoes', JSON.stringify(comissoes));
+      
+      const savedOps = localStorage.getItem('bingokrs_operadores') || '[]';
+      let operadores = JSON.parse(savedOps);
+      operadores = operadores.filter(op => op.pdvNome !== cleanPdvNome);
+      localStorage.setItem('bingokrs_operadores', JSON.stringify(operadores));
+      
+      localChannel.postMessage({ type: 'AUTH_CHANGED' });
     }
   }
 };

@@ -75,8 +75,29 @@ const btnLogout = document.getElementById('btn-logout');
 // Elementos do DOM - Abas
 const tabGame = document.getElementById('tab-game');
 const tabMetrics = document.getElementById('tab-metrics');
+const tabPdvs = document.getElementById('tab-pdvs');
 const containerTabGame = document.getElementById('container-tab-game');
 const containerTabMetrics = document.getElementById('container-tab-metrics');
+const containerTabPdvs = document.getElementById('container-tab-pdvs');
+const pdvsListTbody = document.getElementById('pdvs-list-tbody');
+
+// Elementos do Modal de PDVs
+const modalPdvAdmin = document.getElementById('modal-pdv-admin');
+const modalPdvTitle = document.getElementById('modal-pdv-title');
+const formPdvAdmin = document.getElementById('form-pdv-admin');
+const inputPdvNome = document.getElementById('input-pdv-nome');
+const inputPdvWhatsapp = document.getElementById('input-pdv-whatsapp');
+const inputPdvEndereco = document.getElementById('input-pdv-endereco');
+const selectPdvComissaoTipo = document.getElementById('select-pdv-comissao-tipo');
+const inputPdvComissaoValor = document.getElementById('input-pdv-comissao-valor');
+const sectionOperadorCredenciais = document.getElementById('section-operador-credenciais');
+const inputOpNome = document.getElementById('input-op-nome');
+const inputOpEmail = document.getElementById('input-op-email');
+const inputOpSenha = document.getElementById('input-op-senha');
+const btnNovoPdv = document.getElementById('btn-novo-pdv');
+const btnModalClose = document.getElementById('btn-modal-close');
+const btnPdvCancel = document.getElementById('btn-pdv-cancel');
+const btnPdvSaveSubmit = document.getElementById('btn-pdv-save-submit');
 
 // Elementos do DOM - Métricas Financeiras
 const metRevenue = document.getElementById('met-revenue');
@@ -579,15 +600,29 @@ selectBottomPanel.addEventListener('change', (e) => {
 tabGame.addEventListener('click', () => {
   tabGame.classList.add('active');
   tabMetrics.classList.remove('active');
+  tabPdvs.classList.remove('active');
   containerTabGame.style.display = 'grid';
   containerTabMetrics.style.display = 'none';
+  containerTabPdvs.style.display = 'none';
 });
 
 tabMetrics.addEventListener('click', () => {
   tabMetrics.classList.add('active');
   tabGame.classList.remove('active');
+  tabPdvs.classList.remove('active');
   containerTabMetrics.style.display = 'block';
   containerTabGame.style.display = 'none';
+  containerTabPdvs.style.display = 'none';
+});
+
+tabPdvs.addEventListener('click', () => {
+  tabPdvs.classList.add('active');
+  tabGame.classList.remove('active');
+  tabMetrics.classList.remove('active');
+  containerTabPdvs.style.display = 'block';
+  containerTabGame.style.display = 'none';
+  containerTabMetrics.style.display = 'none';
+  carregarPdvsAdmin();
 });
 
 // ==========================================
@@ -984,3 +1019,194 @@ if (tabMetrics) {
 
 // Carrega comissões inicialmente
 setTimeout(carregarComissoesPdvAdmin, 2000);
+
+// ==========================================
+// GESTÃO DE PDVS - LÓGICA DO PAINEL ADMIN
+// ==========================================
+let cachePdvs = [];
+let modoModalPdv = 'CRIAR'; // 'CRIAR' ou 'EDITAR'
+let pdvNomeOriginalEdicao = '';
+
+async function carregarPdvsAdmin() {
+  if (!pdvsListTbody) return;
+  try {
+    const pdvs = await FirebaseHelper.listarPdvsCadastrados();
+    cachePdvs = pdvs;
+    pdvsListTbody.innerHTML = '';
+    
+    if (pdvs.length === 0) {
+      pdvsListTbody.innerHTML = '<tr><td colspan="7" class="empty-log" style="text-align: center; font-style: italic; padding: 40px; color: var(--text-muted);">Nenhum PDV cadastrado no sistema.</td></tr>';
+      return;
+    }
+    
+    pdvs.forEach(pdv => {
+      const op = pdv.operadores && pdv.operadores.length > 0 ? pdv.operadores[0] : null;
+      const opNome = op ? op.nome : 'Sem operador';
+      const opEmail = op ? op.email : 'Sem e-mail';
+      const comissaoText = `${pdv.comissaoValor}% (${pdv.comissaoTipo === 'liquida' ? 'Líquida' : 'Bruta'})`;
+      
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="padding: 12px; border-bottom: 1px solid var(--admin-border);"><strong>${pdv.pdvNome}</strong></td>
+        <td style="padding: 12px; border-bottom: 1px solid var(--admin-border);">${opNome}</td>
+        <td style="padding: 12px; border-bottom: 1px solid var(--admin-border); color: var(--text-muted);">${opEmail}</td>
+        <td style="padding: 12px; border-bottom: 1px solid var(--admin-border); color: var(--text-muted);">${pdv.endereco || '-'}</td>
+        <td style="padding: 12px; border-bottom: 1px solid var(--admin-border); color: var(--text-muted);">${pdv.whatsapp || '-'}</td>
+        <td style="padding: 12px; border-bottom: 1px solid var(--admin-border); color: var(--neon-gold); font-weight: bold;">${comissaoText}</td>
+        <td style="padding: 12px; border-bottom: 1px solid var(--admin-border); text-align: center; white-space: nowrap;">
+          <button class="btn btn-info btn-mini btn-editar-pdv" data-pdv="${pdv.pdvNome}" style="width: auto; display: inline-block; padding: 6px 12px; font-size: 11px; margin-right: 6px;">Editar</button>
+          <button class="btn btn-danger btn-mini btn-excluir-pdv" data-pdv="${pdv.pdvNome}" style="width: auto; display: inline-block; padding: 6px 12px; font-size: 11px;">Excluir</button>
+        </td>
+      `;
+      pdvsListTbody.appendChild(tr);
+    });
+    
+    // Eventos dos botões de ações
+    pdvsListTbody.querySelectorAll('.btn-editar-pdv').forEach(btn => {
+      btn.addEventListener('click', function() {
+        abrirModalPdv(this.dataset.pdv);
+      });
+    });
+    
+    pdvsListTbody.querySelectorAll('.btn-excluir-pdv').forEach(btn => {
+      btn.addEventListener('click', function() {
+        excluirPdvAdmin(this.dataset.pdv);
+      });
+    });
+  } catch (err) {
+    console.error('Erro ao carregar PDVs:', err);
+    pdvsListTbody.innerHTML = '<tr><td colspan="7" class="empty-log" style="text-align: center; color: var(--danger);">Erro ao carregar PDVs.</td></tr>';
+  }
+}
+
+function abrirModalPdv(pdvNome = null) {
+  if (!modalPdvAdmin) return;
+  
+  formPdvAdmin.reset();
+  
+  if (pdvNome) {
+    modoModalPdv = 'EDITAR';
+    pdvNomeOriginalEdicao = pdvNome;
+    modalPdvTitle.innerText = `Editar PDV: ${pdvNome}`;
+    sectionOperadorCredenciais.style.display = 'none';
+    
+    inputOpNome.removeAttribute('required');
+    inputOpEmail.removeAttribute('required');
+    inputOpSenha.removeAttribute('required');
+    
+    const pdv = cachePdvs.find(p => p.pdvNome === pdvNome);
+    if (pdv) {
+      inputPdvNome.value = pdv.pdvNome;
+      inputPdvWhatsapp.value = pdv.whatsapp || '';
+      inputPdvEndereco.value = pdv.endereco || '';
+      selectPdvComissaoTipo.value = pdv.comissaoTipo || 'bruta';
+      inputPdvComissaoValor.value = pdv.comissaoValor || 10;
+    }
+  } else {
+    modoModalPdv = 'CRIAR';
+    pdvNomeOriginalEdicao = '';
+    modalPdvTitle.innerText = "Cadastrar Novo PDV";
+    sectionOperadorCredenciais.style.display = 'block';
+    
+    inputOpNome.setAttribute('required', 'required');
+    inputOpEmail.setAttribute('required', 'required');
+    inputOpSenha.setAttribute('required', 'required');
+  }
+  
+  modalPdvAdmin.style.display = 'flex';
+}
+
+function fecharModalPdv() {
+  if (modalPdvAdmin) modalPdvAdmin.style.display = 'none';
+}
+
+async function excluirPdvAdmin(pdvNome) {
+  if (confirm(`Tem certeza absoluta de que deseja excluir o PDV "${pdvNome}" e TODAS as contas de operadores atreladas a ele? Esta ação não pode ser desfeita.`)) {
+    try {
+      await FirebaseHelper.excluirPdvPorAdmin(pdvNome);
+      alert('PDV e seus operadores excluídos com sucesso.');
+      carregarPdvsAdmin();
+      carregarComissoesPdvAdmin();
+    } catch (err) {
+      alert('Erro ao excluir PDV: ' + err.message);
+    }
+  }
+}
+
+// Configuração de eventos do modal
+if (btnNovoPdv) {
+  btnNovoPdv.addEventListener('click', () => abrirModalPdv());
+}
+
+if (btnModalClose) {
+  btnModalClose.addEventListener('click', fecharModalPdv);
+}
+
+if (btnPdvCancel) {
+  btnPdvCancel.addEventListener('click', fecharModalPdv);
+}
+
+// Fechar modal clicando fora da caixa
+window.addEventListener('click', (e) => {
+  if (e.target === modalPdvAdmin) {
+    fecharModalPdv();
+  }
+});
+
+if (formPdvAdmin) {
+  formPdvAdmin.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const pdvNome = inputPdvNome.value.trim();
+    const whatsapp = inputPdvWhatsapp.value.trim();
+    const endereco = inputPdvEndereco.value.trim();
+    const comissaoTipo = selectPdvComissaoTipo.value;
+    const comissaoValor = parseFloat(inputPdvComissaoValor.value) || 0;
+    
+    btnPdvSaveSubmit.disabled = true;
+    btnPdvSaveSubmit.innerText = 'Salvando...';
+    
+    try {
+      if (modoModalPdv === 'CRIAR') {
+        const opNome = inputOpNome.value.trim();
+        const opEmail = inputOpEmail.value.trim();
+        const opSenha = inputOpSenha.value;
+        
+        if (opSenha.length < 6) {
+          throw new Error('A senha do operador deve conter pelo menos 6 caracteres.');
+        }
+        
+        await FirebaseHelper.cadastrarOperadorPorAdmin(
+          opEmail, 
+          opSenha, 
+          pdvNome, 
+          opNome, 
+          comissaoTipo, 
+          comissaoValor, 
+          endereco, 
+          whatsapp
+        );
+        alert('Ponto de Venda (PDV) e operador cadastrados com sucesso!');
+      } else {
+        await FirebaseHelper.atualizarPdvPorAdmin(
+          pdvNomeOriginalEdicao,
+          pdvNome,
+          comissaoTipo,
+          comissaoValor,
+          endereco,
+          whatsapp
+        );
+        alert('PDV updated com sucesso!');
+      }
+      
+      fecharModalPdv();
+      carregarPdvsAdmin();
+      carregarComissoesPdvAdmin();
+    } catch (err) {
+      alert('Erro ao salvar PDV: ' + err.message);
+    } finally {
+      btnPdvSaveSubmit.disabled = false;
+      btnPdvSaveSubmit.innerText = 'Salvar PDV';
+    }
+  });
+}

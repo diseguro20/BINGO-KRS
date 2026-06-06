@@ -211,6 +211,7 @@
     <div class="admin-tabs">
       <button class="btn-tab active" id="tab-game">Console de Sorteio</button>
       <button class="btn-tab" id="tab-metrics">Métricas & Faturamento</button>
+      <button class="btn-tab" id="tab-pdvs">Gerenciar PDVs</button>
     </div>
 
     <!-- TAB 1: CONSOLE DO SORTEIO -->
@@ -498,6 +499,112 @@
 
       </div>
 
+    </div>
+
+    <!-- TAB 3: GERENCIAMENTO DE PDVS -->
+    <div id="container-tab-pdvs" style="display: none;">
+      <div class="admin-card" style="margin-bottom: 25px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 15px;">
+          <div>
+            <h2>Pontos de Venda (PDVs) & Bares</h2>
+            <p class="card-subtitle" style="margin-bottom: 0;">Cadastre novos estabelecimentos, defina taxas de comissão e gerencie operadores de caixa.</p>
+          </div>
+          <button id="btn-novo-pdv" class="btn btn-success" style="width: auto; font-weight: 700; padding: 10px 20px;">➕ Cadastrar Novo PDV</button>
+        </div>
+
+        <div style="overflow-x: auto; margin-top: 15px;">
+          <table class="metrics-table">
+            <thead>
+              <tr>
+                <th>Nome do Estabelecimento</th>
+                <th>Operador Responsável</th>
+                <th>E-mail de Login</th>
+                <th>Endereço</th>
+                <th>WhatsApp</th>
+                <th>Comissão</th>
+                <th style="text-align: center;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="pdvs-list-tbody">
+              <tr>
+                <td colspan="7" class="empty-log" style="text-align: center; font-style: italic; padding: 40px; color: var(--text-muted);">Carregando estabelecimentos...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Cadastro / Edição de PDV -->
+    <div id="modal-pdv-admin" class="login-overlay" style="display: none; z-index: 10005;">
+      <div class="login-card" style="max-width: 500px; width: 95%;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 id="modal-pdv-title" style="margin: 0; text-align: left;">Cadastrar Novo PDV</h2>
+          <button id="btn-modal-close" style="background: transparent; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; line-height: 1; padding: 0 5px;">&times;</button>
+        </div>
+        
+        <form id="form-pdv-admin">
+          <!-- Dados do Estabelecimento -->
+          <div style="font-size: 12px; font-weight: bold; color: var(--primary); text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid var(--admin-border); padding-bottom: 4px;">1. Dados do Estabelecimento</div>
+          
+          <div class="form-group">
+            <label for="input-pdv-nome">Nome do Estabelecimento (PDV / Bar): *</label>
+            <input type="text" id="input-pdv-nome" class="form-control" placeholder="Ex: Choperia Neon" required>
+          </div>
+
+          <div class="grid-2-cols">
+            <div class="form-group">
+              <label for="input-pdv-whatsapp">WhatsApp de Contato:</label>
+              <input type="text" id="input-pdv-whatsapp" class="form-control" placeholder="Ex: (11) 99999-9999">
+            </div>
+            <div class="form-group">
+              <label for="input-pdv-endereco">Endereço / Localização:</label>
+              <input type="text" id="input-pdv-endereco" class="form-control" placeholder="Ex: Av. Paulista, 100">
+            </div>
+          </div>
+
+          <!-- Comissão -->
+          <div class="grid-2-cols" style="margin-top: 10px;">
+            <div class="form-group">
+              <label for="select-pdv-comissao-tipo">Tipo de Comissão: *</label>
+              <select id="select-pdv-comissao-tipo" class="form-control" style="height: auto;">
+                <option value="bruta">Bruta (Faturamento total)</option>
+                <option value="liquida">Líquida (Faturamento menos prêmios)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="input-pdv-comissao-valor">Porcentagem (%): *</label>
+              <input type="number" id="input-pdv-comissao-valor" class="form-control" min="0" max="100" step="0.5" value="10" required>
+            </div>
+          </div>
+
+          <!-- Operador (Apenas Novo PDV) -->
+          <div id="section-operador-credenciais">
+            <div style="font-size: 12px; font-weight: bold; color: var(--primary); text-transform: uppercase; margin-top: 15px; margin-bottom: 10px; border-bottom: 1px solid var(--admin-border); padding-bottom: 4px;">2. Conta do Operador do Caixa</div>
+            
+            <div class="form-group">
+              <label for="input-op-nome">Nome do Operador / Vendedor: *</label>
+              <input type="text" id="input-op-nome" class="form-control" placeholder="Ex: Lucas" required>
+            </div>
+
+            <div class="grid-2-cols">
+              <div class="form-group">
+                <label for="input-op-email">E-mail de Login: *</label>
+                <input type="email" id="input-op-email" class="form-control" placeholder="Ex: lucas@neon.com" required>
+              </div>
+              <div class="form-group">
+                <label for="input-op-senha">Senha de Acesso: *</label>
+                <input type="password" id="input-op-senha" class="form-control" placeholder="Mínimo 6 caracteres" required>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 25px; display: flex; gap: 10px;">
+            <button type="button" id="btn-pdv-cancel" class="btn btn-danger-outline" style="flex: 1;">Cancelar</button>
+            <button type="submit" id="btn-pdv-save-submit" class="btn btn-success" style="flex: 1.5; font-weight: bold;">Salvar PDV</button>
+          </div>
+        </form>
+      </div>
     </div>
 
   </div>

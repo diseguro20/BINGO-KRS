@@ -111,21 +111,24 @@ selectForcedPdv.addEventListener('change', () => {
 });
 
 /**
- * Sugere o próximo ID do sorteio sequencial
+ * Sugere um ID do sorteio aleatório e único
  */
 function sugerirProximoGameId() {
   if (!estado) return;
   
-  let ultimoId = estado.nextGameId || "#0002";
+  let proximoId;
+  let tentativas = 0;
+  do {
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    proximoId = `#${randomNum}`;
+    tentativas++;
+  } while (
+    ((estado.rodadasQueue && estado.rodadasQueue.some(r => r.gameId === proximoId)) ||
+     estado.gameId === proximoId ||
+     estado.nextGameId === proximoId) && 
+    tentativas < 100
+  );
   
-  // Se houver rodadas agendadas, pega o ID da última da fila
-  if (estado.rodadasQueue && estado.rodadasQueue.length > 0) {
-    ultimoId = estado.rodadasQueue[estado.rodadasQueue.length - 1].gameId;
-  }
-  
-  // Incrementa (ex: #0002 -> #0003)
-  const numId = parseInt(ultimoId.replace('#', '')) || 0;
-  const proximoId = '#' + (numId + 1).toString().padStart(4, '0');
   inputGameId.value = proximoId;
 }
 
@@ -296,81 +299,113 @@ function renderizarProgramacao(novoEstado) {
 /**
  * Salva agendamento na fila
  */
+let isSubmitting = false;
+
 formScheduler.addEventListener('submit', (e) => {
   e.preventDefault();
 
-  const gameIdVal = inputGameId.value.trim();
-  
-  // Evita duplicar ID de rodada que já está na fila
-  const duplicado = estado.rodadasQueue.some(r => r.gameId.toLowerCase() === gameIdVal.toLowerCase());
-  if (duplicado) {
-    alert(`O ID do sorteio ${gameIdVal} já está programado na fila. Escolha outro ID.`);
-    return;
+  if (isSubmitting) return;
+  isSubmitting = true;
+
+  const btnSubmit = formScheduler.querySelector('button[type="submit"]');
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.innerText = 'Processando...';
   }
 
-  // Verifica se o PDV foi customizado
-  let forcedPdvValue = selectForcedPdv.value;
-  if (forcedPdvValue === "OUTRO") {
-    forcedPdvValue = inputForcedPdvCustom.value.trim();
-    if (!forcedPdvValue) {
-      alert("Por favor, digite o nome do bar/PDV alvo.");
+  try {
+    const gameIdVal = inputGameId.value.trim();
+    
+    // Evita duplicar ID de rodada que já está na fila
+    const duplicado = estado.rodadasQueue.some(r => r.gameId.toLowerCase() === gameIdVal.toLowerCase());
+    if (duplicado) {
+      alert(`O ID do sorteio ${gameIdVal} já está programado na fila. Escolha outro ID.`);
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerText = 'Agendar Rodada na Fila';
+      }
+      isSubmitting = false;
       return;
     }
+
+    // Verifica se o PDV foi customizado
+    let forcedPdvValue = selectForcedPdv.value;
+    if (forcedPdvValue === "OUTRO") {
+      forcedPdvValue = inputForcedPdvCustom.value.trim();
+      if (!forcedPdvValue) {
+        alert("Por favor, digite o nome do bar/PDV alvo.");
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.innerText = 'Agendar Rodada na Fila';
+        }
+        isSubmitting = false;
+        return;
+      }
+    }
+
+    const startTimeVal = inputStartTime.value || null;
+    let startDateVal = inputStartDate ? (inputStartDate.value || null) : null;
+    if (startTimeVal && !startDateVal) {
+      startDateVal = obterDataHojeLocalString();
+    }
+
+    const novaRodada = {
+      gameId: gameIdVal,
+      prizes: {
+        cupom: parseFloat(inputCupom.value) || 2.0,
+        quadra: parseFloat(inputQuadra.value) || 50.0,
+        quina: parseFloat(inputQuina.value) || 100.0,
+        bingo: parseFloat(inputBingo.value) || 250.0,
+        acumulado: parseFloat(inputAcumulado.value) || 1000.0
+      },
+      schedulingMode: document.querySelector('input[name="scheduling-mode"]:checked').value,
+      countdownMinutes: startTimeVal ? null : (parseInt(selectCountdown.value) || 2),
+      startTime: startTimeVal,
+      startDate: startTimeVal ? startDateVal : null,
+      drawSpeed: parseInt(selectDrawSpeed.value) || 3,
+      autoStartDraw: inputAutoStart.checked,
+      forcedPdvWinner: forcedPdvValue,
+      forcedRiggingProbability: parseInt(selectRiggingProb.value) || 75
+    };
+
+    // Adiciona na fila
+    estado.rodadasQueue.push(novaRodada);
+
+    const activeRoundQueue = estado.rodadasQueue ? estado.rodadasQueue.find(r => r.gameId === estado.gameId) : null;
+    const isRoundActive = activeRoundQueue && (activeRoundQueue.status === 'PLAYING' || activeRoundQueue.status === 'FINISHED');
+
+    // Se a rodada atual estiver ociosa e houver rodadas agendadas, avança automaticamente imediatamente
+    if (estado.status === 'WAITING' && 
+        !isRoundActive &&
+        !estado.countdownEndTime && 
+        (!estado.drawnBalls || estado.drawnBalls.length === 0)) {
+      console.log("[PROGRAMAÇÃO] Canal ocioso. Avançando para a rodada programada imediatamente.");
+      estado = avancarProximaRodada(estado);
+    }
+
+    // Salva no banco de dados local
+    FirebaseHelper.salvarEstadoJogo(estado);
+
+    // Limpa campos customizados e sugere o próximo ID
+    inputForcedPdvCustom.value = '';
+    inputStartTime.value = '';
+    if (inputStartDate) {
+      inputStartDate.value = obterDataHojeLocalString();
+    }
+    sugerirProximoGameId();
+
+    alert(`Rodada ${gameIdVal} agendada com sucesso!`);
+  } catch (error) {
+    console.error(error);
+  } finally {
+    isSubmitting = false;
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.innerText = 'Agendar Rodada na Fila';
+    }
   }
-
-  const startTimeVal = inputStartTime.value || null;
-  let startDateVal = inputStartDate ? (inputStartDate.value || null) : null;
-  if (startTimeVal && !startDateVal) {
-    startDateVal = obterDataHojeLocalString();
-  }
-
-  const novaRodada = {
-    gameId: gameIdVal,
-    prizes: {
-      cupom: parseFloat(inputCupom.value) || 2.0,
-      quadra: parseFloat(inputQuadra.value) || 50.0,
-      quina: parseFloat(inputQuina.value) || 100.0,
-      bingo: parseFloat(inputBingo.value) || 250.0,
-      acumulado: parseFloat(inputAcumulado.value) || 1000.0
-    },
-    schedulingMode: document.querySelector('input[name="scheduling-mode"]:checked').value,
-    countdownMinutes: startTimeVal ? null : (parseInt(selectCountdown.value) || 2),
-    startTime: startTimeVal,
-    startDate: startTimeVal ? startDateVal : null,
-    drawSpeed: parseInt(selectDrawSpeed.value) || 3,
-    autoStartDraw: inputAutoStart.checked,
-    forcedPdvWinner: forcedPdvValue,
-    forcedRiggingProbability: parseInt(selectRiggingProb.value) || 75
-  };
-
-  // Adiciona na fila
-  estado.rodadasQueue.push(novaRodada);
-
-  const activeRoundQueue = estado.rodadasQueue ? estado.rodadasQueue.find(r => r.gameId === estado.gameId) : null;
-  const isRoundActive = activeRoundQueue && (activeRoundQueue.status === 'PLAYING' || activeRoundQueue.status === 'FINISHED');
-
-  // Se a rodada atual estiver ociosa e houver rodadas agendadas, avança automaticamente imediatamente
-  if (estado.status === 'WAITING' && 
-      !isRoundActive &&
-      !estado.countdownEndTime && 
-      (!estado.drawnBalls || estado.drawnBalls.length === 0)) {
-    console.log("[PROGRAMAÇÃO] Canal ocioso. Avançando para a rodada programada imediatamente.");
-    estado = avancarProximaRodada(estado);
-  }
-
-  // Salva no banco de dados local
-  FirebaseHelper.salvarEstadoJogo(estado);
-
-  // Limpa campos customizados e sugere o próximo ID
-  inputForcedPdvCustom.value = '';
-  inputStartTime.value = '';
-  if (inputStartDate) {
-    inputStartDate.value = obterDataHojeLocalString();
-  }
-  sugerirProximoGameId();
-
-  alert(`Rodada ${gameIdVal} agendada com sucesso!`);
 });
+
 
 /**
  * Remove rodada da fila por índice

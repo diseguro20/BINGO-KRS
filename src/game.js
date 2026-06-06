@@ -18,9 +18,14 @@ export const ACUMULADO_LIMITE_ORDEM = 44; // Ganha acumulado se fechar bingo at�
  * Cria o estado inicial padrão do jogo
  */
 export function criarEstadoInicial() {
+  const rand1 = Math.floor(1000 + Math.random() * 9000);
+  let rand2 = Math.floor(1000 + Math.random() * 9000);
+  while (rand2 === rand1) {
+    rand2 = Math.floor(1000 + Math.random() * 9000);
+  }
   return {
-    gameId: "#0001",
-    nextGameId: "#0002",
+    gameId: `#${rand1}`,
+    nextGameId: `#${rand2}`,
     status: "WAITING", // WAITING, PLAYING, ENDED
     drawnBalls: [], // Sequência de bolas já sorteadas (1..90)
     ballsLeft: Array.from({ length: MAX_BALLS }, (_, i) => i + 1), // Bolas ainda no globo
@@ -326,9 +331,19 @@ export function avancarProximaRodada(estado) {
     estado.drawSpeed = 3;
   }
 
-  // Calcula o ID subsequente (ex: #0002 -> #0003)
-  const numId = parseInt(estado.gameId.replace('#', '')) || 0;
-  estado.nextGameId = '#' + (numId + 1).toString().padStart(4, '0');
+  // Gera um ID de jogo aleatório de 4 dígitos para o próximo (ex: #8492)
+  let proximoId;
+  let tentativas = 0;
+  do {
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    proximoId = `#${randomNum}`;
+    tentativas++;
+  } while (
+    ((estado.rodadasQueue && estado.rodadasQueue.some(r => r.gameId === proximoId)) ||
+     estado.gameId === proximoId) && 
+    tentativas < 100
+  );
+  estado.nextGameId = proximoId;
 
   // Transfere e combina as cartelas reservadas com as já existentes (caso a rodada anterior estivesse em WAITING)
   const todasCartelas = [...(estado.cards || []), ...(estado.nextCards || [])];

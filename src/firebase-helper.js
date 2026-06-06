@@ -1133,5 +1133,126 @@ export const FirebaseHelper = {
       const saved = localStorage.getItem('bingokrs_gateway_pix');
       return saved ? JSON.parse(saved) : null;
     }
+  },
+
+  /**
+   * Realiza o cadastro de um novo jogador
+   */
+  async cadastrarJogador(nome, celular, email, senha) {
+    const celLimpo = celular.replace(/\D/g, '');
+    const emailLimpo = email.trim().toLowerCase();
+    const dados = {
+      nome: nome.trim(),
+      celular: celLimpo,
+      email: emailLimpo,
+      senha: senha,
+      createdAt: Date.now()
+    };
+
+    if (isFirebaseConfigured && db) {
+      const qCel = query(collection(db, "jogadores"), where("celular", "==", celLimpo));
+      const snapCel = await getDocs(qCel);
+      if (!snapCel.empty) {
+        throw new Error("Celular já cadastrado.");
+      }
+
+      const qEmail = query(collection(db, "jogadores"), where("email", "==", emailLimpo));
+      const snapEmail = await getDocs(qEmail);
+      if (!snapEmail.empty) {
+        throw new Error("E-mail já cadastrado.");
+      }
+
+      const playerRef = doc(collection(db, "jogadores"));
+      dados.uid = playerRef.id;
+      await setDoc(playerRef, dados);
+      return dados;
+    } else {
+      // MODO SIMULADO
+      const saved = localStorage.getItem('bingokrs_jogadores') || '[]';
+      const jogadores = JSON.parse(saved);
+
+      if (jogadores.some(j => j.celular === celLimpo)) {
+        throw new Error("Celular já cadastrado.");
+      }
+      if (jogadores.some(j => j.email === emailLimpo)) {
+        throw new Error("E-mail já cadastrado.");
+      }
+
+      dados.uid = "jogador-" + Date.now();
+      jogadores.push(dados);
+      localStorage.setItem('bingokrs_jogadores', JSON.stringify(jogadores));
+      return dados;
+    }
+  },
+
+  /**
+   * Realiza o login de um jogador
+   */
+  async loginJogador(emailOuCelular, senha) {
+    const limpo = emailOuCelular.replace(/\D/g, '');
+    const queryTerm = emailOuCelular.trim().toLowerCase();
+
+    if (isFirebaseConfigured && db) {
+      let q = query(collection(db, "jogadores"), where("email", "==", queryTerm));
+      let snap = await getDocs(q);
+      
+      if (snap.empty && limpo) {
+        q = query(collection(db, "jogadores"), where("celular", "==", limpo));
+        snap = await getDocs(q);
+      }
+
+      if (snap.empty) {
+        throw new Error("Usuário não cadastrado.");
+      }
+
+      const jogador = snap.docs[0].data();
+      if (jogador.senha !== senha) {
+        throw new Error("Senha incorreta.");
+      }
+
+      return jogador;
+    } else {
+      // MODO SIMULADO
+      const saved = localStorage.getItem('bingokrs_jogadores') || '[]';
+      const jogadores = JSON.parse(saved);
+      const jogador = jogadores.find(j => j.email === queryTerm || (limpo && j.celular === limpo));
+
+      if (!jogador) {
+        throw new Error("Usuário não cadastrado.");
+      }
+      if (jogador.senha !== senha) {
+        throw new Error("Senha incorreta.");
+      }
+
+      return jogador;
+    }
+  },
+
+  /**
+   * Busca as cartelas compradas por um celular
+   */
+  async buscarCartelasPorCelular(celular) {
+    const cleanPhone = celular.replace(/\D/g, '');
+    if (isFirebaseConfigured && db) {
+      const q = query(collection(db, "cartelas"));
+      const querySnap = await getDocs(q);
+      const list = [];
+      querySnap.forEach(docSnap => {
+        const card = docSnap.data();
+        const cardPhoneClean = (card.clienteCelular || '').replace(/\D/g, '');
+        if (cardPhoneClean === cleanPhone) {
+          list.push(card);
+        }
+      });
+      return list;
+    } else {
+      // MODO SIMULADO
+      const savedCards = localStorage.getItem('bingokrs_cartelas_registradas') || '[]';
+      const cardsArr = JSON.parse(savedCards);
+      return cardsArr.filter(c => {
+        const cardPhoneClean = (c.clienteCelular || '').replace(/\D/g, '');
+        return cardPhoneClean === cleanPhone;
+      });
+    }
   }
 };

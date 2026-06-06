@@ -10,6 +10,7 @@ export default defineConfig({
         pdv: resolve(__dirname, 'pdv.html'),
         programacao: resolve(__dirname, 'programacao.html'),
         autoatendimento: resolve(__dirname, 'autoatendimento.html'),
+        jogar: resolve(__dirname, 'jogar.html'),
       },
     },
   },

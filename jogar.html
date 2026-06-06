@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BINGOKRS - Jogar Online</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/jogar.css">
+</head>
+<body>
+
+  <!-- ================= AUTH CONTAINER (LOGIN / CADASTRO) ================= -->
+  <div id="screen-auth" class="auth-container active">
+    
+    <!-- CARD DE LOGIN -->
+    <div id="card-login" class="auth-card">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="./src/logo.png" alt="KRS BINGO" style="height: 55px; filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.35));">
+      </div>
+      <h2>Entrar no Portal</h2>
+      <p>Insira seu cadastro para jogar online e comprar cartelas.</p>
+      
+      <form id="form-login">
+        <div class="form-group">
+          <label for="login-user">E-mail ou Celular:</label>
+          <input type="text" id="login-user" class="form-control" placeholder="Digite seu e-mail ou celular" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 24px;">
+          <label for="login-pass">Senha:</label>
+          <input type="password" id="login-pass" class="form-control" placeholder="Digite sua senha" required>
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+      </form>
+      
+      <div style="text-align: center; margin-top: 20px; font-size: 13px;">
+        Não tem uma conta? <a href="#" id="link-show-register" style="color: var(--neon-cyan); font-weight: bold; text-decoration: none;">Cadastre-se aqui</a>
+      </div>
+    </div>
+
+    <!-- CARD DE CADASTRO -->
+    <div id="card-register" class="auth-card" style="display: none;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="./src/logo.png" alt="KRS BINGO" style="height: 55px; filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.35));">
+      </div>
+      <h2>Criar Conta</h2>
+      <p>Cadastre seus dados para salvar suas cartelas e jogar online.</p>
+      
+      <form id="form-register">
+        <div class="form-group">
+          <label for="reg-name">Nome Completo:</label>
+          <input type="text" id="reg-name" class="form-control" placeholder="Ex: João da Silva" required>
+        </div>
+        <div class="form-group">
+          <label for="reg-phone">Celular (WhatsApp):</label>
+          <input type="text" id="reg-phone" class="form-control" placeholder="Ex: (11) 99999-9999" required>
+        </div>
+        <div class="form-group">
+          <label for="reg-email">E-mail:</label>
+          <input type="email" id="reg-email" class="form-control" placeholder="Ex: joao@email.com" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 24px;">
+          <label for="reg-pass">Senha:</label>
+          <input type="password" id="reg-pass" class="form-control" placeholder="Crie uma senha de acesso" required>
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-block">Confirmar Cadastro</button>
+      </form>
+      
+      <div style="text-align: center; margin-top: 20px; font-size: 13px;">
+        Já possui cadastro? <a href="#" id="link-show-login" style="color: var(--neon-cyan); font-weight: bold; text-decoration: none;">Faça login aqui</a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ================= PORTAL DO JOGADOR LOGADO ================= -->
+  <div id="screen-portal" class="player-layout screen-section">
+    
+    <!-- Cabeçalho do Portal -->
+    <header class="player-header">
+      <div class="logo-box">
+        <img src="./src/logo.png" alt="KRS BINGO">
+      </div>
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <span id="player-welcome-name" style="font-size: 13px; font-weight: bold; color: var(--neon-cyan);">Carregando...</span>
+        <button id="btn-logout" class="btn-logout">Sair</button>
+      </div>
+    </header>
+
+    <!-- STATUS DA RODADA ATIVA -->
+    <div class="player-card" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
+      <div>
+        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Sorteio Corrente:</div>
+        <strong id="label-active-round" style="font-size: 18px; color: #fff;">Rodada #---</strong>
+      </div>
+      <div style="text-align: right;">
+        <span id="badge-game-status" class="game-status-badge waiting">Aguardando</span>
+      </div>
+    </div>
+
+    <!-- NAVEGAÇÃO DE ABAS -->
+    <nav class="tab-nav">
+      <button id="btn-tab-buy" class="tab-btn active">Comprar Cartelas</button>
+      <button id="btn-tab-cards" class="tab-btn">Minhas Cartelas (<span id="count-my-cards">0</span>)</button>
+      <button id="btn-tab-live" class="tab-btn" style="display: none; background: rgba(0, 230, 118, 0.1); color: var(--success); border: 1px solid var(--success);">🔴 JOGO AO VIVO</button>
+    </nav>
+
+    <!-- ABA 1: COMPRA DE CARTELAS -->
+    <div id="tab-content-buy" class="screen-section active">
+      <div class="player-card">
+        <h3 style="font-size: 16px; margin: 0 0 15px 0; border-left: 3px solid var(--neon-cyan); padding-left: 8px;">Adquirir Novas Cartelas</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.4;">Compre cartelas online via Pix dinâmico para concorrer à rodada atual ou agendada.</p>
+        
+        <form id="form-buy-tickets">
+          <div class="form-group" style="margin-bottom: 18px;">
+            <label>Selecione a quantidade de cartelas:</label>
+            <div class="qty-grid">
+              <button type="button" class="qty-btn" data-qty="1">1</button>
+              <button type="button" class="qty-btn active" data-qty="3">3</button>
+              <button type="button" class="qty-btn" data-qty="5">5</button>
+              <button type="button" class="qty-btn" data-qty="10">10</button>
+            </div>
+            
+            <div style="margin-top: 12px; display: flex; align-items: center; gap: 15px;">
+              <label for="buy-custom-qty" style="margin-bottom: 0; white-space: nowrap; font-size: 13px;">Outra quantidade:</label>
+              <input type="number" id="buy-custom-qty" class="form-control" min="1" max="50" style="width: 80px; padding: 6px 10px;">
+            </div>
+          </div>
+
+          <div class="price-box">
+            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Valor total a pagar:</div>
+            <div class="total">R$ <span id="label-buy-total">6,00</span></div>
+            <small style="font-size: 11px; color: var(--neon-cyan);">Preço por cartela: R$ <span id="label-ticket-price">2,00</span></small>
+          </div>
+
+          <button type="submit" id="btn-submit-buy" class="btn btn-primary btn-block" style="margin-top: 20px;">Gerar Pix para Pagamento</button>
+        </form>
+
+        <!-- CONTAINER DO PIX (FLUXO DINÂMICO) -->
+        <div id="box-pix-payment" class="pix-flow-box" style="display: none;">
+          <div class="qrcode-box">
+            <!-- Renderizado dinamicamente -->
+            <div id="pix-qr-container"></div>
+          </div>
+          
+          <div class="form-group" style="width: 100%;">
+            <label style="text-align: center; display: block;">Pix Copia e Cola:</label>
+            <div class="copiacola-box">
+              <input type="text" id="buy-pix-copiacola" class="form-control" readonly value="">
+              <button type="button" id="btn-copy-buy-pix" class="btn btn-secondary" style="padding: 10px 15px;">Copiar</button>
+            </div>
+          </div>
+
+          <div class="payment-status-box" style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; background: rgba(0, 243, 255, 0.05); border: 1px solid rgba(0, 243, 255, 0.15); border-radius: 8px; color: var(--neon-cyan); font-size: 13px; font-weight: bold;">
+            <div class="spinner"></div>
+            <span id="label-payment-status">Aguardando confirmação do pagamento...</span>
+          </div>
+
+          <!-- Botão de simulação manual apenas caso dê erro ou queira testar localmente -->
+          <div style="width: 100%; border-top: 1px dashed var(--prog-border); margin-top: 10px; padding-top: 15px; text-align: center;">
+            <button type="button" id="btn-simulate-buy-payment" class="btn btn-secondary btn-block" style="font-size: 12px; background: rgba(0,230,118,0.08); border-color: rgba(0,230,118,0.2); color: var(--success);">💰 Simular Confirmação Pix (Para Testes)</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ABA 2: MINHAS CARTELAS -->
+    <div id="tab-content-cards" class="screen-section">
+      <div id="box-no-cards" class="player-card" style="text-align: center; padding: 40px 20px;">
+        <div style="font-size: 40px; margin-bottom: 10px;">🎫</div>
+        <h3 style="margin: 0; font-size: 16px;">Você não possui cartelas</h3>
+        <p style="color: var(--text-muted); font-size: 13px; margin: 8px 0 20px 0;">Compre cartelas na aba ao lado para participar do sorteio ativo.</p>
+        <button id="btn-goto-buy" class="btn btn-primary" style="padding: 10px 20px;">Comprar Agora</button>
+      </div>
+
+      <div id="box-has-cards" style="display: none; display: flex; flex-direction: column; gap: 10px;">
+        <h3 class="player-tickets-title">Minhas Cartelas Compradas</h3>
+        <div id="container-my-tickets-list" class="player-tickets-grid">
+          <!-- Cartelas renderizadas dinamicamente aqui -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ABA 3: SALA DE JOGO AO VIVO -->
+    <div id="tab-content-live" class="screen-section">
+      
+      <!-- Detalhes do Sorteio no topo -->
+      <div class="player-card live-ball-display" style="border-radius: 12px;">
+        <div id="live-ball-wrapper" style="display: flex; align-items: center; justify-content: center;">
+          <!-- Bola Sorteada Principal -->
+          <div id="live-main-ball" class="live-ball-sphere">--</div>
+        </div>
+        <div class="live-stats">
+          Próximos Prêmios:<br>
+          <strong style="color: var(--neon-gold);">Quadra, Quina e Bingo!</strong><br>
+          Bolas Sorteadas: <strong id="label-live-balls-count">0</strong>/90
+        </div>
+      </div>
+
+      <!-- Quadro Geral de Bolas Chamadas -->
+      <div class="player-card" style="padding: 15px;">
+        <h3 style="font-size: 12px; margin: 0 0 10px 0; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Painel de Bolas Chamadas</h3>
+        <div id="live-called-board" class="called-board">
+          <!-- 90 células geradas dinamicamente -->
+        </div>
+      </div>
+
+      <!-- Cartelas do Jogador com Auto-marcação -->
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <h3 class="player-tickets-title" style="border-color: var(--neon-cyan);">Minhas Cartelas em Jogo</h3>
+        <div id="container-live-tickets-list" class="player-tickets-grid">
+          <!-- Cartelas do jogador ativo formatadas para acompanhar o jogo ao vivo -->
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ================= OVERLAY DE CELEBRAÇÃO DE VITÓRIA ================= -->
+  <div id="celebration-overlay" class="celebration-overlay">
+    <div class="celebration-card">
+      <div style="font-size: 50px; animation: bounceBall 0.5s infinite alternate;">🏆</div>
+      <h2 class="celebration-title">PARABÉNS!</h2>
+      <p class="celebration-subtitle">Você ganhou uma categoria no sorteio!</p>
+      
+      <div id="celebration-prize-badge" class="celebration-badge">BINGO</div>
+      
+      <div style="font-size: 14px; margin: 10px 0; color: #fff;">
+        Cartela Ganhadora: <strong id="celebration-card-id" style="font-size: 18px; color: var(--neon-gold);">#---</strong>
+      </div>
+      
+      <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4; max-width: 300px; margin: 0 auto;">
+        Seu prêmio foi creditado no sistema. Entre em contato com a administração informando o código da sua cartela.
+      </p>
+      
+      <button id="btn-close-celebration" class="btn btn-primary" style="margin-top: 15px; padding: 8px 25px;">Fechar e Voltar</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/jogar-controller.js"></script>
+</body>
+</html>

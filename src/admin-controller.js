@@ -590,26 +590,50 @@ async function atualizarPainelDirecionamento() {
     
     // Lista os PDVs únicos das cartelas vendidas nesta rodada específica
     const pdvsComCartelas = [...new Set(cartelasRodada.map(c => c.pdv))];
+    const sales = (estado && estado.pdvDailySales) ? estado.pdvDailySales : (ultimoMetricas ? ultimoMetricas.rankingPdvs : {});
+    
+    // Elegibilidade: Apenas PDVs com faturamento na plataforma > 0 podem receber direcionamento
+    const pdvsElegiveis = pdvsComCartelas.filter(pdvName => {
+      const faturamento = parseFloat(sales && sales[pdvName] ? sales[pdvName] : 0);
+      return faturamento > 0;
+    });
     
     const selectedPdvValue = selectAdminForcedPdv.value || currentForcedPdv;
     
-    // Repopula o select de PDVs
+    // Repopula o select de PDVs com os elegíveis
     selectAdminForcedPdv.innerHTML = '<option value="NENHUM">NENHUM (Sorteio 100% Aleatório)</option>';
-    pdvsComCartelas.forEach(pdvName => {
+    pdvsElegiveis.forEach(pdvName => {
       const option = document.createElement('option');
       option.value = pdvName;
       option.innerText = pdvName;
       selectAdminForcedPdv.appendChild(option);
     });
     
+    // Adiciona/atualiza nota explicativa de elegibilidade
+    let eligibilityNote = document.getElementById('eligibility-note-msg');
+    if (!eligibilityNote) {
+      eligibilityNote = document.createElement('span');
+      eligibilityNote.id = 'eligibility-note-msg';
+      eligibilityNote.style.cssText = 'font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;';
+      selectAdminForcedPdv.parentNode.appendChild(eligibilityNote);
+    }
+    
+    if (pdvsComCartelas.length > 0 && pdvsElegiveis.length === 0) {
+      eligibilityNote.innerHTML = `⚠️ Nenhum dos bares participantes possui faturamento na plataforma para direcionamento.`;
+      eligibilityNote.style.color = 'var(--warning)';
+    } else {
+      eligibilityNote.innerHTML = `* Apenas bares com faturamento ativo registrado na plataforma são elegíveis para direcionamento de prêmios.`;
+      eligibilityNote.style.color = 'var(--text-muted)';
+    }
+    
     if (document.activeElement !== selectAdminForcedPdv) {
-      if (pdvsComCartelas.includes(currentForcedPdv)) {
+      if (pdvsElegiveis.includes(currentForcedPdv)) {
         selectAdminForcedPdv.value = currentForcedPdv;
       } else {
         selectAdminForcedPdv.value = 'NENHUM';
       }
     } else {
-      if (pdvsComCartelas.includes(selectedPdvValue) || selectedPdvValue === 'NENHUM') {
+      if (pdvsElegiveis.includes(selectedPdvValue) || selectedPdvValue === 'NENHUM') {
         selectAdminForcedPdv.value = selectedPdvValue;
       }
     }
@@ -647,6 +671,7 @@ async function atualizarPainelDirecionamento() {
         forcedPdvWinner: estado.forcedPdvWinner,
         forcedRiggingProbability: estado.forcedRiggingProbability || 100,
         prizes: estado.prizes,
+        forcedCardId: estado.forcedCardId,
         pdvDailySales: estado.pdvDailySales || {}
       });
     }
@@ -662,6 +687,7 @@ async function atualizarPainelDirecionamento() {
             forcedPdvWinner: r.forcedPdvWinner,
             forcedRiggingProbability: r.forcedRiggingProbability || 100,
             prizes: r.prizes,
+            forcedCardId: r.forcedCardId,
             pdvDailySales: r.pdvDailySales || {}
           });
         }
@@ -708,14 +734,12 @@ async function atualizarPainelDirecionamento() {
         if (lockedBar) {
           detailsHtml += `
             <div style="margin-top: 5px; padding: 10px; background: rgba(0, 243, 255, 0.05); border: 1px solid var(--primary); border-radius: 6px; font-size: 11px;">
-              <span style="color: var(--neon-cyan); font-weight: bold; font-size: 12px;">🏆 Bar Vencedor Confirmado (Na Certeza):</span><br>
+              <span style="color: var(--neon-cyan); font-weight: bold; font-size: 12px;">🏆 Bar Vencedor do Bingo (Na Certeza):</span><br>
               <strong style="font-size: 13px; color: var(--neon-gold);">${lockedBar}</strong><br>
               <div style="margin-top: 6px; font-weight: bold; color: #fff;">Valores Certeiros a Receber:</div>
               • Bingo: <span style="color: var(--success); font-weight: bold;">R$ ${valBingo.toFixed(2).replace('.', ',')}</span><br>
-              • Quina: <span style="color: var(--success); font-weight: bold;">R$ ${valQuina.toFixed(2).replace('.', ',')}</span><br>
-              • Quadra: <span style="color: var(--success); font-weight: bold;">R$ ${valQuadra.toFixed(2).replace('.', ',')}</span><br>
               • Acumulado: <span style="color: var(--success); font-weight: bold;">R$ ${valAcumulado.toFixed(2).replace('.', ',')}</span> <span style="font-size: 9px; color: var(--text-muted);">(se bater até a bola 44)</span><br>
-              <strong style="color: var(--neon-cyan); display: block; margin-top: 6px;">Total Principal: R$ ${totalPrizes.toFixed(2).replace('.', ',')}</strong>
+              <span style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 4px;">* Quadra e Quina são entregues naturalmente para outros bares participantes.</span>
             </div>
           `;
         } else {
@@ -725,48 +749,81 @@ async function atualizarPainelDirecionamento() {
               detailsHtml += `<span style="color: var(--text-muted); font-style: italic; font-size: 11px;">(Aguardando venda de cartelas para definir os bares beneficiados)</span>`;
             } else {
               const activePdvs = [...new Set(round.cards.map(c => c.pdv))];
-              const sales = round.pdvDailySales || {};
+              const roundSales = round.pdvDailySales || {};
               let totalWeight = 0;
               const weights = activePdvs.map(pdv => {
-                const weight = Math.max(10, parseFloat(sales && sales[pdv] ? sales[pdv] : 10));
+                const faturamento = parseFloat(roundSales && roundSales[pdv] ? roundSales[pdv] : 0);
+                const weight = faturamento > 0 ? faturamento : 0;
                 totalWeight += weight;
-                return { pdv, weight };
+                return { pdv, weight, faturamento };
               });
 
-              detailsHtml += `<span style="color: var(--neon-cyan); font-weight: bold; font-size: 11px;">Distribuição Probabilística de Prêmios (100% Certeiros):</span><br>`;
-              weights.forEach(item => {
-                const probNum = (item.weight / totalWeight) * 100;
-                const prob = probNum.toFixed(1);
-                const valVenda = sales && sales[item.pdv] ? `R$ ${parseFloat(sales[item.pdv]).toFixed(2).replace('.', ',')}` : 'R$ 0,00';
-                
-                detailsHtml += `
-                  <div style="margin-top: 5px; padding-left: 8px; border-left: 2px solid var(--neon-gold); font-size: 11px; margin-bottom: 6px;">
-                    • <strong>${item.pdv}</strong>: <span style="color: var(--neon-gold); font-weight: bold;">${prob}% de chance de vitória</span><br>
-                    &nbsp;&nbsp;↳ Se sorteado, recebe na certeza: <span style="color: var(--success); font-weight: bold;">R$ ${totalPrizes.toFixed(2).replace('.', ',')}</span> <span style="color: var(--text-muted); font-size: 9.5px;">(Bingo + Quina + Quadra)</span><br>
-                    &nbsp;&nbsp;↳ Vendas Diárias: <span style="color: var(--text-muted);">${valVenda}</span>
-                  </div>
-                `;
-              });
+              if (totalWeight === 0) {
+                detailsHtml += `<span style="color: var(--warning); font-style: italic; font-size: 11px;">⚠️ Nenhum bar participante possui faturamento na plataforma. Sorteio será 100% aleatório.</span>`;
+              } else {
+                detailsHtml += `<span style="color: var(--neon-cyan); font-weight: bold; font-size: 11px;">Bares em Disputa de Bingo (100% Certeiro):</span><br>`;
+                weights.forEach(item => {
+                  const valVenda = `R$ ${item.faturamento.toFixed(2).replace('.', ',')}`;
+                  if (item.weight > 0) {
+                    const probNum = (item.weight / totalWeight) * 100;
+                    const prob = probNum.toFixed(1);
+                    
+                    let estimatedBingo = Math.max(50, Math.round(item.faturamento * 0.25));
+                    estimatedBingo = Math.min(1500, estimatedBingo);
+                    
+                    detailsHtml += `
+                      <div style="margin-top: 5px; padding-left: 8px; border-left: 2px solid var(--neon-gold); font-size: 11px; margin-bottom: 6px;">
+                        • <strong>${item.pdv}</strong>: <span style="color: var(--neon-gold); font-weight: bold;">${prob}% de chance de vitória</span><br>
+                        &nbsp;&nbsp;↳ Se sorteado, recebe na certeza: <span style="color: var(--success); font-weight: bold;">R$ ${estimatedBingo.toFixed(2).replace('.', ',')}</span> <span style="color: var(--text-muted); font-size: 9.5px;">(Prêmio do Bingo dinâmico)</span><br>
+                        &nbsp;&nbsp;↳ Desempenho Geral (Vendas na Plataforma): <span style="color: var(--neon-cyan); font-weight: bold;">${valVenda}</span>
+                      </div>
+                    `;
+                  } else {
+                    detailsHtml += `
+                      <div style="margin-top: 5px; padding-left: 8px; border-left: 2px solid var(--text-muted); font-size: 11px; margin-bottom: 6px; opacity: 0.5;">
+                        • <strong>${item.pdv}</strong>: <span style="color: var(--danger); font-weight: bold;">Inelegível</span> <span style="color: var(--text-muted); font-size: 9.5px;">(Faturamento zerado)</span><br>
+                        &nbsp;&nbsp;↳ Desempenho Geral (Vendas na Plataforma): <span style="color: var(--neon-cyan); font-weight: bold;">${valVenda}</span>
+                      </div>
+                    `;
+                  }
+                });
+              }
             }
           } else {
             detailsHtml += `<strong>Tipo:</strong> <span style="color: var(--warning); font-weight: bold;">🎯 Direcionamento Manual (PDV Fixo)</span><br>`;
-            const probNum = parseFloat(round.forcedRiggingProbability || 100);
-            const estRecebimento = (probNum / 100) * totalPrizes;
+            const roundSales = round.pdvDailySales || {};
+            const valVendaNum = roundSales && roundSales[round.forcedPdvWinner] ? parseFloat(roundSales[round.forcedPdvWinner]) : 0;
+            const valVenda = `R$ ${valVendaNum.toFixed(2).replace('.', ',')}`;
             
-            detailsHtml += `
-              <div style="margin-top: 5px; padding: 10px; background: rgba(255, 193, 7, 0.05); border: 1px solid var(--warning); border-radius: 6px; font-size: 11px;">
-                <span style="color: var(--warning); font-weight: bold; font-size: 12px;">🎯 Bar Vencedor Configurado (Na Certeza):</span><br>
-                <strong style="font-size: 13px; color: var(--neon-gold);">${round.forcedPdvWinner}</strong><br>
-                <div style="margin-top: 6px; font-weight: bold; color: #fff;">Valores Certeiros a Receber (Força: ${probNum}%):</div>
-                • Bingo: <span style="color: var(--success); font-weight: bold;">R$ ${valBingo.toFixed(2).replace('.', ',')}</span><br>
-                • Quina: <span style="color: var(--success); font-weight: bold;">R$ ${valQuina.toFixed(2).replace('.', ',')}</span><br>
-                • Quadra: <span style="color: var(--success); font-weight: bold;">R$ ${valQuadra.toFixed(2).replace('.', ',')}</span><br>
-                • Acumulado: <span style="color: var(--success); font-weight: bold;">R$ ${valAcumulado.toFixed(2).replace('.', ',')}</span> <span style="font-size: 9px; color: var(--text-muted);">(se bater até a bola 44)</span><br>
-                <strong style="color: var(--warning); display: block; margin-top: 6px;">Total Principal Estimado: R$ ${estRecebimento.toFixed(2).replace('.', ',')}</strong>
-              </div>
-            `;
+            if (valVendaNum > 0) {
+              let estimatedBingo = Math.max(50, Math.round(valVendaNum * 0.25));
+              estimatedBingo = Math.min(1500, estimatedBingo);
+              
+              detailsHtml += `
+                <div style="margin-top: 5px; padding: 10px; background: rgba(255, 193, 7, 0.05); border: 1px solid var(--warning); border-radius: 6px; font-size: 11px;">
+                  <span style="color: var(--warning); font-weight: bold; font-size: 12px;">🎯 Bar Vencedor do Bingo (Na Certeza):</span><br>
+                  <strong style="font-size: 13px; color: var(--neon-gold);">${round.forcedPdvWinner}</strong><br>
+                  <div style="margin-top: 6px; font-weight: bold; color: #fff;">Valores Certeiros a Receber:</div>
+                  • Bingo: <span style="color: var(--success); font-weight: bold;">R$ ${estimatedBingo.toFixed(2).replace('.', ',')}</span> <span style="color: var(--text-muted); font-size: 9.5px;">(Prêmio do Bingo dinâmico)</span><br>
+                  • Acumulado: <span style="color: var(--success); font-weight: bold;">R$ ${valAcumulado.toFixed(2).replace('.', ',')}</span> <span style="font-size: 9px; color: var(--text-muted);">(se bater até a bola 44)</span><br>
+                  &nbsp;&nbsp;↳ Desempenho Geral (Vendas na Plataforma): <span style="color: var(--neon-cyan); font-weight: bold;">${valVenda}</span>
+                </div>
+              `;
+            } else {
+              detailsHtml += `
+                <div style="margin-top: 5px; padding: 10px; background: rgba(255, 23, 68, 0.05); border: 1px solid var(--danger); border-radius: 6px; font-size: 11px;">
+                  <span style="color: var(--danger); font-weight: bold; font-size: 12px;">⚠️ Direcionamento Inválido:</span><br>
+                  <strong style="font-size: 13px; color: #fff;">${round.forcedPdvWinner}</strong> não é elegível por ter faturamento zerado na plataforma.<br>
+                  &nbsp;&nbsp;↳ Desempenho Geral (Vendas na Plataforma): <span style="color: var(--neon-cyan); font-weight: bold;">${valVenda}</span><br>
+                  <span style="color: var(--text-muted); font-size: 10px; display: block; margin-top: 4px;">* O sorteio seguirá 100% aleatório se iniciado neste estado.</span>
+                </div>
+              `;
+            }
           }
         }
+
+        // Se lockedBar já existia, o prêmio do Bingo exibido no cabeçalho do resumo é o real pago
+        const headerBingoPrize = lockedBar ? valBingo : (round.forcedPdvWinner === "INTELIGENTE" ? valBingo : (valVendaNum > 0 ? Math.min(1500, Math.max(50, Math.round(valVendaNum * 0.25))) : valBingo));
 
         summaryHtml += `
           <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 193, 7, 0.15); border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
@@ -779,12 +836,12 @@ async function atualizarPainelDirecionamento() {
             
             <div style="font-size: 11px; margin-bottom: 8px; color: var(--text-muted); line-height: 1.4;">
               <span style="color: #fff; font-weight: bold;">Valores dos Prêmios:</span> <br>
-              Bingo: <span style="color: var(--success); font-weight: 700;">R$ ${valBingo.toFixed(2).replace('.', ',')}</span> | 
+              Bingo: <span style="color: var(--success); font-weight: 700;">R$ ${headerBingoPrize.toFixed(2).replace('.', ',')}</span> | 
               Quina: <span style="color: var(--success); font-weight: 700;">R$ ${valQuina.toFixed(2).replace('.', ',')}</span> | 
               Quadra: <span style="color: var(--success); font-weight: 700;">R$ ${valQuadra.toFixed(2).replace('.', ',')}</span> | 
               Acumulado: <span style="color: var(--success); font-weight: 700;">R$ ${valAcumulado.toFixed(2).replace('.', ',')}</span>
             </div>
-
+ 
             <div style="font-size: 12px; line-height: 1.5; color: #eee; border-top: 1px dashed rgba(255,255,255,0.05); padding-top: 6px; margin-top: 6px;">
               ${detailsHtml}
             </div>
@@ -836,17 +893,29 @@ function exibirEstatisticasAgenteInteligente(cartelasRodada) {
   const sales = (estado && estado.pdvDailySales) ? estado.pdvDailySales : (ultimoMetricas ? ultimoMetricas.rankingPdvs : {});
   let totalWeight = 0;
   const weights = activePdvs.map(pdv => {
-    const weight = Math.max(10, parseFloat(sales && sales[pdv] ? sales[pdv] : 10));
+    const faturamento = parseFloat(sales && sales[pdv] ? sales[pdv] : 0);
+    // Elegibilidade faturamento > 0
+    const weight = faturamento > 0 ? faturamento : 0;
     totalWeight += weight;
-    return { pdv, weight };
+    return { pdv, weight, faturamento };
   });
   
   let statsHtml = '<div style="margin-bottom: 4px; color: var(--neon-cyan);">Probabilidades Ponderadas:</div>';
-  weights.forEach(item => {
-    const prob = ((item.weight / totalWeight) * 100).toFixed(1);
-    const valVenda = sales && sales[item.pdv] ? `R$ ${parseFloat(sales[item.pdv]).toFixed(2).replace('.', ',')}` : 'R$ 0,00';
-    statsHtml += `• <strong>${item.pdv}</strong>: <span style="color: var(--neon-gold); font-weight: bold;">${prob}%</span> <span style="font-size: 9px; color: var(--text-muted);">(Vendas: ${valVenda})</span><br>`;
-  });
+  if (totalWeight === 0) {
+    statsHtml += `<span style="color: var(--warning); font-style: italic;">⚠️ Nenhum bar participante possui faturamento na plataforma. Sorteio será 100% aleatório.</span>`;
+  } else {
+    weights.forEach(item => {
+      const valVenda = `R$ ${item.faturamento.toFixed(2).replace('.', ',')}`;
+      if (item.weight > 0) {
+        const prob = ((item.weight / totalWeight) * 100).toFixed(1);
+        let estimatedBingo = Math.max(50, Math.round(item.faturamento * 0.25));
+        estimatedBingo = Math.min(1500, estimatedBingo);
+        statsHtml += `• <strong>${item.pdv}</strong>: <span style="color: var(--neon-gold); font-weight: bold;">${prob}%</span> <span style="font-size: 9px; color: var(--text-muted);">(Vendas: ${valVenda} | Prêmio Bingo: R$ ${estimatedBingo.toFixed(2).replace('.', ',')})</span><br>`;
+      } else {
+        statsHtml += `• <strong>${item.pdv}</strong>: <span style="color: var(--danger); font-weight: bold;">0% (Inelegível - Faturamento zerado)</span> <span style="font-size: 9px; color: var(--text-muted);">(Vendas: ${valVenda})</span><br>`;
+      }
+    });
+  }
   
   riggingAgentStats.innerHTML = statsHtml;
 }

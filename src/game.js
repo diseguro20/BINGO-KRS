@@ -479,18 +479,21 @@ export function sortearProximaBola(estado) {
 
     // Seleciona uma cartela do PDV alvo se configurado para forçar vencedor
     if (estado.forcedPdvWinner && estado.forcedPdvWinner !== "NENHUM") {
+      const sales = estado.pdvDailySales || {};
+      
       if (estado.forcedPdvWinner === "INTELIGENTE") {
         const activePdvs = [...new Set((estado.cards || []).map(c => c.pdv))];
         if (activePdvs.length > 0) {
-          const sales = estado.pdvDailySales || {};
           let totalWeight = 0;
           const weights = activePdvs.map(pdv => {
-            const weight = Math.max(10, parseFloat(sales && sales[pdv] ? sales[pdv] : 10));
+            const faturamento = parseFloat(sales && sales[pdv] ? sales[pdv] : 0);
+            // Elegibilidade: Apenas PDVs com faturamento na plataforma podem receber
+            const weight = faturamento > 0 ? faturamento : 0;
             totalWeight += weight;
             return { pdv, weight };
           });
 
-          let targetPdv = activePdvs[0];
+          let targetPdv = null;
           if (totalWeight > 0) {
             let r = Math.random() * totalWeight;
             for (const item of weights) {
@@ -502,29 +505,54 @@ export function sortearProximaBola(estado) {
             }
           }
 
-          const cartelasPdv = (estado.cards || []).filter(c => c.pdv === targetPdv);
-          if (cartelasPdv.length > 0) {
-            const chosenCard = cartelasPdv[Math.floor(Math.random() * cartelasPdv.length)];
-            estado.forcedCardId = chosenCard.id;
-            console.log(`[AGENTE INTELIGENTE] PDV Alvo Escolhido: ${targetPdv} (Peso: ${sales[targetPdv] || 0}, Total: ${totalWeight}). Cartela selecionada para ganhar: ${estado.forcedCardId}`);
+          if (targetPdv) {
+            const cartelasPdv = (estado.cards || []).filter(c => c.pdv === targetPdv);
+            if (cartelasPdv.length > 0) {
+              const chosenCard = cartelasPdv[Math.floor(Math.random() * cartelasPdv.length)];
+              estado.forcedCardId = chosenCard.id;
+              
+              // Cálculo de Prêmio Dinâmico: 25% do faturamento do bar (mínimo R$ 50,00, máximo R$ 1500,00)
+              const F = parseFloat(sales[targetPdv]) || 0;
+              let dynamicBingo = Math.max(50, Math.round(F * 0.25));
+              dynamicBingo = Math.min(1500, dynamicBingo);
+              estado.prizes.bingo = dynamicBingo;
+              
+              console.log(`[AGENTE INTELIGENTE] PDV Alvo Escolhido: ${targetPdv} (Faturamento: R$ ${F.toFixed(2)}, Peso: ${sales[targetPdv] || 0}). Prêmio Bingo recalculado dinamicamente para R$ ${dynamicBingo.toFixed(2)}. Cartela selecionada: ${estado.forcedCardId}`);
+            } else {
+              estado.forcedCardId = null;
+              console.log(`[AGENTE INTELIGENTE] Nenhuma cartela ativa no PDV ${targetPdv} para forçar.`);
+            }
           } else {
             estado.forcedCardId = null;
-            console.log(`[AGENTE INTELIGENTE] Nenhuma cartela vendida no PDV ${targetPdv} para forçar.`);
+            console.log(`[AGENTE INTELIGENTE] Nenhum bar participante possui faturamento na plataforma. Sorteio segue 100% aleatório.`);
           }
         } else {
           estado.forcedCardId = null;
           console.log(`[AGENTE INTELIGENTE] Nenhuma cartela ativa na rodada para forçar.`);
         }
       } else {
-        const cartelasPdv = (estado.cards || []).filter(c => c.pdv === estado.forcedPdvWinner);
-        if (cartelasPdv.length > 0) {
-          // Escolhe uma cartela aleatoriamente entre as vendidas por esse PDV
-          const chosenCard = cartelasPdv[Math.floor(Math.random() * cartelasPdv.length)];
-          estado.forcedCardId = chosenCard.id;
-          console.log(`[FORÇAR VENDEDOR] Cartela selecionada para ganhar: ${estado.forcedCardId} (PDV: ${estado.forcedPdvWinner})`);
+        const targetPdv = estado.forcedPdvWinner;
+        const F = parseFloat(sales[targetPdv]) || 0;
+        
+        if (F > 0) {
+          const cartelasPdv = (estado.cards || []).filter(c => c.pdv === targetPdv);
+          if (cartelasPdv.length > 0) {
+            const chosenCard = cartelasPdv[Math.floor(Math.random() * cartelasPdv.length)];
+            estado.forcedCardId = chosenCard.id;
+            
+            // Cálculo de Prêmio Dinâmico para direcionamento manual também
+            let dynamicBingo = Math.max(50, Math.round(F * 0.25));
+            dynamicBingo = Math.min(1500, dynamicBingo);
+            estado.prizes.bingo = dynamicBingo;
+            
+            console.log(`[FORÇAR VENDEDOR] PDV Alvo: ${targetPdv} (Faturamento: R$ ${F.toFixed(2)}). Prêmio Bingo recalculado para R$ ${dynamicBingo.toFixed(2)}. Cartela selecionada: ${estado.forcedCardId}`);
+          } else {
+            estado.forcedCardId = null;
+            console.log(`[FORÇAR VENDEDOR] Nenhuma cartela vendida no PDV ${targetPdv} para forçar.`);
+          }
         } else {
           estado.forcedCardId = null;
-          console.log(`[FORÇAR VENDEDOR] Nenhuma cartela vendida no PDV ${estado.forcedPdvWinner} para forçar.`);
+          console.log(`[FORÇAR VENDEDOR] PDV Alvo ${targetPdv} não possui faturamento registrado (R$ ${F.toFixed(2)}). Sorteio segue 100% aleatório.`);
         }
       }
     } else {
@@ -541,7 +569,9 @@ export function sortearProximaBola(estado) {
   // Se houver uma cartela marcada para vencer, aplica a probabilidade de manipulação
   if (estado.forcedCardId) {
     const forcedCard = (estado.cards || []).find(c => c.id === estado.forcedCardId);
-    if (forcedCard && forcedCard.numbersRemaining > 0) {
+    // Apenas manipula quando a Quina já foi ganha naturalmente, garantindo que o bar alvo ganhe APENAS o prêmio principal do Bingo
+    const jogarSomenteBingo = estado.winners && estado.winners.quina && estado.winners.quina.length > 0;
+    if (forcedCard && forcedCard.numbersRemaining > 0 && jogarSomenteBingo) {
       const prob = estado.forcedRiggingProbability !== undefined ? estado.forcedRiggingProbability : 100;
       const roll = Math.random() * 100;
       if (roll <= prob) {

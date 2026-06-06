@@ -435,8 +435,20 @@ h2 {
     height: auto !important;
     overflow: visible !important;
   }
-  .totem-layout, .totem-header, .totem-card::before, .step-subtitle, .success-animation-header, .print-config-totem, #btn-restart-totem {
+  .totem-header,
+  #step-selection,
+  #step-payment,
+  .success-animation-header,
+  .print-config-totem,
+  #btn-restart-totem,
+  #step-receipt h3 {
     display: none !important;
+  }
+  .totem-layout {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
   }
   .totem-card {
     background: transparent !important;

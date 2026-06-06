@@ -27,6 +27,9 @@ const selectGameRound = document.getElementById('select-game-round');
 const noRoundsWarning = document.getElementById('no-rounds-warning');
 const btnSubmitSelection = document.getElementById('btn-submit-selection');
 
+const selectPdvTotem = document.getElementById('select-pdv-totem');
+const pdvCommissionInfo = document.getElementById('pdv-commission-info');
+
 const btnCopyPix = document.getElementById('btn-copy-pix');
 const pixCopiaCola = document.getElementById('pix-copia-cola');
 const btnSimulatePayment = document.getElementById('btn-simulate-payment');
@@ -38,6 +41,64 @@ const printerStatusLabel = document.getElementById('printer-status-label');
 const btnPrintAll = document.getElementById('btn-print-all');
 const receiptTicketsList = document.getElementById('receipt-tickets-list');
 const btnRestartTotem = document.getElementById('btn-restart-totem');
+
+// ==========================================
+// 0. CARREGAR PDVS CADASTRADOS
+// ==========================================
+let pdvsCadastrados = [];
+
+async function carregarPdvs() {
+  try {
+    pdvsCadastrados = await FirebaseHelper.listarPdvsCadastrados();
+    selectPdvTotem.innerHTML = '';
+    
+    if (pdvsCadastrados.length === 0) {
+      selectPdvTotem.innerHTML = '<option value="">Nenhum PDV cadastrado</option>';
+      selectPdvTotem.disabled = true;
+      btnSubmitSelection.disabled = true;
+      return;
+    }
+    
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.innerText = '-- Selecione seu estabelecimento --';
+    selectPdvTotem.appendChild(defaultOpt);
+    
+    pdvsCadastrados.forEach(pdv => {
+      const opt = document.createElement('option');
+      opt.value = pdv.pdvNome;
+      opt.innerText = pdv.pdvNome;
+      selectPdvTotem.appendChild(opt);
+    });
+  } catch (err) {
+    console.error('Erro ao carregar PDVs:', err);
+    selectPdvTotem.innerHTML = '<option value="">Erro ao carregar PDVs</option>';
+  }
+}
+
+carregarPdvs();
+
+// Mostrar info de comissão ao selecionar PDV
+selectPdvTotem.addEventListener('change', async () => {
+  const selectedPdv = selectPdvTotem.value;
+  if (!selectedPdv) {
+    pdvCommissionInfo.style.display = 'none';
+    return;
+  }
+  try {
+    const comissao = await FirebaseHelper.buscarComissaoPdv(selectedPdv);
+    if (comissao) {
+      const tipoLabel = comissao.comissaoTipo === 'liquida' ? 'Líquida' : 'Bruta';
+      pdvCommissionInfo.innerHTML = `💰 Comissão ${tipoLabel}: <strong>${comissao.comissaoValor}%</strong>`;
+      pdvCommissionInfo.style.display = 'block';
+    } else {
+      pdvCommissionInfo.innerHTML = '💰 Comissão padrão: <strong>10% Bruta</strong>';
+      pdvCommissionInfo.style.display = 'block';
+    }
+  } catch (e) {
+    pdvCommissionInfo.style.display = 'none';
+  }
+});
 
 // ==========================================
 // 1. MÁSCARA DE TELEFONE CELULAR BRASILEIRO
@@ -104,6 +165,13 @@ function transitionTo(stepId) {
 // Submeter identificação e ir para Pix
 formSelection.addEventListener('submit', (e) => {
   e.preventDefault();
+  
+  const selectedPdv = selectPdvTotem.value;
+  if (!selectedPdv) {
+    alert('Por favor, selecione o estabelecimento (PDV) onde você está comprando.');
+    return;
+  }
+  
   const phone = clientPhone.value.trim();
   if (!phone || phone.length < 14) {
     alert('Por favor, insira um celular válido no formato (XX) 99999-9999.');
@@ -175,7 +243,7 @@ btnSimulatePayment.addEventListener('click', () => {
       const cartelas = [];
       for (let i = 0; i < qty; i++) {
         // Usa o nome do PDV padrão de totem "Autoatendimento"
-        cartelas.push(gerarCartela90Bolas("Autoatendimento", targetGameId));
+        cartelas.push(gerarCartela90Bolas(selectPdvTotem.value || "Autoatendimento", targetGameId));
       }
       
       // Registrar no Firebase / LocalStorage

@@ -427,14 +427,48 @@
                 <th>Nome do PDV / Bar</th>
                 <th>Volume de Vendas</th>
                 <th>Faturamento Total</th>
+                <th>Comissão</th>
+                <th>Valor Comissão</th>
               </tr>
             </thead>
             <tbody id="metrics-pdv-tbody">
               <tr>
-                <td colspan="3" class="empty-log" style="text-align: center; font-style: italic; padding: 40px; color: var(--text-muted);">Nenhum dado financeiro registrado.</td>
+                <td colspan="5" class="empty-log" style="text-align: center; font-style: italic; padding: 40px; color: var(--text-muted);">Nenhum dado financeiro registrado.</td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Gestão de Comissões por PDV -->
+        <div class="admin-card" id="card-comissoes-pdv">
+          <h2>Comissões por PDV</h2>
+          <p class="card-subtitle">Configure a porcentagem de comissão (bruta ou líquida) para cada ponto de venda cadastrado.</p>
+
+          <div id="comissoes-pdv-list" style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
+            <div class="empty-log" style="text-align: center; font-style: italic; padding: 30px; color: var(--text-muted);">Carregando PDVs cadastrados...</div>
+          </div>
+
+          <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--admin-border);">
+            <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--neon-gold);">➕ Adicionar Comissão Manual</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+              <div style="flex: 2; min-width: 150px;">
+                <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Nome do PDV:</label>
+                <input type="text" id="input-comissao-pdv-nome" class="form-control" placeholder="Ex: Bar do João" style="padding: 6px 10px; font-size: 12px;">
+              </div>
+              <div style="flex: 1; min-width: 100px;">
+                <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Tipo:</label>
+                <select id="select-comissao-tipo" class="form-control" style="padding: 6px 10px; font-size: 12px; height: auto;">
+                  <option value="bruta">Bruta</option>
+                  <option value="liquida">Líquida</option>
+                </select>
+              </div>
+              <div style="flex: 1; min-width: 80px;">
+                <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Valor (%):</label>
+                <input type="number" id="input-comissao-valor" class="form-control" min="0" max="100" step="0.5" value="10" style="padding: 6px 10px; font-size: 12px;">
+              </div>
+              <button id="btn-save-comissao" class="btn btn-primary btn-mini" style="padding: 8px 14px; font-size: 12px; font-weight: 700; white-space: nowrap;">Salvar Comissão</button>
+            </div>
+          </div>
         </div>
 
         <!-- Estatísticas Gerais do Sistema -->

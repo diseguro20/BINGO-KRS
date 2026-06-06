@@ -706,5 +706,88 @@ export const FirebaseHelper = {
     return () => {
       localChannel.removeEventListener('message', listener);
     };
+  },
+
+  // ==========================================
+  // 6. GERENCIAMENTO DE PDVS E COMISSÕES
+  // ==========================================
+
+  /**
+   * Lista todos os PDVs cadastrados (nomes únicos extraídos dos operadores)
+   */
+  async listarPdvsCadastrados() {
+    if (isFirebaseConfigured && db) {
+      const q = query(collection(db, "operadores"));
+      const querySnap = await getDocs(q);
+      const pdvMap = {};
+      querySnap.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.pdvNome && !pdvMap[data.pdvNome]) {
+          pdvMap[data.pdvNome] = {
+            pdvNome: data.pdvNome,
+            comissaoTipo: data.comissaoTipo || 'bruta',
+            comissaoValor: data.comissaoValor || 10
+          };
+        }
+      });
+      return Object.values(pdvMap);
+    } else {
+      // MODO SIMULADO
+      const saved = localStorage.getItem('bingokrs_operadores') || '[]';
+      const operadores = JSON.parse(saved);
+      const pdvMap = {};
+      operadores.forEach(op => {
+        if (op.pdvNome && !pdvMap[op.pdvNome]) {
+          pdvMap[op.pdvNome] = {
+            pdvNome: op.pdvNome,
+            comissaoTipo: op.comissaoTipo || 'bruta',
+            comissaoValor: op.comissaoValor || 10
+          };
+        }
+      });
+      return Object.values(pdvMap);
+    }
+  },
+
+  /**
+   * Salva ou atualiza a configuração de comissão de um PDV
+   */
+  async salvarComissaoPdv(pdvNome, comissaoTipo, comissaoValor) {
+    const dados = {
+      pdvNome,
+      comissaoTipo,
+      comissaoValor: parseFloat(comissaoValor),
+      updatedAt: Date.now()
+    };
+
+    if (isFirebaseConfigured && db) {
+      await setDoc(doc(db, "pdv_comissoes", pdvNome), dados);
+    } else {
+      // MODO SIMULADO
+      const saved = localStorage.getItem('bingokrs_pdv_comissoes') || '{}';
+      const comissoes = JSON.parse(saved);
+      comissoes[pdvNome] = dados;
+      localStorage.setItem('bingokrs_pdv_comissoes', JSON.stringify(comissoes));
+    }
+    return dados;
+  },
+
+  /**
+   * Busca a configuração de comissão de um PDV
+   */
+  async buscarComissaoPdv(pdvNome) {
+    if (isFirebaseConfigured && db) {
+      const docRef = doc(db, "pdv_comissoes", pdvNome);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return docSnap.data();
+      }
+      return null;
+    } else {
+      // MODO SIMULADO
+      const saved = localStorage.getItem('bingokrs_pdv_comissoes') || '{}';
+      const comissoes = JSON.parse(saved);
+      return comissoes[pdvNome] || null;
+    }
   }
 };

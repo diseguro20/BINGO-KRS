@@ -35,6 +35,14 @@
 
           <form id="form-selection">
             <div class="form-group" style="margin-bottom: 18px;">
+              <label for="select-pdv-totem">Selecione o Estabelecimento (PDV):</label>
+              <select id="select-pdv-totem" class="form-control" required>
+                <option value="">Carregando PDVs...</option>
+              </select>
+              <div id="pdv-commission-info" style="font-size: 11px; color: var(--neon-gold); margin-top: 6px; display: none;"></div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 18px;">
               <label for="client-phone">Celular do Cliente (para receber as cartelas):</label>
               <input type="text" id="client-phone" class="form-control" placeholder="Ex: (11) 99999-9999" required>
             </div>

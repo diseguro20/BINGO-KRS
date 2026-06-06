@@ -100,13 +100,63 @@ body {
 
 /* Cards */
 .admin-card {
+  position: relative;
   background-color: var(--admin-card-bg);
-  border: 1px solid var(--admin-border);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* Corta a cobrinha fora da borda do card */
+  border: 1px solid var(--admin-border);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+/* Efeito de cobrinha neon nas bordas */
+.admin-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    transparent, 
+    #00f3ff 20%, /* Neon Cyan */
+    transparent 40%, 
+    transparent 50%, 
+    #ff007f 70%, /* Neon Pink */
+    transparent 90%
+  );
+  animation: snake-rotate 10s linear infinite;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Camada interna que cobre o centro do card e deixa apenas a borda visível */
+.admin-card::after {
+  content: '';
+  position: absolute;
+  inset: 1.5px; /* Espessura da borda */
+  background-color: var(--admin-card-bg);
+  border-radius: 11px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Garante que o conteúdo real do card fique por cima do efeito da borda */
+.admin-card > * {
+  position: relative;
+  z-index: 3;
+}
+
+@keyframes snake-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .admin-card h2 {

@@ -239,6 +239,7 @@ function tentarCriarGrid() {
  * Avança o jogo para a próxima rodada importando as cartelas vendidas antecipadamente
  */
 export function avancarProximaRodada(estado) {
+  const statusAnterior = estado.status;
   // Se havia uma rodada ativa sendo jogada na fila, marca como finalizada antes de carregar a próxima
   if (estado.rodadasQueue) {
     const rodadaAtivaAnterior = estado.rodadasQueue.find(r => r.gameId === estado.gameId);
@@ -346,7 +347,9 @@ export function avancarProximaRodada(estado) {
   estado.nextGameId = proximoId;
 
   // Transfere e combina as cartelas reservadas com as já existentes (caso a rodada anterior estivesse em WAITING)
-  const todasCartelas = [...(estado.cards || []), ...(estado.nextCards || [])];
+  const todasCartelas = (statusAnterior === 'WAITING')
+    ? [...(estado.cards || []), ...(estado.nextCards || [])]
+    : [...(estado.nextCards || [])];
   estado.cards = todasCartelas.map(card => ({
     ...card,
     gameId: estado.gameId // Corrige o ID do sorteio associado para a nova rodada ativa

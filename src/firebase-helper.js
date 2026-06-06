@@ -61,12 +61,33 @@ export const FirebaseHelper = {
   async login(email, password) {
     if (isFirebaseConfigured && auth) {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      // Busca dados adicionais do operador no Firestore
-      const userDoc = await getDoc(doc(db, "operadores", userCredential.user.uid));
+      const docRef = doc(db, "operadores", userCredential.user.uid);
+      const userDoc = await getDoc(docRef);
+      let profile;
       if (userDoc.exists()) {
-        return { user: userCredential.user, profile: userDoc.data() };
+        profile = userDoc.data();
+      } else {
+        // Cria automaticamente o perfil no Firestore se for o email de administrador
+        if (email.toLowerCase() === "admin@bingo.com") {
+          profile = {
+            uid: userCredential.user.uid,
+            email: email,
+            nome: "Administrador",
+            pdvNome: "Administrador",
+            tipo: "admin"
+          };
+        } else {
+          profile = {
+            uid: userCredential.user.uid,
+            email: email,
+            nome: "Operador de Caixa",
+            pdvNome: "Caixa Geral",
+            tipo: "operador"
+          };
+        }
+        await setDoc(docRef, profile);
       }
-      return { user: userCredential.user, profile: { pdvNome: "Caixa Geral", tipo: "operador" } };
+      return { user: userCredential.user, profile };
     } else {
       // MODO SIMULADO
       const saved = localStorage.getItem('bingokrs_operadores') || '[]';

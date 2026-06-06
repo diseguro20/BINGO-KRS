@@ -37,6 +37,7 @@ let estadoGlobal = null;
 let premioEmExibicao = false; // Flag: true when prize popup is showing (pause auto-draw)
 let winnersJaExibidos = { quadra: [], quina: [], bingo: [], acumulado: [] }; // Track which winners have been announced
 let filaAnuncios = []; // Fila de anúncios de ganhadores pendentes
+let ultimoGameId = null;
 
 // Inicializa a data local
 valData.innerText = new Date().toLocaleDateString('pt-BR');
@@ -264,8 +265,12 @@ function renderizarApp(estado) {
       text: "Sorteio hoje às 20h! Compre sua cartela nos pontos credenciados."
     };
 
-    // Se a rodada foi resetada ou está em WAITING, limpa qualquer popup de prêmio ativo imediatamente
-    if (status === 'WAITING') {
+    // Se mudou de rodada (gameId diferente), ou se está em WAITING, limpa cache de exibição e fila de anúncios
+    if (ultimoGameId !== gameId || status === 'WAITING') {
+      if (ultimoGameId !== gameId) {
+        console.log(`[TV] Novo ID de jogo detectado: ${gameId}. Resetando rastreamento de ganhadores e popups.`);
+        ultimoGameId = gameId;
+      }
       premioEmExibicao = false;
       filaAnuncios = [];
       winnersJaExibidos = { quadra: [], quina: [], bingo: [], acumulado: [] };

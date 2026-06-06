@@ -455,7 +455,18 @@ export function processarEstadoJogo(estado) {
  * Adiciona uma cartela à lista de ganhadores se ela já não estiver lá
  */
 function adicionarVencedor(estado, categoria, cardId, pdv, ordem) {
-  const lista = estado.winners[categoria];
+  if (!estado.winners) {
+    estado.winners = { quadra: [], quina: [], bingo: [], acumulado: [] };
+  }
+  const lista = estado.winners[categoria] || [];
+  
+  // REGRA DE NEGÓCIO: Bloqueia se a categoria já foi ganha em uma ordem de sorteio anterior (bola diferente)
+  const jaTemGanhadorOutraOrdem = lista.some(w => w.ordemSorteio !== ordem);
+  if (jaTemGanhadorOutraOrdem) {
+    console.warn(`[REGRA DE NEGÓCIO] Bloqueando vencedor duplicado na categoria ${categoria} para cartela ${cardId} no sorteio ${ordem}. Já existe vencedor no sorteio ${lista[0].ordemSorteio}.`);
+    return;
+  }
+
   const jaGanhou = lista.some(w => w.cardId === cardId);
   if (!jaGanhou) {
     lista.push({

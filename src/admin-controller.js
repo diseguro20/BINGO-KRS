@@ -45,6 +45,14 @@ const winnersContainer = document.getElementById('winners-container');
 const totalCardsValue = document.getElementById('total-cards-value');
 const nextCardsValue = document.getElementById('next-cards-value');
 
+// Campos de Direcionamento de Prêmio (Rigging)
+const riggingControlBox = document.getElementById('rigging-control-box');
+const riggingStatusMsg = document.getElementById('rigging-status-msg');
+const riggingFields = document.getElementById('rigging-fields');
+const selectAdminForcedPdv = document.getElementById('select-admin-forced-pdv');
+const selectAdminRiggingProb = document.getElementById('select-admin-rigging-prob');
+const btnSaveAdminRigging = document.getElementById('btn-save-admin-rigging');
+
 // Elementos de Agendamento da Rodada
 const btnCancelCountdown = document.getElementById('btn-cancel-countdown');
 
@@ -173,8 +181,53 @@ function renderizarAdmin(novoEstado) {
   }
 
   // 4. Simulador de PDV
-  totalCardsValue.innerText = estado.cards.length;
+  const cardsCount = estado.cards ? estado.cards.length : 0;
+  totalCardsValue.innerText = cardsCount;
   nextCardsValue.innerText = estado.nextCards ? estado.nextCards.length : 0;
+
+  // 4.5. Atualiza Painel de Direcionamento de Prêmio (Rigging)
+  if (cardsCount === 0) {
+    if (riggingFields) riggingFields.style.display = 'none';
+    if (riggingStatusMsg) {
+      riggingStatusMsg.style.display = 'block';
+      riggingStatusMsg.innerHTML = '⚠️ Para direcionar o prêmio, os clientes precisam comprar cartelas nesta rodada primeiro. Aguardando venda...';
+    }
+  } else {
+    if (riggingStatusMsg) riggingStatusMsg.style.display = 'none';
+    if (riggingFields) riggingFields.style.display = 'flex';
+    
+    // Lista os PDVs únicos das cartelas vendidas na rodada ativa
+    const pdvsComCartelas = [...new Set(estado.cards.map(c => c.pdv))];
+    
+    // Salva o valor atualmente selecionado pelo usuário para não perder a digitação ao renderizar
+    const currentSelected = selectAdminForcedPdv.value || estado.forcedPdvWinner || 'NENHUM';
+    
+    // Limpa e repopula o select
+    selectAdminForcedPdv.innerHTML = '<option value="NENHUM">NENHUM (Sorteio 100% Aleatório)</option>';
+    pdvsComCartelas.forEach(pdvName => {
+      const option = document.createElement('option');
+      option.value = pdvName;
+      option.innerText = pdvName;
+      selectAdminForcedPdv.appendChild(option);
+    });
+    
+    // Tenta re-selecionar o valor anterior ou o estado do banco
+    if (document.activeElement !== selectAdminForcedPdv) {
+      if (pdvsComCartelas.includes(estado.forcedPdvWinner)) {
+        selectAdminForcedPdv.value = estado.forcedPdvWinner;
+      } else {
+        selectAdminForcedPdv.value = 'NENHUM';
+      }
+    } else {
+      if (pdvsComCartelas.includes(currentSelected) || currentSelected === 'NENHUM') {
+        selectAdminForcedPdv.value = currentSelected;
+      }
+    }
+    
+    if (document.activeElement !== selectAdminRiggingProb) {
+      selectAdminRiggingProb.value = (estado.forcedRiggingProbability || 75).toString();
+    }
+  }
 
   // 5. Ganhadores
   winnersContainer.innerHTML = '';
@@ -387,6 +440,30 @@ btnSavePanel.addEventListener('click', () => {
   };
   FirebaseHelper.salvarEstadoJogo(estado);
   alert("Mensagem da TV atualizada com sucesso!");
+});
+
+// Salvar Direcionamento de Prêmio (Rigging) no Sorteio Ativo
+btnSaveAdminRigging.addEventListener('click', async () => {
+  if (!estado) return;
+  
+  const selectedPdv = selectAdminForcedPdv.value;
+  const riggingProb = parseInt(selectAdminRiggingProb.value) || 75;
+  
+  btnSaveAdminRigging.disabled = true;
+  btnSaveAdminRigging.innerText = 'Salvando...';
+  
+  try {
+    estado.forcedPdvWinner = selectedPdv;
+    estado.forcedRiggingProbability = riggingProb;
+    
+    await FirebaseHelper.salvarEstadoJogo(estado);
+    alert(`Sucesso! O prêmio principal agora está direcionado para o PDV: ${selectedPdv} (Força: ${riggingProb}%).`);
+  } catch (err) {
+    alert("Erro ao salvar direcionamento: " + err.message);
+  } finally {
+    btnSaveAdminRigging.disabled = false;
+    btnSaveAdminRigging.innerText = 'Aplicar Direcionamento';
+  }
 });
 
 // Ações no seletor de painel inferior para agilizar preenchimento de teste

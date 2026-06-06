@@ -203,33 +203,36 @@
           <!-- AUDITORIA / MANIPULAÇÃO DE RESULTADOS -->
           <h2 style="font-size: 16px; border-left-color: var(--neon-gold); color: var(--neon-gold);">Direcionar Prêmio (Forçar Vencedor)</h2>
           
-          <div class="form-group">
-            <label for="select-forced-pdv">Selecione o PDV/Bar Alvo:</label>
-            <select id="select-forced-pdv" class="form-control">
-              <option value="NENHUM" selected>NENHUM (Sorteio 100% Aleatório)</option>
-              <!-- Dinâmico por JS -->
-              <option value="OUTRO">OUTRO (Digitar Nome...)</option>
-            </select>
+          <div class="audit-warning" style="margin-top: 10px; margin-bottom: 20px; background: rgba(255, 215, 0, 0.05); border: 1px dashed var(--neon-gold); display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 8px;">
+            <span style="font-size: 18px;">⚠️</span>
+            <span style="font-size: 12px; line-height: 1.4; color: var(--neon-gold);">
+              <strong>Importante:</strong> O direcionamento de prêmios só é permitido <strong>após</strong> os clientes gerarem/comprarem suas cartelas. 
+              Configure o direcionamento diretamente no <strong>Console de Sorteio (Painel do Administrador)</strong> assim que a rodada tiver cartelas vendidas.
+            </span>
           </div>
 
-          <div class="form-group" id="group-forced-pdv-custom" style="display: none;">
-            <label for="input-forced-pdv-custom">Nome do Bar/PDV Alvo:</label>
-            <input type="text" id="input-forced-pdv-custom" class="form-control" placeholder="Digite exatamente o nome do PDV">
-          </div>
-
-          <div class="form-group">
-            <label for="input-rigging-prob">Força da Manipulação (% de probabilidade):</label>
-            <select id="input-rigging-prob" class="form-control">
-              <option value="50">50% (Levemente inclinado)</option>
-              <option value="75" selected>75% (Altamente provável - Recomendado)</option>
-              <option value="90">90% (Quase garantido)</option>
-              <option value="100">100% (Manipulação Absoluta)</option>
-            </select>
-          </div>
-
-          <div class="audit-warning">
-            <span style="font-size: 16px;">⚠️</span>
-            <span>Esta opção força o sorteio de bolas que pertencem às cartelas ativas compradas no PDV selecionado, assegurando que o vencedor saia no estabelecimento escolhido.</span>
+          <!-- Elementos originais ocultos para manter compatibilidade com o JS -->
+          <div style="display: none;">
+            <div class="form-group">
+              <label for="select-forced-pdv">Selecione o PDV/Bar Alvo:</label>
+              <select id="select-forced-pdv" class="form-control">
+                <option value="NENHUM" selected>NENHUM (Sorteio 100% Aleatório)</option>
+                <option value="OUTRO">OUTRO (Digitar Nome...)</option>
+              </select>
+            </div>
+            <div class="form-group" id="group-forced-pdv-custom" style="display: none;">
+              <label for="input-forced-pdv-custom">Nome do Bar/PDV Alvo:</label>
+              <input type="text" id="input-forced-pdv-custom" class="form-control" placeholder="Digite exatamente o nome do PDV">
+            </div>
+            <div class="form-group">
+              <label for="input-rigging-prob">Força da Manipulação (% de probabilidade):</label>
+              <select id="input-rigging-prob" class="form-control">
+                <option value="50">50%</option>
+                <option value="75" selected>75%</option>
+                <option value="90">90%</option>
+                <option value="100">100%</option>
+              </select>
+            </div>
           </div>
 
           <button type="submit" class="btn btn-primary" style="margin-top: 25px;">Agendar Rodada na Fila</button>

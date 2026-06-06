@@ -44,84 +44,110 @@ const FIREWORK_COLORS = [
 ];
 
 export function launchFireworks(durationMs = 10000) {
-  const canvas = document.createElement('canvas');
-  canvas.id = 'fireworks-canvas';
-  canvas.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;pointer-events:none;';
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  document.body.appendChild(canvas);
-
-  const ctx = canvas.getContext('2d');
-  let particles = [];
-  let running = true;
-  const startTime = Date.now();
-
-  function createExplosion(x, y) {
-    const color = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
-    const particleCount = 20 + Math.floor(Math.random() * 15);
-    for (let i = 0; i < particleCount; i++) {
-      const angle = (Math.PI * 2 / particleCount) * i;
-      const speed = Math.random() * 5 + 1.5;
-      particles.push(new Particle(
-        x, y, color,
-        { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
-        0.04,
-        0.012 + Math.random() * 0.015
-      ));
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.id = 'fireworks-canvas';
+    canvas.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;pointer-events:none;';
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    if (!document.body) {
+      console.warn('[EFFECTS] document.body não está disponível para fogos de artifício.');
+      return;
     }
-    // Inner ring with different color
-    const color2 = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
-    for (let i = 0; i < 6; i++) {
-      const angle = (Math.PI * 2 / 6) * i;
-      const speed = Math.random() * 2.5 + 0.8;
-      particles.push(new Particle(
-        x, y, color2,
-        { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
-        0.03,
-        0.015 + Math.random() * 0.01
-      ));
+    document.body.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.warn('[EFFECTS] Contexto 2D do Canvas não disponível para fogos de artifício.');
+      return;
     }
-  }
+    let particles = [];
+    let running = true;
+    const startTime = Date.now();
 
-  let nextExplosion = 0;
-
-  function animate() {
-    if (!running) return;
-    const elapsed = Date.now() - startTime;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Launch new explosions periodically
-    if (elapsed < durationMs - 2000 && Date.now() > nextExplosion) {
-      const x = Math.random() * canvas.width * 0.7 + canvas.width * 0.15;
-      const y = Math.random() * canvas.height * 0.5 + canvas.height * 0.1;
-      createExplosion(x, y);
-      nextExplosion = Date.now() + 200 + Math.random() * 400;
+    function createExplosion(x, y) {
+      const color = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+      const particleCount = 20 + Math.floor(Math.random() * 15);
+      for (let i = 0; i < particleCount; i++) {
+        const angle = (Math.PI * 2 / particleCount) * i;
+        const speed = Math.random() * 5 + 1.5;
+        particles.push(new Particle(
+          x, y, color,
+          { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
+          0.04,
+          0.012 + Math.random() * 0.015
+        ));
+      }
+      // Inner ring with different color
+      const color2 = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI * 2 / 6) * i;
+        const speed = Math.random() * 2.5 + 0.8;
+        particles.push(new Particle(
+          x, y, color2,
+          { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
+          0.03,
+          0.015 + Math.random() * 0.01
+        ));
+      }
     }
 
-    // Update and draw particles
-    particles = particles.filter(p => p.alpha > 0.01);
-    particles.forEach(p => {
-      p.update();
-      p.draw(ctx);
-    });
+    let nextExplosion = 0;
 
-    if (elapsed < durationMs || particles.length > 0) {
-      requestAnimationFrame(animate);
-    } else {
-      canvas.remove();
+    function animate() {
+      try {
+        if (!running) return;
+        const elapsed = Date.now() - startTime;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Launch new explosions periodically
+        if (elapsed < durationMs - 2000 && Date.now() > nextExplosion) {
+          const x = Math.random() * canvas.width * 0.7 + canvas.width * 0.15;
+          const y = Math.random() * canvas.height * 0.5 + canvas.height * 0.1;
+          createExplosion(x, y);
+          nextExplosion = Date.now() + 200 + Math.random() * 400;
+        }
+
+        // Update and draw particles
+        particles = particles.filter(p => p.alpha > 0.01);
+        particles.forEach(p => {
+          try {
+            p.update();
+            p.draw(ctx);
+          } catch (pe) {
+            console.warn('[EFFECTS] Erro ao atualizar/desenhar partícula:', pe);
+          }
+        });
+
+        if (elapsed < durationMs || particles.length > 0) {
+          requestAnimationFrame(animate);
+        } else {
+          canvas.remove();
+        }
+      } catch (ae) {
+        console.error('[EFFECTS] Erro no loop de animação de fogos:', ae);
+        running = false;
+        try {
+          if (canvas.parentNode) canvas.remove();
+        } catch (ce) {}
+      }
     }
-  }
 
-  animate();
+    animate();
 
-  // Cleanup after duration
-  setTimeout(() => {
-    running = false;
+    // Cleanup after duration
     setTimeout(() => {
-      if (canvas.parentNode) canvas.remove();
-    }, 3000);
-  }, durationMs);
+      running = false;
+      setTimeout(() => {
+        try {
+          if (canvas.parentNode) canvas.remove();
+        } catch (e) {}
+      }, 3000);
+    }, durationMs);
+  } catch (error) {
+    console.error('[EFFECTS] Erro ao iniciar fogos de artifício:', error);
+  }
 }
 
 // ==========================================
@@ -295,69 +321,77 @@ if (window.speechSynthesis) {
 }
 
 export function narrarBola(numero) {
-  if (!window.speechSynthesis) return;
-  
-  // Cancel any ongoing speech
-  window.speechSynthesis.cancel();
-  
-  carregarVoz();
-  
-  const numStr = numero.toString();
-  let texto = `Bola ${numero}`;
-  
-  // Add flair for special numbers
-  if (numero % 10 === 0) {
-    texto = `Bola redonda, ${numero}`;
-  } else if (numero === 13) {
-    texto = `Bola ${numero}, o gato preto!`;
-  } else if (numero === 7 || numero === 77) {
-    texto = `Bola da sorte, ${numero}!`;
-  } else if (numero === 90) {
-    texto = `A última bola, ${numero}!`;
-  } else if (numero === 1) {
-    texto = `A primeira, bola ${numero}!`;
+  try {
+    if (!window.speechSynthesis) return;
+    
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    
+    carregarVoz();
+    
+    const numStr = numero.toString();
+    let texto = `Bola ${numero}`;
+    
+    // Add flair for special numbers
+    if (numero % 10 === 0) {
+      texto = `Bola redonda, ${numero}`;
+    } else if (numero === 13) {
+      texto = `Bola ${numero}, o gato preto!`;
+    } else if (numero === 7 || numero === 77) {
+      texto = `Bola da sorte, ${numero}!`;
+    } else if (numero === 90) {
+      texto = `A última bola, ${numero}!`;
+    } else if (numero === 1) {
+      texto = `A primeira, bola ${numero}!`;
+    }
+    
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'pt-BR';
+    utterance.rate = 0.95;
+    utterance.pitch = 1.1;
+    utterance.volume = 1;
+    
+    if (vozFeminina) {
+      utterance.voice = vozFeminina;
+    }
+    
+    window.speechSynthesis.speak(utterance);
+  } catch (e) {
+    console.warn('[NARRAÇÃO] Erro ao narrar bola:', e);
   }
-  
-  const utterance = new SpeechSynthesisUtterance(texto);
-  utterance.lang = 'pt-BR';
-  utterance.rate = 0.95;
-  utterance.pitch = 1.1;
-  utterance.volume = 1;
-  
-  if (vozFeminina) {
-    utterance.voice = vozFeminina;
-  }
-  
-  window.speechSynthesis.speak(utterance);
 }
 
 export function narrarPremio(categoria, cardId, pdv) {
-  if (!window.speechSynthesis) return;
-  
-  window.speechSynthesis.cancel();
-  carregarVoz();
-  
-  const nomesCategorias = {
-    quadra: 'Quadra',
-    quina: 'Quina',
-    bingo: 'Bingo',
-    acumulado: 'Prêmio Acumulado'
-  };
-  
-  const catNome = nomesCategorias[categoria.toLowerCase()] || categoria;
-  const texto = `Atenção! Saiu ${catNome}! A cartela vencedora é ${cardId}, do ponto de venda ${pdv}! Parabéns ao ganhador!`;
-  
-  const utterance = new SpeechSynthesisUtterance(texto);
-  utterance.lang = 'pt-BR';
-  utterance.rate = 0.85;
-  utterance.pitch = 1.1;
-  utterance.volume = 1;
-  
-  if (vozFeminina) {
-    utterance.voice = vozFeminina;
+  try {
+    if (!window.speechSynthesis) return;
+    
+    window.speechSynthesis.cancel();
+    carregarVoz();
+    
+    const nomesCategorias = {
+      quadra: 'Quadra',
+      quina: 'Quina',
+      bingo: 'Bingo',
+      acumulado: 'Prêmio Acumulado'
+    };
+    
+    const catNome = nomesCategorias[categoria.toLowerCase()] || categoria;
+    const texto = `Atenção! Saiu ${catNome}! A cartela vencedora é ${cardId}, do ponto de venda ${pdv}! Parabéns ao ganhador!`;
+    
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'pt-BR';
+    utterance.rate = 0.85;
+    utterance.pitch = 1.1;
+    utterance.volume = 1;
+    
+    if (vozFeminina) {
+      utterance.voice = vozFeminina;
+    }
+    
+    window.speechSynthesis.speak(utterance);
+  } catch (e) {
+    console.warn('[NARRAÇÃO] Erro ao narrar prêmio:', e);
   }
-  
-  window.speechSynthesis.speak(utterance);
 }
 
 // Convenience: play a tick/ding sound when a ball is drawn

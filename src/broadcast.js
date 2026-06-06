@@ -58,109 +58,123 @@ setInterval(() => {
  * Atualiza visualmente a contagem regressiva local de forma fluida
  */
 function atualizarContagemRegressivaLocal() {
-  if (!estadoGlobal) return;
-  
-  const panelHeaderCentered = document.querySelector('.panel-header-centered');
-  
-  if (estadoGlobal.countdownEndTime) {
-    const agora = Date.now();
-    const tempoRestante = Math.max(0, Math.round((estadoGlobal.countdownEndTime - agora) / 1000));
+  try {
+    if (!estadoGlobal) return;
     
-    if (tempoRestante > 0) {
-      let textoTime;
-      if (tempoRestante >= 3600) {
-        const hrs = Math.floor(tempoRestante / 3600);
-        const min = Math.floor((tempoRestante % 3600) / 60);
-        const seg = tempoRestante % 60;
-        textoTime = `${hrs}:${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
-      } else {
-        const min = Math.floor(tempoRestante / 60);
-        const seg = tempoRestante % 60;
-        textoTime = `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+    const panelHeaderCentered = document.querySelector('.panel-header-centered');
+    
+    if (estadoGlobal.countdownEndTime) {
+      const agora = Date.now();
+      const tempoRestante = Math.max(0, Math.round((estadoGlobal.countdownEndTime - agora) / 1000));
+      
+      if (tempoRestante > 0) {
+        let textoTime;
+        if (tempoRestante >= 3600) {
+          const hrs = Math.floor(tempoRestante / 3600);
+          const min = Math.floor((tempoRestante % 3600) / 60);
+          const seg = tempoRestante % 60;
+          textoTime = `${hrs}:${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+        } else {
+          const min = Math.floor(tempoRestante / 60);
+          const seg = tempoRestante % 60;
+          textoTime = `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+        }
+        
+        if (currentBallNum) {
+          currentBallNum.innerText = textoTime;
+          currentBallNum.style.fontSize = '34px'; // Tamanho menor para caber "MM:SS"
+        }
+        
+        if (panelHeaderCentered) {
+          panelHeaderCentered.innerText = "PRÓXIMA RODADA";
+          panelHeaderCentered.style.color = "var(--neon-cyan)";
+        }
+        
+        // Define cor amarela para a contagem regressiva
+        if (giantBall) {
+          giantBall.className = 'giant-ball-3d ball-color-6';
+        }
+        return;
       }
-      
-      currentBallNum.innerText = textoTime;
-      currentBallNum.style.fontSize = '34px'; // Tamanho menor para caber "MM:SS"
-      
-      if (panelHeaderCentered) {
-        panelHeaderCentered.innerText = "PRÓXIMA RODADA";
-        panelHeaderCentered.style.color = "var(--neon-cyan)";
-      }
-      
-      // Define cor amarela para a contagem regressiva
-      giantBall.className = 'giant-ball-3d ball-color-6';
-      return;
     }
-  }
-  
-  // Se não houver contagem regressiva agendada
-  currentBallNum.innerText = 'BINGO';
-  currentBallNum.style.fontSize = '34px';
-  giantBall.className = 'giant-ball-3d';
-  
-  if (panelHeaderCentered) {
-    panelHeaderCentered.innerText = "AGUARDANDO SORTEIO";
-    panelHeaderCentered.style.color = "var(--neon-pink)";
+    
+    // Se não houver contagem regressiva agendada
+    if (currentBallNum) {
+      currentBallNum.innerText = 'BINGO';
+      currentBallNum.style.fontSize = '34px';
+    }
+    if (giantBall) {
+      giantBall.className = 'giant-ball-3d';
+    }
+    
+    if (panelHeaderCentered) {
+      panelHeaderCentered.innerText = "AGUARDANDO SORTEIO";
+      panelHeaderCentered.style.color = "var(--neon-pink)";
+    }
+  } catch (e) {
+    console.warn('Erro ao atualizar contagem regressiva local:', e);
   }
 }
 
-/**
- * Atualiza o painel da próxima rodada com o ID e o tempo regressivo
- */
 function atualizarPainelProximaRodada() {
-  if (!estadoGlobal) return;
+  try {
+    if (!estadoGlobal) return;
 
-  // 1. Determina o ID do próximo sorteio
-  let proximoId = estadoGlobal.nextGameId || "--";
-  if (estadoGlobal.rodadasQueue && estadoGlobal.rodadasQueue.length > 0) {
-    proximoId = estadoGlobal.rodadasQueue[0].gameId;
-  }
-  
-  if (tvNextRoundId) {
-    tvNextRoundId.innerText = `SORTEIO ${proximoId}`;
-  }
+    // 1. Determina o ID do próximo sorteio
+    let proximoId = estadoGlobal.nextGameId || "--";
+    if (estadoGlobal.rodadasQueue && estadoGlobal.rodadasQueue.length > 0) {
+      proximoId = estadoGlobal.rodadasQueue[0].gameId || "--";
+    }
+    
+    if (tvNextRoundId) {
+      tvNextRoundId.innerText = `SORTEIO ${proximoId}`;
+    }
 
-  // 2. Determina o texto e o tempo da contagem regressiva
-  if (tvNextRoundCountdown) {
-    if (estadoGlobal.status === 'WAITING') {
-      if (estadoGlobal.countdownEndTime) {
-        const agora = Date.now();
-        const tempoRestante = Math.max(0, Math.round((estadoGlobal.countdownEndTime - agora) / 1000));
-        
-        if (tempoRestante > 0) {
-          let textoTime;
-          if (tempoRestante >= 3600) {
-            const hrs = Math.floor(tempoRestante / 3600);
-            const min = Math.floor((tempoRestante % 3600) / 60);
-            const seg = tempoRestante % 60;
-            textoTime = `${hrs}:${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+    // 2. Determina o texto e o tempo da contagem regressiva
+    if (tvNextRoundCountdown) {
+      const status = estadoGlobal.status || 'WAITING';
+      if (status === 'WAITING') {
+        if (estadoGlobal.countdownEndTime) {
+          const agora = Date.now();
+          const tempoRestante = Math.max(0, Math.round((estadoGlobal.countdownEndTime - agora) / 1000));
+          
+          if (tempoRestante > 0) {
+            let textoTime;
+            if (tempoRestante >= 3600) {
+              const hrs = Math.floor(tempoRestante / 3600);
+              const min = Math.floor((tempoRestante % 3600) / 60);
+              const seg = tempoRestante % 60;
+              textoTime = `${hrs}:${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+            } else {
+              const min = Math.floor(tempoRestante / 60);
+              const seg = tempoRestante % 60;
+              textoTime = `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+            }
+            tvNextRoundCountdown.innerText = textoTime;
+            tvNextRoundCountdown.style.color = "var(--neon-cyan)";
           } else {
-            const min = Math.floor(tempoRestante / 60);
-            const seg = tempoRestante % 60;
-            textoTime = `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+            tvNextRoundCountdown.innerText = "INICIANDO...";
+            tvNextRoundCountdown.style.color = "var(--success)";
           }
-          tvNextRoundCountdown.innerText = textoTime;
-          tvNextRoundCountdown.style.color = "var(--neon-cyan)";
         } else {
-          tvNextRoundCountdown.innerText = "INICIANDO...";
-          tvNextRoundCountdown.style.color = "var(--success)";
+          tvNextRoundCountdown.innerText = "AGUARDANDO INÍCIO";
+          tvNextRoundCountdown.style.color = "var(--neon-pink)";
         }
-      } else {
-        tvNextRoundCountdown.innerText = "AGUARDANDO INÍCIO";
-        tvNextRoundCountdown.style.color = "var(--neon-pink)";
-      }
-    } else if (estadoGlobal.status === 'PLAYING') {
-      tvNextRoundCountdown.innerText = "SORTEIO EM ANDAMENTO";
-      tvNextRoundCountdown.style.color = "var(--warning)";
-    } else if (estadoGlobal.status === 'ENDED') {
-      if (estadoGlobal.rodadasQueue && estadoGlobal.rodadasQueue.length > 0) {
-        tvNextRoundCountdown.innerText = "INICIANDO PRÓXIMO...";
-        tvNextRoundCountdown.style.color = "var(--success)";
-      } else {
-        tvNextRoundCountdown.innerText = "SORTEIO FINALIZADO";
-        tvNextRoundCountdown.style.color = "var(--text-muted)";
+      } else if (status === 'PLAYING') {
+        tvNextRoundCountdown.innerText = "SORTEIO EM ANDAMENTO";
+        tvNextRoundCountdown.style.color = "var(--warning)";
+      } else if (status === 'ENDED') {
+        if (estadoGlobal.rodadasQueue && estadoGlobal.rodadasQueue.length > 0) {
+          tvNextRoundCountdown.innerText = "INICIANDO PRÓXIMO...";
+          tvNextRoundCountdown.style.color = "var(--success)";
+        } else {
+          tvNextRoundCountdown.innerText = "SORTEIO FINALIZADO";
+          tvNextRoundCountdown.style.color = "var(--text-muted)";
+        }
       }
     }
+  } catch (e) {
+    console.warn('Erro ao atualizar painel da proxima rodada:', e);
   }
 }
 
@@ -219,234 +233,309 @@ inicializarTabuleiro();
  * Renderiza todo o aplicativo com base no estado do jogo recebido em tempo real
  */
 function renderizarApp(estado) {
-  if (!estado) return;
-  estadoGlobal = estado;
+  try {
+    if (!estado) return;
+    estadoGlobal = estado;
 
-  // 1. Atualizar valores das premiações e sorteio (Sidebar Esquerda)
-  valQuadra.innerText = `R$ ${estado.prizes.quadra.toFixed(2).replace('.', ',')}`;
-  valQuina.innerText = `R$ ${estado.prizes.quina.toFixed(2).replace('.', ',')}`;
-  valBingo.innerText = `R$ ${estado.prizes.bingo.toFixed(2).replace('.', ',')}`;
-  
-  const acumuladoFormatado = `R$ ${estado.prizes.acumulado.toFixed(2).replace('.', ',')}`;
-  valAcumuladoLeft.innerText = acumuladoFormatado;
-  jackpotValue.innerText = acumuladoFormatado;
-  
-  valSorteio.innerText = estado.gameId;
-  valCupom.innerText = `R$ ${estado.prizes.cupom.toFixed(2).replace('.', ',')}`;
-  
-  if (estado.dataSorteio) {
-    valData.innerText = estado.dataSorteio;
-  }
+    // Defesas e Fallbacks Robustos
+    const status = estado.status || 'WAITING';
+    const gameId = estado.gameId || '--';
+    const nextGameId = estado.nextGameId || '--';
+    const dataSorteio = estado.dataSorteio || new Date().toLocaleDateString('pt-BR');
+    const drawnBalls = Array.isArray(estado.drawnBalls) ? estado.drawnBalls : [];
+    const cards = Array.isArray(estado.cards) ? estado.cards : [];
+    
+    const prizes = estado.prizes || {};
+    const prizeQuadra = typeof prizes.quadra === 'number' ? prizes.quadra : 0;
+    const prizeQuina = typeof prizes.quina === 'number' ? prizes.quina : 0;
+    const prizeBingo = typeof prizes.bingo === 'number' ? prizes.bingo : 0;
+    const prizeAcumulado = typeof prizes.acumulado === 'number' ? prizes.acumulado : 0;
+    const prizeCupom = typeof prizes.cupom === 'number' ? prizes.cupom : 0;
 
-  // 2. Tabuleiro de 1-90 e Ordem do Sorteio
-  orderCounter.innerText = `ORDEM ${estado.drawnBalls.length.toString().padStart(2, '0')}`;
-  
-  // Atualiza as classes de cada célula do tabuleiro
-  for (let i = 1; i <= 90; i++) {
-    const cell = document.getElementById(`num-cell-${i}`);
-    if (cell) {
-      cell.className = 'board-num'; // Limpa classes
-      
-      if (estado.drawnBalls.includes(i)) {
-        cell.classList.add('drawn');
-      }
-      
-      // Destaca o último sorteado (se houver)
-      if (estado.drawnBalls.length > 0 && estado.drawnBalls[estado.drawnBalls.length - 1] === i) {
-        cell.classList.add('latest-drawn');
-      }
-    }
-  }
+    const winners = estado.winners || {};
+    const winnersQuadra = Array.isArray(winners.quadra) ? winners.quadra : [];
+    const winnersQuina = Array.isArray(winners.quina) ? winners.quina : [];
+    const winnersBingo = Array.isArray(winners.bingo) ? winners.bingo : [];
+    const winnersAcumulado = Array.isArray(winners.acumulado) ? winners.acumulado : [];
 
-  // 3. Bola Atual (Globo Gigante) ou Contagem Regressiva
-  const panelHeaderCentered = document.querySelector('.panel-header-centered');
-  
-  if (estado.status === 'WAITING') {
-    atualizarContagemRegressivaLocal();
-  } else if (estado.status === 'ENDED') {
-    if (panelHeaderCentered) {
-      panelHeaderCentered.innerText = "RODADA ENCERRADA";
-      panelHeaderCentered.style.color = "var(--neon-pink)";
-    }
-    currentBallNum.innerText = 'BINGO';
-    currentBallNum.style.fontSize = '34px';
-    giantBall.className = 'giant-ball-3d ball-color-6';
-    ultimoNumeroRenderizado = null;
-  } else {
-    // Restaura o cabeçalho original
-    if (panelHeaderCentered) {
-      panelHeaderCentered.innerText = "BOLA ATUAL";
-      panelHeaderCentered.style.color = "var(--neon-cyan)";
+    const bottomPanelSettings = estado.bottomPanelSettings || {
+      type: "PROXIMO_PREMIO",
+      title: "PRÓXIMO PRÊMIO",
+      text: "Sorteio hoje às 20h! Compre sua cartela nos pontos credenciados."
+    };
+
+    // 1. Atualizar valores das premiações e sorteio (Sidebar Esquerda)
+    if (valQuadra) valQuadra.innerText = `R$ ${prizeQuadra.toFixed(2).replace('.', ',')}`;
+    if (valQuina) valQuina.innerText = `R$ ${prizeQuina.toFixed(2).replace('.', ',')}`;
+    if (valBingo) valBingo.innerText = `R$ ${prizeBingo.toFixed(2).replace('.', ',')}`;
+    
+    const acumuladoFormatado = `R$ ${prizeAcumulado.toFixed(2).replace('.', ',')}`;
+    if (valAcumuladoLeft) valAcumuladoLeft.innerText = acumuladoFormatado;
+    if (jackpotValue) jackpotValue.innerText = acumuladoFormatado;
+    
+    if (valSorteio) valSorteio.innerText = gameId;
+    if (valCupom) valCupom.innerText = `R$ ${prizeCupom.toFixed(2).replace('.', ',')}`;
+    
+    if (valData) {
+      valData.innerText = dataSorteio;
     }
 
-    if (estado.drawnBalls.length > 0) {
-      const atual = estado.drawnBalls[estado.drawnBalls.length - 1];
-      currentBallNum.innerText = atual.toString().padStart(2, '0');
-      currentBallNum.style.fontSize = '64px'; // Restaura tamanho da fonte
-      
-      // Define a cor da bola gigante
-      giantBall.className = 'giant-ball-3d'; // Limpa cores
-      giantBall.classList.add(obterClasseCorBola(atual));
-
-      // Aciona animação de pulso se for uma bola nova
-      if (ultimoNumeroRenderizado !== atual) {
-        giantBall.classList.remove('drawn-pulse');
-        // Força reflow para reiniciar animação
-        void giantBall.offsetWidth;
-        giantBall.classList.add('drawn-pulse');
-        ultimoNumeroRenderizado = atual;
-        // Narração e som da bola
-        playBallDrawSound();
-        narrarBola(atual);
+    // 2. Tabuleiro de 1-90 e Ordem do Sorteio
+    if (orderCounter) {
+      orderCounter.innerText = `ORDEM ${drawnBalls.length.toString().padStart(2, '0')}`;
+    }
+    
+    // Atualiza as classes de cada célula do tabuleiro
+    for (let i = 1; i <= 90; i++) {
+      const cell = document.getElementById(`num-cell-${i}`);
+      if (cell) {
+        cell.className = 'board-num'; // Limpa classes
+        
+        if (drawnBalls.includes(i)) {
+          cell.classList.add('drawn');
+        }
+        
+        // Destaca o último sorteado (se houver)
+        if (drawnBalls.length > 0 && drawnBalls[drawnBalls.length - 1] === i) {
+          cell.classList.add('latest-drawn');
+        }
       }
-    } else {
-      currentBallNum.innerText = '--';
-      currentBallNum.style.fontSize = '64px';
-      giantBall.className = 'giant-ball-3d';
+    }
+
+    // 3. Bola Atual (Globo Gigante) ou Contagem Regressiva
+    const panelHeaderCentered = document.querySelector('.panel-header-centered');
+    
+    if (status === 'WAITING') {
+      try {
+        atualizarContagemRegressivaLocal();
+      } catch (ce) {
+        console.warn('Erro ao atualizar contagem regressiva:', ce);
+      }
+    } else if (status === 'ENDED') {
+      if (panelHeaderCentered) {
+        panelHeaderCentered.innerText = "RODADA ENCERRADA";
+        panelHeaderCentered.style.color = "var(--neon-pink)";
+      }
+      if (currentBallNum) {
+        currentBallNum.innerText = 'BINGO';
+        currentBallNum.style.fontSize = '34px';
+      }
+      if (giantBall) {
+        giantBall.className = 'giant-ball-3d ball-color-6';
+      }
       ultimoNumeroRenderizado = null;
-    }
-  }
-
-  // 4. Últimas 4 Bolas Sorteadas (Vertical - Sidebar Esquerda)
-  // Mostra as bolas sorteadas da penúltima para trás (excluindo a atual)
-  const historicoVertical = estado.drawnBalls.slice(0, -1).reverse().slice(0, 4);
-  verticalBallsList.innerHTML = '';
-  for (let i = 0; i < 4; i++) {
-    if (historicoVertical[i] !== undefined) {
-      const num = historicoVertical[i];
-      verticalBallsList.innerHTML += `
-        <div class="small-ball-3d ${obterClasseCorBola(num)}">
-          <div class="ball-inner-plate">
-            <span class="ball-number">${num.toString().padStart(2, '0')}</span>
-          </div>
-        </div>`;
     } else {
-      verticalBallsList.innerHTML += `<div class="ball-placeholder">--</div>`;
+      // Restaura o cabeçalho original
+      if (panelHeaderCentered) {
+        panelHeaderCentered.innerText = "BOLA ATUAL";
+        panelHeaderCentered.style.color = "var(--neon-cyan)";
+      }
+
+      if (drawnBalls.length > 0) {
+        const atual = drawnBalls[drawnBalls.length - 1];
+        if (currentBallNum) {
+          currentBallNum.innerText = atual.toString().padStart(2, '0');
+          currentBallNum.style.fontSize = '64px'; // Restaura tamanho da fonte
+        }
+        
+        // Define a cor da bola gigante
+        if (giantBall) {
+          giantBall.className = 'giant-ball-3d'; // Limpa cores
+          giantBall.classList.add(obterClasseCorBola(atual));
+
+          // Aciona animação de pulso se for uma bola nova
+          if (ultimoNumeroRenderizado !== atual) {
+            giantBall.classList.remove('drawn-pulse');
+            // Força reflow para reiniciar animação
+            void giantBall.offsetWidth;
+            giantBall.classList.add('drawn-pulse');
+            ultimoNumeroRenderizado = atual;
+            // Narração e som da bola
+            try {
+              playBallDrawSound();
+            } catch (se) {
+              console.warn('Erro ao tocar som da bola:', se);
+            }
+            try {
+              narrarBola(atual);
+            } catch (ne) {
+              console.warn('Erro ao narrar bola:', ne);
+            }
+          }
+        }
+      } else {
+        if (currentBallNum) {
+          currentBallNum.innerText = '--';
+          currentBallNum.style.fontSize = '64px';
+        }
+        if (giantBall) {
+          giantBall.className = 'giant-ball-3d';
+        }
+        ultimoNumeroRenderizado = null;
+      }
     }
-  }
 
-  // 5. Últimas 3 Bolas Sorteada (Abaixo da bola atual - Cronologia recente)
-  const historico3Central = estado.drawnBalls.slice(0, -1).reverse().slice(0, 3);
-  lastThreeBallsRow.innerHTML = '';
-  for (let i = 0; i < 3; i++) {
-    if (historico3Central[i] !== undefined) {
-      const num = historico3Central[i];
-      lastThreeBallsRow.innerHTML += `
-        <div class="mini-ball-3d ${obterClasseCorBola(num)}">
-          <div class="ball-inner-plate">
-            <span class="ball-number">${num.toString().padStart(2, '0')}</span>
-          </div>
-        </div>`;
-    } else {
-      lastThreeBallsRow.innerHTML += `<div class="mini-ball-placeholder">--</div>`;
+    // 4. Últimas 4 Bolas Sorteadas (Vertical - Sidebar Esquerda)
+    // Mostra as bolas sorteadas da penúltima para trás (excluindo a atual)
+    const historicoVertical = drawnBalls.slice(0, -1).reverse().slice(0, 4);
+    if (verticalBallsList) {
+      verticalBallsList.innerHTML = '';
+      for (let i = 0; i < 4; i++) {
+        if (historicoVertical[i] !== undefined) {
+          const num = historicoVertical[i];
+          verticalBallsList.innerHTML += `
+            <div class="small-ball-3d ${obterClasseCorBola(num)}">
+              <div class="ball-inner-plate">
+                <span class="ball-number">${num.toString().padStart(2, '0')}</span>
+              </div>
+            </div>`;
+        } else {
+          verticalBallsList.innerHTML += `<div class="ball-placeholder">--</div>`;
+        }
+      }
     }
-  }
 
-  // 6. Linha do Tempo (Últimas 5 Sorteadas horizontal)
-  const historicoHorizontal = estado.drawnBalls.slice(-5);
-  horizontalBallsRow.innerHTML = '';
-  for (let i = 0; i < 5; i++) {
-    if (historicoHorizontal[i] !== undefined) {
-      const num = historicoHorizontal[i];
-      horizontalBallsRow.innerHTML += `
-        <div class="horiz-ball-3d ${obterClasseCorBola(num)}">
-          <div class="ball-inner-plate">
-            <span class="ball-number">${num.toString().padStart(2, '0')}</span>
-          </div>
-        </div>`;
-    } else {
-      horizontalBallsRow.innerHTML += `<div class="horiz-ball-placeholder">--</div>`;
+    // 5. Últimas 3 Bolas Sorteada (Abaixo da bola atual - Cronologia recente)
+    const historico3Central = drawnBalls.slice(0, -1).reverse().slice(0, 3);
+    if (lastThreeBallsRow) {
+      lastThreeBallsRow.innerHTML = '';
+      for (let i = 0; i < 3; i++) {
+        if (historico3Central[i] !== undefined) {
+          const num = historico3Central[i];
+          lastThreeBallsRow.innerHTML += `
+            <div class="mini-ball-3d ${obterClasseCorBola(num)}">
+              <div class="ball-inner-plate">
+                <span class="ball-number">${num.toString().padStart(2, '0')}</span>
+              </div>
+            </div>`;
+        } else {
+          lastThreeBallsRow.innerHTML += `<div class="mini-ball-placeholder">--</div>`;
+        }
+      }
     }
-  }
 
-  // 7. Rankings de Cartelas (Top 20)
-  const ranking = obterRankingTop20(estado.cards);
-  rankingTbody.innerHTML = '';
-  if (ranking.length === 0) {
-    rankingTbody.innerHTML = `<tr class="empty-row"><td colspan="3">Nenhuma cartela ativa no jogo</td></tr>`;
-  } else {
-    ranking.forEach(card => {
-      let classeGlow = '';
-      if (card.numbersRemaining === 1) classeGlow = 'row-rest-1';
-      else if (card.numbersRemaining === 2) classeGlow = 'row-rest-2';
-      else if (card.numbersRemaining === 3) classeGlow = 'row-rest-3';
+    // 6. Linha do Tempo (Últimas 5 Sorteadas horizontal)
+    const historicoHorizontal = drawnBalls.slice(-5);
+    if (horizontalBallsRow) {
+      horizontalBallsRow.innerHTML = '';
+      for (let i = 0; i < 5; i++) {
+        if (historicoHorizontal[i] !== undefined) {
+          const num = historicoHorizontal[i];
+          horizontalBallsRow.innerHTML += `
+            <div class="horiz-ball-3d ${obterClasseCorBola(num)}">
+              <div class="ball-inner-plate">
+                <span class="ball-number">${num.toString().padStart(2, '0')}</span>
+              </div>
+            </div>`;
+        } else {
+          horizontalBallsRow.innerHTML += `<div class="horiz-ball-placeholder">--</div>`;
+        }
+      }
+    }
 
-      rankingTbody.innerHTML += `
-        <tr class="${classeGlow}">
-          <td><strong>${card.id}</strong></td>
-          <td class="pdv-cell">${card.pdv}</td>
-          <td class="rest-cell">${card.numbersRemaining}</td>
-        </tr>`;
-    });
-  }
+    // 7. Rankings de Cartelas (Top 20)
+    let ranking = [];
+    try {
+      ranking = obterRankingTop20(cards);
+    } catch (re) {
+      console.warn('Erro ao obter ranking top 20:', re);
+    }
+    
+    if (rankingTbody) {
+      rankingTbody.innerHTML = '';
+      if (ranking.length === 0) {
+        rankingTbody.innerHTML = `<tr class="empty-row"><td colspan="3">Nenhuma cartela ativa no jogo</td></tr>`;
+      } else {
+        ranking.forEach(card => {
+          let classeGlow = '';
+          if (card.numbersRemaining === 1) classeGlow = 'row-rest-1';
+          else if (card.numbersRemaining === 2) classeGlow = 'row-rest-2';
+          else if (card.numbersRemaining === 3) classeGlow = 'row-rest-3';
 
-  // 8. Painel Informativo Inferior Direito
-  // Prioridade: Se houver vencedores ativados no sorteio atual, exibe o alerta de vencedor
-  if (estado.status === "ENDED" && estado.winners.bingo.length > 0) {
-    const ultimoBingo = estado.winners.bingo[estado.winners.bingo.length - 1];
-    
-    // Verifica se ganhou o acumulado também
-    const ganhouAcumulado = estado.winners.acumulado.some(w => w.cardId === ultimoBingo.cardId);
-    
-    bottomInfoContent.innerHTML = `
-      <div class="info-content-title winner-alert-title">🔥 BINGO CONFIRMADO! 🔥</div>
-      <div class="info-content-text winner-alert-text">
-        Cartela <strong style="color:var(--neon-pink)">${ultimoBingo.cardId}</strong> venceu!<br>
-        Ponto de Venda: <strong>${ultimoBingo.pdv}</strong><br>
-        ${ganhouAcumulado ? '<span style="color:var(--neon-gold); font-weight:900;">⭐ LEVOU O ACUMULADO! ⭐</span>' : ''}
-      </div>`;
-  } else {
-    // Caso contrário, exibe o painel configurado pelo Administrador
-    let config = estado.bottomPanelSettings;
-    
-    // Se selecionado "MINHAS CARTELAS" / estatísticas rápidas
-    if (config.type === "MINHAS_CARTELAS") {
-      const totalVendas = estado.cards.length;
-      bottomInfoContent.innerHTML = `
-        <div class="info-content-title">ESTATÍSTICAS DE CARTELAS</div>
-        <div class="info-content-text">
-          Total de Cartelas em Jogo: <strong>${totalVendas}</strong><br>
-          Operando em tempo real nos Pontos de Venda credenciados!
-        </div>`;
-    } else if (config.type === "ULTIMO_GANHADOR") {
-      // Exibe o último ganhador registrado historicamente
-      const todosGanham = estado.winners.bingo;
-      if (todosGanham.length > 0) {
-        const ult = todosGanham[todosGanham.length - 1];
+          rankingTbody.innerHTML += `
+            <tr class="${classeGlow}">
+              <td><strong>${card.id}</strong></td>
+              <td class="pdv-cell">${card.pdv}</td>
+              <td class="rest-cell">${card.numbersRemaining}</td>
+            </tr>`;
+        });
+      }
+    }
+
+    // 8. Painel Informativo Inferior Direito
+    // Prioridade: Se houver vencedores ativados no sorteio atual, exibe o alerta de vencedor
+    if (bottomInfoContent) {
+      if (status === "ENDED" && winnersBingo.length > 0) {
+        const ultimoBingo = winnersBingo[winnersBingo.length - 1];
+        
+        // Verifica se ganhou o acumulado também
+        const ganhouAcumulado = winnersAcumulado.some(w => w.cardId === ultimoBingo.cardId);
+        
         bottomInfoContent.innerHTML = `
-          <div class="info-content-title">ÚLTIMO GANHADOR</div>
-          <div class="info-content-text">
-            Cartela <strong>${ult.cardId}</strong> faturou o prêmio!<br>
-            PDV: <strong>${ult.pdv}</strong> (Sorteio ${estado.gameId})
+          <div class="info-content-title winner-alert-title">🔥 BINGO CONFIRMADO! 🔥</div>
+          <div class="info-content-text winner-alert-text">
+            Cartela <strong style="color:var(--neon-pink)">${ultimoBingo.cardId}</strong> venceu!<br>
+            Ponto de Venda: <strong>${ultimoBingo.pdv}</strong><br>
+            ${ganhouAcumulado ? '<span style="color:var(--neon-gold); font-weight:900;">⭐ LEVOU O ACUMULADO! ⭐</span>' : ''}
           </div>`;
       } else {
-        bottomInfoContent.innerHTML = `
-          <div class="info-content-title">${config.title}</div>
-          <div class="info-content-text">${config.text}</div>`;
+        // Caso contrário, exibe o painel configurado pelo Administrador
+        let config = bottomPanelSettings;
+        
+        // Se selecionado "MINHAS CARTELAS" / estatísticas rápidas
+        if (config.type === "MINHAS_CARTELAS") {
+          const totalVendas = cards.length;
+          bottomInfoContent.innerHTML = `
+            <div class="info-content-title">ESTATÍSTICAS DE CARTELAS</div>
+            <div class="info-content-text">
+              Total de Cartelas em Jogo: <strong>${totalVendas}</strong><br>
+              Operando em tempo real nos Pontos de Venda credenciados!
+            </div>`;
+        } else if (config.type === "ULTIMO_GANHADOR") {
+          // Exibe o último ganhador registrado historicamente
+          const todosGanham = winnersBingo;
+          if (todosGanham.length > 0) {
+            const ult = todosGanham[todosGanham.length - 1];
+            bottomInfoContent.innerHTML = `
+              <div class="info-content-title">ÚLTIMO GANHADOR</div>
+              <div class="info-content-text">
+                Cartela <strong>${ult.cardId}</strong> faturou o prêmio!<br>
+                PDV: <strong>${ult.pdv}</strong> (Sorteio ${gameId})
+              </div>`;
+          } else {
+            bottomInfoContent.innerHTML = `
+              <div class="info-content-title">${config.title || ''}</div>
+              <div class="info-content-text">${config.text || ''}</div>`;
+          }
+        } else {
+          // PROMOÇÕES ou PRÓXIMO PRÊMIO padrão
+          bottomInfoContent.innerHTML = `
+            <div class="info-content-title">${config.title || ''}</div>
+            <div class="info-content-text">${config.text || ''}</div>`;
+        }
       }
-    } else {
-      // PROMOÇÕES ou PRÓXIMO PRÊMIO padrão
-      bottomInfoContent.innerHTML = `
-        <div class="info-content-title">${config.title}</div>
-        <div class="info-content-text">${config.text}</div>`;
     }
-  }
 
-  // 9. Detecção de Prêmios via Estado (funciona mesmo sem BroadcastChannel)
-  // Compara os winners atuais com os já exibidos para detectar novos prêmios
-  if (estado.status === 'PLAYING' || estado.status === 'ENDED') {
-    ['quadra', 'quina', 'bingo', 'acumulado'].forEach(cat => {
-      const listaAtual = estado.winners[cat] || [];
-      listaAtual.forEach(w => {
-        adicionarFilaAnuncio({ categoria: cat, cardId: w.cardId, pdv: w.pdv });
+    // 9. Detecção de Prêmios via Estado (funciona mesmo sem BroadcastChannel)
+    // Compara os winners atuais com os já exibidos para detectar novos prêmios
+    if (status === 'PLAYING' || status === 'ENDED') {
+      ['quadra', 'quina', 'bingo', 'acumulado'].forEach(cat => {
+        const listaAtual = winners[cat] || [];
+        listaAtual.forEach(w => {
+          if (w && w.cardId) {
+            adicionarFilaAnuncio({ categoria: cat, cardId: w.cardId, pdv: w.pdv });
+          }
+        });
       });
-    });
-  }
+    }
 
-  // Reset winners tracking quando muda de rodada
-  if (estado.status === 'WAITING') {
-    winnersJaExibidos = { quadra: [], quina: [], bingo: [], acumulado: [] };
-    filaAnuncios = [];
+    // Reset winners tracking quando muda de rodada
+    if (status === 'WAITING') {
+      winnersJaExibidos = { quadra: [], quina: [], bingo: [], acumulado: [] };
+      filaAnuncios = [];
+    }
+  } catch (error) {
+    console.error("Erro fatal ao renderizar o aplicativo de TV:", error);
   }
 }
 
@@ -484,88 +573,138 @@ function verificarProximoAnuncio() {
 
 // Função para exibir o anúncio gigante de ganhador na tela com fogos e som
 function mostrarAnuncioGanhadorGigante(payload) {
-  const { categoria, cardId, pdv } = payload;
-  const rodadaId = estadoGlobal ? estadoGlobal.gameId : '--';
+  try {
+    if (!payload || !payload.categoria) {
+      console.warn("[BROADCAST] Payload inválido no anúncio de ganhador:", payload);
+      premioEmExibicao = false;
+      verificarProximoAnuncio();
+      return;
+    }
 
-  // Marca que está em exibição de prêmio (pausa o auto-draw)
-  premioEmExibicao = true;
+    const { categoria, cardId, pdv } = payload;
+    const catSafe = (categoria || '').toLowerCase();
+    const rodadaId = (estadoGlobal && estadoGlobal.gameId) ? estadoGlobal.gameId : '--';
 
-  // Dispara os efeitos sonoros
-  playSirenSound();
-  setTimeout(() => playCelebrationHorn(), 500);
-  setTimeout(() => playApplauseSound(), 1000);
-  
-  // Narração do prêmio
-  setTimeout(() => narrarPremio(categoria, cardId, pdv), 1500);
+    // Marca que está em exibição de prêmio (pausa o auto-draw)
+    premioEmExibicao = true;
 
-  // Lança fogos de artifício por 10 segundos
-  launchFireworks(10000);
+    // Dispara os efeitos sonoros de forma totalmente isolada para que falhas de áudio não interrompam o fluxo
+    try {
+      playSirenSound();
+    } catch (e) {
+      console.warn("Erro ao reproduzir playSirenSound:", e);
+    }
+    
+    setTimeout(() => {
+      try {
+        playCelebrationHorn();
+      } catch (e) {
+        console.warn("Erro ao reproduzir playCelebrationHorn:", e);
+      }
+    }, 500);
+    
+    setTimeout(() => {
+      try {
+        playApplauseSound();
+      } catch (e) {
+        console.warn("Erro ao reproduzir playApplauseSound:", e);
+      }
+    }, 1000);
+    
+    // Narração do prêmio
+    setTimeout(() => {
+      try {
+        narrarPremio(categoria, cardId, pdv);
+      } catch (e) {
+        console.warn("Erro ao narrar o prêmio:", e);
+      }
+    }, 1500);
 
-  // Nomes amigáveis das premiações
-  const nomesPremios = {
-    quadra: 'SAIU QUADRA!',
-    quina: 'SAIU QUINA!',
-    bingo: 'GANHADOR DO BINGO!',
-    acumulado: 'ACUMULADO SAÍDO!'
-  };
-  const premioTexto = nomesPremios[categoria.toLowerCase()] || 'PRÊMIO SAÍDO!';
+    // Lança fogos de artifício por 10 segundos
+    try {
+      launchFireworks(10000);
+    } catch (e) {
+      console.warn("Erro ao lançar fogos de artifício:", e);
+    }
 
-  // Valores dos prêmios
-  const valoresPremios = estadoGlobal ? {
-    quadra: estadoGlobal.prizes.quadra,
-    quina: estadoGlobal.prizes.quina,
-    bingo: estadoGlobal.prizes.bingo,
-    acumulado: estadoGlobal.prizes.acumulado
-  } : {};
-  const valorPremio = valoresPremios[categoria.toLowerCase()] || 0;
+    // Nomes amigáveis das premiações
+    const nomesPremios = {
+      quadra: 'SAIU QUADRA!',
+      quina: 'SAIU QUINA!',
+      bingo: 'GANHADOR DO BINGO!',
+      acumulado: 'ACUMULADO SAÍDO!'
+    };
+    const premioTexto = nomesPremios[catSafe] || 'PRÊMIO SAÍDO!';
 
-  // Cria elemento do overlay se não existir
-  let overlay = document.getElementById('tv-winner-overlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'tv-winner-overlay';
-    overlay.className = 'winner-overlay';
-    document.body.appendChild(overlay);
-  }
+    // Valores dos prêmios
+    const valoresPremios = (estadoGlobal && estadoGlobal.prizes) ? {
+      quadra: estadoGlobal.prizes.quadra,
+      quina: estadoGlobal.prizes.quina,
+      bingo: estadoGlobal.prizes.bingo,
+      acumulado: estadoGlobal.prizes.acumulado
+    } : {};
+    const valorPremio = valoresPremios[catSafe] || 0;
 
-  // Preenche o HTML com visual de luxo premium
-  overlay.innerHTML = `
-    <div class="winner-card-container cat-${categoria.toLowerCase()}">
-      <div class="winner-sparkle-bg"></div>
-      <div class="winner-title">🏆 Prêmio Confirmado 🏆</div>
-      <div class="winner-prize-name">${premioTexto}</div>
-      ${valorPremio > 0 ? `<div class="winner-prize-value">R$ ${valorPremio.toFixed(2).replace('.', ',')}</div>` : ''}
-      <div class="winner-meta-label" style="font-size: 14px; margin-bottom: 8px; letter-spacing: 3px;">CARTELA VENCEDORA</div>
-      <div class="winner-card-serial">${cardId}</div>
-      
-      <div class="winner-meta-grid">
-        <div class="winner-meta-item">
-          <div class="winner-meta-label">Ponto de Venda (BAR/PDV)</div>
-          <div class="winner-meta-value pdv-glow">${pdv}</div>
-        </div>
-        <div class="winner-meta-item">
-          <div class="winner-meta-label">Rodada do Sorteio</div>
-          <div class="winner-meta-value">${rodadaId}</div>
+    // Cria elemento do overlay se não existir
+    let overlay = document.getElementById('tv-winner-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'tv-winner-overlay';
+      overlay.className = 'winner-overlay';
+      document.body.appendChild(overlay);
+    }
+
+    // Preenche o HTML com visual de luxo premium
+    overlay.innerHTML = `
+      <div class="winner-card-container cat-${catSafe}">
+        <div class="winner-sparkle-bg"></div>
+        <div class="winner-title">🏆 Prêmio Confirmado 🏆</div>
+        <div class="winner-prize-name">${premioTexto}</div>
+        ${valorPremio > 0 ? `<div class="winner-prize-value">R$ ${valorPremio.toFixed(2).replace('.', ',')}</div>` : ''}
+        <div class="winner-meta-label" style="font-size: 14px; margin-bottom: 8px; letter-spacing: 3px;">CARTELA VENCEDORA</div>
+        <div class="winner-card-serial">${cardId || '--'}</div>
+        
+        <div class="winner-meta-grid">
+          <div class="winner-meta-item">
+            <div class="winner-meta-label">Ponto de Venda (BAR/PDV)</div>
+            <div class="winner-meta-value pdv-glow">${pdv || '--'}</div>
+          </div>
+          <div class="winner-meta-item">
+            <div class="winner-meta-label">Rodada do Sorteio</div>
+            <div class="winner-meta-value">${rodadaId}</div>
+          </div>
         </div>
       </div>
-    </div>
-  `;
+    `;
 
-  // Ativa animação de entrada
-  setTimeout(() => {
-    overlay.classList.add('active');
-  }, 50);
-
-  // Mantém na tela por 10 segundos, depois remove e retoma
-  setTimeout(() => {
-    overlay.classList.remove('active');
-    // Libera a flag de pausa após a animação de saída
+    // Ativa animação de entrada
     setTimeout(() => {
-      premioEmExibicao = false;
-      // Procura o próximo anúncio da fila
+      try {
+        overlay.classList.add('active');
+      } catch (e) {}
+    }, 50);
+
+    // Mantém na tela por 10 segundos, depois remove e retoma
+    setTimeout(() => {
+      try {
+        overlay.classList.remove('active');
+      } catch (e) {}
+      // Libera a flag de pausa após a animação de saída
+      setTimeout(() => {
+        premioEmExibicao = false;
+        // Procura o próximo anúncio da fila
+        verificarProximoAnuncio();
+      }, 500);
+    }, 10000);
+    
+  } catch (error) {
+    console.error("Erro crítico em mostrarAnuncioGanhadorGigante:", error);
+    // Em caso de erro crítico, garante que a flag seja redefinida e a fila continue rodando
+    premioEmExibicao = false;
+    setTimeout(() => {
       verificarProximoAnuncio();
     }, 500);
-  }, 10000);
+  }
 }
 
 // Escuta por comandos diretos do Admin

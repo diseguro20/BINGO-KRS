@@ -17,6 +17,8 @@ const orderCounter = document.getElementById('order-counter');
 const numbersGrid = document.getElementById('numbers-grid-90');
 const rankingTbody = document.getElementById('ranking-tbody');
 const bottomInfoContent = document.getElementById('panel-info-content');
+const tvNextRoundId = document.getElementById('tv-next-round-id');
+const tvNextRoundCountdown = document.getElementById('tv-next-round-countdown');
 
 // Elementos dos painéis de informação (Sidebar Esquerda)
 const valQuadra = document.getElementById('val-quadra');
@@ -35,14 +37,16 @@ let estadoGlobal = null;
 // Inicializa a data local
 valData.innerText = new Date().toLocaleDateString('pt-BR');
 
-// Atualiza o Relógio Local em tempo real
+// Atualiza o Relógio Local em tempo real e o painel da próxima rodada
 setInterval(() => {
   const agora = new Date();
   valHora.innerText = agora.toLocaleTimeString('pt-BR');
   
-  // Se estiver aguardando sorteio, atualiza a contagem regressiva a cada segundo
-  if (estadoGlobal && estadoGlobal.status === 'WAITING') {
-    atualizarContagemRegressivaLocal();
+  if (estadoGlobal) {
+    if (estadoGlobal.status === 'WAITING') {
+      atualizarContagemRegressivaLocal();
+    }
+    atualizarPainelProximaRodada();
   }
 }, 1000);
 
@@ -85,6 +89,57 @@ function atualizarContagemRegressivaLocal() {
   if (panelHeaderCentered) {
     panelHeaderCentered.innerText = "AGUARDANDO SORTEIO";
     panelHeaderCentered.style.color = "var(--neon-pink)";
+  }
+}
+
+/**
+ * Atualiza o painel da próxima rodada com o ID e o tempo regressivo
+ */
+function atualizarPainelProximaRodada() {
+  if (!estadoGlobal) return;
+
+  // 1. Determina o ID do próximo sorteio
+  let proximoId = estadoGlobal.nextGameId || "--";
+  if (estadoGlobal.rodadasQueue && estadoGlobal.rodadasQueue.length > 0) {
+    proximoId = estadoGlobal.rodadasQueue[0].gameId;
+  }
+  
+  if (tvNextRoundId) {
+    tvNextRoundId.innerText = `SORTEIO ${proximoId}`;
+  }
+
+  // 2. Determina o texto e o tempo da contagem regressiva
+  if (tvNextRoundCountdown) {
+    if (estadoGlobal.status === 'WAITING') {
+      if (estadoGlobal.countdownEndTime) {
+        const agora = Date.now();
+        const tempoRestante = Math.max(0, Math.round((estadoGlobal.countdownEndTime - agora) / 1000));
+        
+        if (tempoRestante > 0) {
+          const min = Math.floor(tempoRestante / 60);
+          const seg = tempoRestante % 60;
+          tvNextRoundCountdown.innerText = `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+          tvNextRoundCountdown.style.color = "var(--neon-cyan)";
+        } else {
+          tvNextRoundCountdown.innerText = "INICIANDO...";
+          tvNextRoundCountdown.style.color = "var(--success)";
+        }
+      } else {
+        tvNextRoundCountdown.innerText = "AGUARDANDO INÍCIO";
+        tvNextRoundCountdown.style.color = "var(--neon-pink)";
+      }
+    } else if (estadoGlobal.status === 'PLAYING') {
+      tvNextRoundCountdown.innerText = "SORTEIO EM ANDAMENTO";
+      tvNextRoundCountdown.style.color = "var(--warning)";
+    } else if (estadoGlobal.status === 'ENDED') {
+      if (estadoGlobal.rodadasQueue && estadoGlobal.rodadasQueue.length > 0) {
+        tvNextRoundCountdown.innerText = "INICIANDO PRÓXIMO...";
+        tvNextRoundCountdown.style.color = "var(--success)";
+      } else {
+        tvNextRoundCountdown.innerText = "SORTEIO FINALIZADO";
+        tvNextRoundCountdown.style.color = "var(--text-muted)";
+      }
+    }
   }
 }
 

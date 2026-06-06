@@ -714,3 +714,41 @@ body {
   animation: bounceBall 0.4s ease-out;
 }
 
+/* Layout split de bola/tabela no portal */
+.live-game-middle-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 15px;
+  width: 100%;
+}
+
+.ranking-table th {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+
+.ranking-table td {
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.ranking-table tr.row-rest-1 {
+  color: #fff;
+  text-shadow: 0 0 5px var(--danger);
+  background: rgba(255, 23, 68, 0.08);
+}
+
+.ranking-table tr.row-rest-2 {
+  color: var(--neon-gold);
+  text-shadow: 0 0 5px var(--neon-gold);
+  background: rgba(255, 215, 0, 0.04);
+}
+
+.ranking-table tr.row-rest-3 {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 5px var(--neon-cyan);
+}
+

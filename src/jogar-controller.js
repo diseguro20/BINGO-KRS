@@ -3,7 +3,7 @@
  */
 
 import { FirebaseHelper } from './firebase-helper.js';
-import { gerarCartela90Bolas } from './game.js';
+import { gerarCartela90Bolas, obterRankingTop20 } from './game.js';
 
 // Estado local do jogador
 let jogadorAtual = null;
@@ -737,6 +737,100 @@ function playAlertSound() {
   }
 }
 
+// Atualiza a contagem regressiva local na aba de jogo ao vivo
+function atualizarContagemRegressivaLocal() {
+  if (!estadoJogo) return;
+
+  const liveStatsStatusText = document.getElementById('live-stats-status-text');
+  const liveStatsPrizes = document.getElementById('live-stats-prizes');
+  const liveStatsExtra = document.getElementById('live-stats-extra');
+
+  if (estadoJogo.status === 'WAITING') {
+    if (estadoJogo.countdownEndTime) {
+      const agora = Date.now();
+      const tempoRestante = Math.max(0, Math.round((estadoJogo.countdownEndTime - agora) / 1000));
+
+      if (tempoRestante > 0) {
+        let textoTime;
+        if (tempoRestante >= 3600) {
+          const hrs = Math.floor(tempoRestante / 3600);
+          const min = Math.floor((tempoRestante % 3600) / 60);
+          const seg = tempoRestante % 60;
+          textoTime = `${hrs}:${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+        } else {
+          const min = Math.floor(tempoRestante / 60);
+          const seg = tempoRestante % 60;
+          textoTime = `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+        }
+
+        // 1. Atualiza o número dentro da bola com o tempo restante
+        if (liveMainBall) {
+          liveMainBall.innerText = textoTime;
+          liveMainBall.style.fontSize = '20px'; // Fonte menor para caber MM:SS
+        }
+
+        // 2. Atualiza os textos do painel de estatísticas
+        if (liveStatsStatusText) liveStatsStatusText.innerText = "PRÓXIMO SORTEIO EM:";
+        if (liveStatsPrizes) {
+          liveStatsPrizes.innerText = textoTime;
+          liveStatsPrizes.style.color = 'var(--neon-cyan)';
+          liveStatsPrizes.style.fontSize = '18px';
+        }
+        if (liveStatsExtra) {
+          liveStatsExtra.innerHTML = `Sorteio: <strong style="color: #fff;">${estadoJogo.gameId || '---'}</strong>`;
+        }
+        return;
+      }
+    }
+
+    // Se estiver aguardando mas sem contagem ativa
+    if (liveMainBall) {
+      liveMainBall.innerText = '--';
+      liveMainBall.style.fontSize = '32px';
+    }
+    if (liveStatsStatusText) liveStatsStatusText.innerText = "STATUS DO JOGO:";
+    if (liveStatsPrizes) {
+      liveStatsPrizes.innerText = "Aguardando Início...";
+      liveStatsPrizes.style.color = 'var(--neon-pink)';
+      liveStatsPrizes.style.fontSize = '';
+    }
+    if (liveStatsExtra) {
+      liveStatsExtra.innerHTML = `Sorteio: <strong style="color: #fff;">${estadoJogo.gameId || '---'}</strong>`;
+    }
+
+  } else if (estadoJogo.status === 'PLAYING') {
+    // Restaura tamanho de fonte caso o tempo estivesse nela antes
+    if (liveMainBall && liveMainBall.innerText.includes(':')) {
+      liveMainBall.innerText = '--';
+      liveMainBall.style.fontSize = '32px';
+    }
+    if (liveStatsStatusText) liveStatsStatusText.innerText = "Próximos Prêmios:";
+    if (liveStatsPrizes) {
+      liveStatsPrizes.innerText = "Quadra, Quina e Bingo!";
+      liveStatsPrizes.style.color = 'var(--neon-gold)';
+      liveStatsPrizes.style.fontSize = '';
+    }
+    if (liveStatsExtra) {
+      const count = estadoJogo.drawnBalls ? estadoJogo.drawnBalls.length : 0;
+      liveStatsExtra.innerHTML = `Bolas Sorteadas: <strong id="label-live-balls-count">${count}</strong>/90`;
+    }
+  } else if (estadoJogo.status === 'ENDED') {
+    if (liveMainBall) {
+      liveMainBall.innerText = 'FIM';
+      liveMainBall.style.fontSize = '28px';
+    }
+    if (liveStatsStatusText) liveStatsStatusText.innerText = "STATUS DO JOGO:";
+    if (liveStatsPrizes) {
+      liveStatsPrizes.innerText = "Sorteio Finalizado!";
+      liveStatsPrizes.style.color = 'var(--text-muted)';
+      liveStatsPrizes.style.fontSize = '';
+    }
+    if (liveStatsExtra) {
+      liveStatsExtra.innerHTML = `Sorteio: <strong style="color: #fff;">${estadoJogo.gameId || '---'}</strong>`;
+    }
+  }
+}
+
 // Atualiza a visibilidade do mini preview
 function atualizarVisibilidadeMiniPreview() {
   if (!estadoJogo) return;
@@ -978,6 +1072,34 @@ FirebaseHelper.assinarEstadoJogo((gameData) => {
   // 5. Atualizar marcações e badges das cartelas
   renderizarCartelasAoVivo();
 
+  // 5.5 Atualizar Ranking Geral de Cartelas em Jogo
+  const liveRankingTbody = document.getElementById('live-ranking-tbody');
+  if (liveRankingTbody) {
+    liveRankingTbody.innerHTML = '';
+    const cardsInPlay = estadoJogo.cards || [];
+    const ranking = obterRankingTop20(cardsInPlay);
+    
+    if (ranking.length === 0) {
+      liveRankingTbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 15px 0;">Nenhuma cartela ativa</td></tr>`;
+    } else {
+      ranking.forEach(card => {
+        let classeGlow = '';
+        if (card.numbersRemaining === 1) classeGlow = 'row-rest-1';
+        else if (card.numbersRemaining === 2) classeGlow = 'row-rest-2';
+        else if (card.numbersRemaining === 3) classeGlow = 'row-rest-3';
+
+        const tr = document.createElement('tr');
+        tr.className = classeGlow;
+        tr.innerHTML = `
+          <td style="padding: 8px 4px; font-weight: bold;">${card.id}</td>
+          <td style="padding: 8px 4px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${card.pdv}</td>
+          <td style="padding: 8px 4px; text-align: right; font-weight: bold;">${card.numbersRemaining}</td>
+        `;
+        liveRankingTbody.appendChild(tr);
+      });
+    }
+  }
+
   // 6. Verificar se o jogador atual é vencedor
   verificarGanhadoresJogador();
 
@@ -988,3 +1110,10 @@ FirebaseHelper.assinarEstadoJogo((gameData) => {
   // 8. Monitorar se há ganhadores gerais no jogo
   verificarGanhadoresGerais();
 });
+
+// Relógio e Contagem Regressiva local a cada 1 segundo
+setInterval(() => {
+  if (estadoJogo) {
+    atualizarContagemRegressivaLocal();
+  }
+}, 1000);

@@ -236,18 +236,42 @@
           <div id="live-main-ball" class="live-ball-sphere">--</div>
         </div>
         <div class="live-stats">
-          Próximos Prêmios:<br>
-          <strong style="color: var(--neon-gold);">Quadra, Quina e Bingo!</strong><br>
-          Bolas Sorteadas: <strong id="label-live-balls-count">0</strong>/90
+          <div id="live-stats-status-text">Próximos Prêmios:</div>
+          <strong id="live-stats-prizes" style="color: var(--neon-gold); display: block; margin: 2px 0;">Quadra, Quina e Bingo!</strong>
+          <span id="live-stats-extra">Bolas Sorteadas: <strong id="label-live-balls-count">0</strong>/90</span>
         </div>
       </div>
 
-      <!-- Quadro Geral de Bolas Chamadas -->
-      <div class="player-card" style="padding: 15px;">
-        <h3 style="font-size: 12px; margin: 0 0 10px 0; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Painel de Bolas Chamadas</h3>
-        <div id="live-called-board" class="called-board">
-          <!-- 90 células geradas dinamicamente -->
+      <!-- Conteiner Flex para painel de bolas + ranking de cartelas -->
+      <div class="live-game-middle-grid">
+        
+        <!-- Quadro Geral de Bolas Chamadas -->
+        <div class="player-card" style="padding: 15px; flex: 2; min-width: 280px; margin-bottom: 0;">
+          <h3 style="font-size: 12px; margin: 0 0 10px 0; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Painel de Bolas Chamadas</h3>
+          <div id="live-called-board" class="called-board">
+            <!-- 90 células geradas dinamicamente -->
+          </div>
         </div>
+
+        <!-- Ranking das Melhores Cartelas em Jogo -->
+        <div class="player-card" style="padding: 15px; flex: 1; min-width: 220px; margin-bottom: 0;">
+          <h3 style="font-size: 12px; margin: 0 0 10px 0; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Ranking / Cartelas em Jogo</h3>
+          <div style="max-height: 180px; overflow-y: auto;">
+            <table class="ranking-table" style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+              <thead>
+                <tr style="color: var(--text-muted); border-bottom: 1px solid var(--prog-border); font-size: 10px;">
+                  <th style="padding: 6px 4px; font-weight: 700; text-transform: uppercase;">ID</th>
+                  <th style="padding: 6px 4px; font-weight: 700; text-transform: uppercase;">PDV</th>
+                  <th style="padding: 6px 4px; font-weight: 700; text-transform: uppercase; text-align: right;">FALTA</th>
+                </tr>
+              </thead>
+              <tbody id="live-ranking-tbody">
+                <tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 15px 0;">Nenhuma cartela ativa</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
 
       <!-- Cartelas do Jogador com Auto-marcação -->

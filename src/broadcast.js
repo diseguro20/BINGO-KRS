@@ -420,30 +420,65 @@ function renderizarApp(estado) {
 // Inscreve a TV para escutar atualizações de estado em tempo real
 const unsubscribe = FirebaseHelper.assinarEstadoJogo(renderizarApp);
 
+// Função para exibir o anúncio gigante de ganhador na tela com design premium neon
+function mostrarAnuncioGanhadorGigante(payload) {
+  const { categoria, cardId, pdv } = payload;
+  const rodadaId = estadoGlobal ? estadoGlobal.gameId : '--';
+
+  // Nomes amigáveis das premiações
+  const nomesPremios = {
+    quadra: 'SAIU QUADRA!',
+    quina: 'SAIU QUINA!',
+    bingo: 'GANHADOR DO BINGO!',
+    acumulado: 'ACUMULADO SAÍDO!'
+  };
+  const premioTexto = nomesPremios[categoria.toLowerCase()] || 'PRÊMIO SAÍDO!';
+
+  // Cria elemento do overlay se não existir
+  let overlay = document.getElementById('tv-winner-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'tv-winner-overlay';
+    overlay.className = 'winner-overlay';
+    document.body.appendChild(overlay);
+  }
+
+  // Preenche o HTML interno com visual de luxo
+  overlay.innerHTML = `
+    <div class="winner-card-container cat-${categoria.toLowerCase()}">
+      <div class="winner-title">🏆 Prêmio Confirmado</div>
+      <div class="winner-prize-name">${premioTexto}</div>
+      <div class="winner-meta-label" style="font-size: 13px; margin-bottom: 8px;">CARTELA VENCEDORA:</div>
+      <div class="winner-card-serial">${cardId}</div>
+      
+      <div class="winner-meta-grid">
+        <div class="winner-meta-item">
+          <div class="winner-meta-label">Ponto de Venda (PDV)</div>
+          <div class="winner-meta-value pdv-glow">${pdv}</div>
+        </div>
+        <div class="winner-meta-item">
+          <div class="winner-meta-label">Rodada do Sorteio</div>
+          <div class="winner-meta-value">${rodadaId}</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Ativa animação de entrada
+  setTimeout(() => {
+    overlay.classList.add('active');
+  }, 50);
+
+  // Mantém na tela por 8 segundos
+  setTimeout(() => {
+    overlay.classList.remove('active');
+  }, 8000);
+}
+
 // Escuta por comandos diretos do Admin
 FirebaseHelper.assinarComandos((comando, payload) => {
   if (comando === 'NOVO_GANHADOR') {
-    // Efeito visual especial na tela
     console.log("Novo ganhador detectado no sorteio:", payload);
-    
-    // Pode adicionar som ou flash luminoso no topo
-    const overlay = document.createElement('div');
-    overlay.style.position = 'absolute';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100%';
-    overlay.style.height = '100%';
-    overlay.style.background = 'rgba(255, 0, 127, 0.2)';
-    overlay.style.boxShadow = 'inset 0 0 100px rgba(255,0,127,0.5)';
-    overlay.style.zIndex = '99';
-    overlay.style.pointerEvents = 'none';
-    overlay.style.transition = 'opacity 0.5s ease';
-    
-    document.body.appendChild(overlay);
-    
-    setTimeout(() => {
-      overlay.style.opacity = '0';
-      setTimeout(() => overlay.remove(), 500);
-    }, 1500);
+    mostrarAnuncioGanhadorGigante(payload);
   }
 });

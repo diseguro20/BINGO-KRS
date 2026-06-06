@@ -227,6 +227,7 @@
           
           <button id="btn-next-round" class="btn btn-info btn-large" disabled>Iniciar Próximo Sorteio</button>
           <button id="btn-reset-game" class="btn btn-danger">Reiniciar Sorteio Atual</button>
+          <button id="btn-cancel-countdown" class="btn btn-danger-outline" style="display: none;">Cancelar Contagem Regressiva</button>
         </div>
 
         <div class="form-group">
@@ -249,50 +250,6 @@
             <span class="empty-log">Nenhuma bola sorteada ainda.</span>
           </div>
         </div>
-
-        <hr class="divider">
-        <h2>Agendamento da Rodada</h2>
-        
-        <div class="form-group">
-          <label>Modo de Agendamento:</label>
-          <div class="radio-group" style="display:flex; gap:15px; margin-top:5px;">
-            <label style="display:flex; align-items:center; gap:5px; font-weight:normal; cursor:pointer;">
-              <input type="radio" name="scheduling-mode" value="MANUAL" checked> Manual
-            </label>
-            <label style="display:flex; align-items:center; gap:5px; font-weight:normal; cursor:pointer;">
-              <input type="radio" name="scheduling-mode" value="IA"> Inteligente (IA)
-            </label>
-          </div>
-        </div>
-
-        <!-- Painel Manual -->
-        <div id="scheduling-panel-manual">
-          <div class="form-group">
-            <label for="input-countdown-minutes">Tempo da Contagem (minutos):</label>
-            <select id="input-countdown-minutes" class="form-control">
-              <option value="1" selected>1 Minuto</option>
-              <option value="2">2 Minutos</option>
-              <option value="3">3 Minutos</option>
-              <option value="5">5 Minutos</option>
-            </select>
-          </div>
-          <button id="btn-start-countdown" class="btn btn-primary">Iniciar Contagem Regressiva</button>
-        </div>
-
-        <!-- Painel IA -->
-        <div id="scheduling-panel-ia" style="display:none; background: rgba(0, 123, 255, 0.05); border: 1px solid rgba(0, 123, 255, 0.15); border-radius: 8px; padding: 12px; margin-bottom: 15px;">
-          <div class="ai-status-indicator" style="font-size:12px; margin-bottom:8px;">
-            Faturamento vs Prêmios: <strong id="ai-margin-status" style="color:var(--success)">ANALISANDO...</strong>
-          </div>
-          <div class="ai-metrics" style="font-size:11px; opacity:0.8; margin-bottom:10px; line-height:1.5;">
-            <div>Faturamento Sorteio: <strong id="ai-rev-val">R$ 0,00</strong></div>
-            <div>Custos Prêmios (Quadra/Quina/Bingo): <strong id="ai-cost-val">R$ 0,00</strong></div>
-            <div>Meta de Segurança (Lucro): <strong id="ai-target-val">R$ 0,00</strong></div>
-          </div>
-          <button id="btn-ai-schedule" class="btn btn-info">Ativar Agendamento Inteligente</button>
-        </div>
-
-        <button id="btn-cancel-countdown" class="btn btn-danger-outline" style="margin-top:10px; display:none;">Cancelar Contagem</button>
       </section>
 
       <!-- ================= SEÇÃO CENTRAL: PARÂMETROS E PREMIAÇÃO ================= -->

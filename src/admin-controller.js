@@ -43,16 +43,7 @@ const totalCardsValue = document.getElementById('total-cards-value');
 const nextCardsValue = document.getElementById('next-cards-value');
 
 // Elementos de Agendamento da Rodada
-const schedulingPanelManual = document.getElementById('scheduling-panel-manual');
-const schedulingPanelIa = document.getElementById('scheduling-panel-ia');
-const inputCountdownMinutes = document.getElementById('input-countdown-minutes');
-const btnStartCountdown = document.getElementById('btn-start-countdown');
-const btnAiSchedule = document.getElementById('btn-ai-schedule');
 const btnCancelCountdown = document.getElementById('btn-cancel-countdown');
-const aiMarginStatus = document.getElementById('ai-margin-status');
-const aiRevVal = document.getElementById('ai-rev-val');
-const aiCostVal = document.getElementById('ai-cost-val');
-const aiTargetVal = document.getElementById('ai-target-val');
 
 // Campos do Painel da TV
 const selectBottomPanel = document.getElementById('select-bottom-panel');
@@ -95,6 +86,16 @@ let camposPreenchidosIniciais = false;
 function renderizarAdmin(novoEstado) {
   if (!novoEstado) return;
   estado = novoEstado;
+
+  // Se a rodada atual estiver ociosa e houver rodadas agendadas, avança automaticamente
+  if (estado.status === 'WAITING' && 
+      (!estado.drawnBalls || estado.drawnBalls.length === 0) && 
+      (estado.rodadasQueue && estado.rodadasQueue.length > 0)) {
+    console.log("[PROGRAMAÇÃO] Canal ocioso detectado com rodadas na fila. Carregando rodada programada...");
+    estado = avancarProximaRodada(estado);
+    FirebaseHelper.salvarEstadoJogo(estado);
+    return;
+  }
 
   // 1. Atualiza Status do Jogo
   gameStatusText.innerText = obterTextoStatus(estado.status);
@@ -185,65 +186,11 @@ function renderizarAdmin(novoEstado) {
     limparTimeoutAvancoAutomatico();
   }
 
-  // 7. Atualizar Painel de Agendamento (IA / Manual)
-  const radioManual = document.querySelector('input[name="scheduling-mode"][value="MANUAL"]');
-  const radioIa = document.querySelector('input[name="scheduling-mode"][value="IA"]');
-
-  if (estado.schedulingMode === 'IA') {
-    if (radioIa) radioIa.checked = true;
-    if (schedulingPanelIa) schedulingPanelIa.style.display = 'block';
-    if (schedulingPanelManual) schedulingPanelManual.style.display = 'none';
-  } else {
-    if (radioManual) radioManual.checked = true;
-    if (schedulingPanelManual) schedulingPanelManual.style.display = 'block';
-    if (schedulingPanelIa) schedulingPanelIa.style.display = 'none';
-  }
-
-  // Cálculo financeiro da IA baseado nas cartelas ativas aguardando (cards)
-  const faturamento = estado.cards.length * estado.prizes.cupom;
-  const custosPremios = estado.prizes.quadra + estado.prizes.quina + estado.prizes.bingo;
-  const metaLucro = custosPremios * 1.30; // 30% margin de lucro
-
-  if (aiRevVal) aiRevVal.innerText = `R$ ${faturamento.toFixed(2).replace('.', ',')}`;
-  if (aiCostVal) aiCostVal.innerText = `R$ ${custosPremios.toFixed(2).replace('.', ',')}`;
-  if (aiTargetVal) aiTargetVal.innerText = `R$ ${metaLucro.toFixed(2).replace('.', ',')}`;
-
-  if (aiMarginStatus) {
-    if (faturamento >= metaLucro) {
-      aiMarginStatus.innerText = "SEGURO (Lucro garantido!)";
-      aiMarginStatus.style.color = "var(--success)";
-    } else {
-      aiMarginStatus.innerText = `CRÍTICO (Meta: R$ ${metaLucro.toFixed(2).replace('.', ',')})`;
-      aiMarginStatus.style.color = "var(--danger)";
-    }
-  }
-
   // Se a contagem regressiva estiver ativa
   if (estado.countdownEndTime) {
     if (btnCancelCountdown) btnCancelCountdown.style.display = 'block';
-    if (btnStartCountdown) btnStartCountdown.disabled = true;
-    if (btnAiSchedule) btnAiSchedule.disabled = true;
-    if (inputCountdownMinutes) inputCountdownMinutes.disabled = true;
-    if (radioManual) radioManual.disabled = true;
-    if (radioIa) radioIa.disabled = true;
-
-    if (estado.schedulingMode === 'IA') {
-      if (btnAiSchedule) btnAiSchedule.innerText = "Piloto Automático IA Ativo...";
-      if (btnStartCountdown) btnStartCountdown.innerText = "Iniciar Contagem Regressiva";
-    } else {
-      if (btnStartCountdown) btnStartCountdown.innerText = "Contagem Regressiva Ativa...";
-      if (btnAiSchedule) btnAiSchedule.innerText = "Ativar Agendamento Inteligente";
-    }
   } else {
     if (btnCancelCountdown) btnCancelCountdown.style.display = 'none';
-    if (btnStartCountdown) btnStartCountdown.disabled = false;
-    if (btnAiSchedule) btnAiSchedule.disabled = false;
-    if (inputCountdownMinutes) inputCountdownMinutes.disabled = false;
-    if (radioManual) radioManual.disabled = false;
-    if (radioIa) radioIa.disabled = false;
-    
-    if (btnStartCountdown) btnStartCountdown.innerText = "Iniciar Contagem Regressiva";
-    if (btnAiSchedule) btnAiSchedule.innerText = "Ativar Agendamento Inteligente";
   }
 }
 
@@ -267,6 +214,11 @@ function obterTextoStatus(status) {
 btnDrawBall.addEventListener('click', () => {
   if (estado.status === 'ENDED') return;
   
+  if (!estado.cards || estado.cards.length === 0) {
+    alert("Não é possível iniciar o sorteio sem nenhuma cartela cadastrada no jogo!");
+    return;
+  }
+  
   estado = sortearProximaBola(estado);
   FirebaseHelper.salvarEstadoJogo(estado);
 });
@@ -274,6 +226,11 @@ btnDrawBall.addEventListener('click', () => {
 // Iniciar Auto Sorteio
 btnAutoDraw.addEventListener('click', () => {
   if (estado.status === 'ENDED' || autoDrawIntervalId !== null) return;
+  
+  if (!estado.cards || estado.cards.length === 0) {
+    alert("Não é possível iniciar o sorteio sem nenhuma cartela cadastrada no jogo!");
+    return;
+  }
   
   const segundos = parseInt(autoDrawSpeed.value) * 1000;
   
@@ -567,37 +524,6 @@ function adicionarCardAoEstado(card) {
 }
 
 // BINDINGS DO AGENDADOR DE RODADAS
-document.querySelectorAll('input[name="scheduling-mode"]').forEach(radio => {
-  radio.addEventListener('change', (e) => {
-    estado.schedulingMode = e.target.value;
-    FirebaseHelper.salvarEstadoJogo(estado);
-  });
-});
-
-// Botão Iniciar Contagem Manual
-btnStartCountdown.addEventListener('click', () => {
-  if (estado.status !== 'WAITING') {
-    alert("Só é possível iniciar contagem regressiva se o sorteio não estiver em andamento.");
-    return;
-  }
-  const min = parseInt(inputCountdownMinutes.value) || 1;
-  estado.countdownEndTime = Date.now() + min * 60 * 1000;
-  estado.aiActive = false;
-  FirebaseHelper.salvarEstadoJogo(estado);
-});
-
-// Botão Iniciar Agendamento IA (Inteligente)
-btnAiSchedule.addEventListener('click', () => {
-  if (estado.status !== 'WAITING') {
-    alert("Só é possível ativar o agendamento inteligente se o sorteio não estiver em andamento.");
-    return;
-  }
-  // Inicia com 1 minuto. Se a margem não for atingida, a IA estenderá automaticamente.
-  estado.countdownEndTime = Date.now() + 1 * 60 * 1000;
-  estado.aiActive = true;
-  FirebaseHelper.salvarEstadoJogo(estado);
-  alert("Piloto automático da IA ativado! O sorteio iniciará automaticamente assim que a contagem zerar e houver margem de lucro garantida.");
-});
 
 // Botão Cancelar Contagem
 btnCancelCountdown.addEventListener('click', () => {
@@ -643,6 +569,13 @@ setInterval(() => {
     if (tempoRestante <= 0) {
       estado.countdownEndTime = null;
       estado.aiActive = false;
+      
+      // Se não tiver cartelas no jogo, suspende o início
+      if (!estado.cards || estado.cards.length === 0) {
+        FirebaseHelper.salvarEstadoJogo(estado);
+        alert("Sorteio programado suspenso: nenhuma cartela vendida para a rodada " + estado.gameId + ".");
+        return;
+      }
       
       // Inicia rodada
       estado = sortearProximaBola(estado);

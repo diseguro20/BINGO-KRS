@@ -251,15 +251,22 @@ export function avancarProximaRodada(estado) {
     estado.forcedCardId = null; // Reseta cartela manipulada para escolher uma nova no início do sorteio
 
     if (proximaConfig.startTime) {
-      const parts = proximaConfig.startTime.split(':');
-      const hrs = parseInt(parts[0]) || 0;
-      const mins = parseInt(parts[1]) || 0;
-      const targetDate = new Date();
-      targetDate.setHours(hrs, mins, 0, 0);
-      
-      // Se o horário já passou hoje, agenda para amanhã
-      if (targetDate.getTime() <= Date.now()) {
-        targetDate.setDate(targetDate.getDate() + 1);
+      let targetDate;
+      if (proximaConfig.startDate) {
+        const dateParts = proximaConfig.startDate.split('-'); // [YYYY, MM, DD]
+        const timeParts = proximaConfig.startTime.split(':'); // [HH, MM]
+        const yr = parseInt(dateParts[0]) || new Date().getFullYear();
+        const mo = (parseInt(dateParts[1]) || 1) - 1; // 0-indexed month
+        const dy = parseInt(dateParts[2]) || new Date().getDate();
+        const hr = parseInt(timeParts[0]) || 0;
+        const mn = parseInt(timeParts[1]) || 0;
+        targetDate = new Date(yr, mo, dy, hr, mn, 0, 0);
+      } else {
+        const parts = proximaConfig.startTime.split(':');
+        const hrs = parseInt(parts[0]) || 0;
+        const mins = parseInt(parts[1]) || 0;
+        targetDate = new Date();
+        targetDate.setHours(hrs, mins, 0, 0);
       }
       
       estado.countdownEndTime = targetDate.getTime();
@@ -287,10 +294,11 @@ export function avancarProximaRodada(estado) {
   const numId = parseInt(estado.gameId.replace('#', '')) || 0;
   estado.nextGameId = '#' + (numId + 1).toString().padStart(4, '0');
 
-  // Transfere as cartelas reservadas para a rodada atual
-  estado.cards = (estado.nextCards || []).map(card => ({
+  // Transfere e combina as cartelas reservadas com as já existentes (caso a rodada anterior estivesse em WAITING)
+  const todasCartelas = [...(estado.cards || []), ...(estado.nextCards || [])];
+  estado.cards = todasCartelas.map(card => ({
     ...card,
-    gameId: estado.gameId // Corrige o ID do sorteio associado
+    gameId: estado.gameId // Corrige o ID do sorteio associado para a nova rodada ativa
   }));
 
   // Limpa as próximas cartelas

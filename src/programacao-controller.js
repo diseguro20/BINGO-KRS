@@ -3,6 +3,7 @@
  */
 
 import { FirebaseHelper } from './firebase-helper.js';
+import { avancarProximaRodada } from './game.js';
 
 // Estado local
 let estado = null;
@@ -17,6 +18,7 @@ const inputQuina = document.getElementById('input-quina');
 const inputBingo = document.getElementById('input-bingo');
 const inputAcumulado = document.getElementById('input-acumulado');
 const selectCountdown = document.getElementById('input-countdown');
+const inputStartDate = document.getElementById('input-start-date');
 const inputStartTime = document.getElementById('input-start-time');
 const selectDrawSpeed = document.getElementById('select-draw-speed');
 const inputAutoStart = document.getElementById('input-auto-start');
@@ -24,6 +26,20 @@ const selectForcedPdv = document.getElementById('select-forced-pdv');
 const groupForcedPdvCustom = document.getElementById('group-forced-pdv-custom');
 const inputForcedPdvCustom = document.getElementById('input-forced-pdv-custom');
 const selectRiggingProb = document.getElementById('input-rigging-prob');
+
+// Função auxiliar para obter data local YYYY-MM-DD
+function obterDataHojeLocalString() {
+  const hoje = new Date();
+  const ano = hoje.getFullYear();
+  const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+  const dia = String(hoje.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+}
+
+// Inicializa a data de início com o dia de hoje
+if (inputStartDate) {
+  inputStartDate.value = obterDataHojeLocalString();
+}
 
 const queueTbody = document.getElementById('queue-tbody');
 const btnClearQueue = document.getElementById('btn-clear-queue');
@@ -146,7 +162,17 @@ function renderizarFila() {
     
     let tempoDisplay = `${rodada.countdownMinutes} min`;
     if (rodada.startTime) {
-      tempoDisplay = `⏰ ${rodada.startTime}`;
+      if (rodada.startDate) {
+        const parts = rodada.startDate.split('-');
+        const dataFormatada = parts.length === 3 ? `${parts[2]}/${parts[1]}` : rodada.startDate;
+        if (rodada.startDate === obterDataHojeLocalString()) {
+          tempoDisplay = `⏰ ${rodada.startTime}`;
+        } else {
+          tempoDisplay = `⏰ ${dataFormatada} às ${rodada.startTime}`;
+        }
+      } else {
+        tempoDisplay = `⏰ ${rodada.startTime}`;
+      }
     }
 
     const contagemHtml = `
@@ -199,6 +225,16 @@ function renderizarProgramacao(novoEstado) {
   const precisaSugerirId = (estado === null);
   estado = novoEstado;
 
+  // Se a rodada atual estiver ociosa e houver rodadas agendadas, avança automaticamente
+  if (estado.status === 'WAITING' && 
+      (!estado.drawnBalls || estado.drawnBalls.length === 0) && 
+      (estado.rodadasQueue && estado.rodadasQueue.length > 0)) {
+    console.log("[PROGRAMAÇÃO] Canal ocioso detectado com rodadas na fila. Carregando rodada programada...");
+    estado = avancarProximaRodada(estado);
+    FirebaseHelper.salvarEstadoJogo(estado);
+    return;
+  }
+
   // Atualiza listagem de PDVs e tabela
   atualizarDropdownPdvs();
   renderizarFila();
@@ -234,6 +270,10 @@ formScheduler.addEventListener('submit', (e) => {
   }
 
   const startTimeVal = inputStartTime.value || null;
+  let startDateVal = inputStartDate ? (inputStartDate.value || null) : null;
+  if (startTimeVal && !startDateVal) {
+    startDateVal = obterDataHojeLocalString();
+  }
 
   const novaRodada = {
     gameId: gameIdVal,
@@ -247,6 +287,7 @@ formScheduler.addEventListener('submit', (e) => {
     schedulingMode: document.querySelector('input[name="scheduling-mode"]:checked').value,
     countdownMinutes: startTimeVal ? null : (parseInt(selectCountdown.value) || 2),
     startTime: startTimeVal,
+    startDate: startTimeVal ? startDateVal : null,
     drawSpeed: parseInt(selectDrawSpeed.value) || 3,
     autoStartDraw: inputAutoStart.checked,
     forcedPdvWinner: forcedPdvValue,
@@ -256,12 +297,22 @@ formScheduler.addEventListener('submit', (e) => {
   // Adiciona na fila
   estado.rodadasQueue.push(novaRodada);
 
+  // Se a rodada atual estiver ociosa e houver rodadas agendadas, avança automaticamente imediatamente
+  if (estado.status === 'WAITING' && 
+      (!estado.drawnBalls || estado.drawnBalls.length === 0)) {
+    console.log("[PROGRAMAÇÃO] Canal ocioso. Avançando para a rodada programada imediatamente.");
+    estado = avancarProximaRodada(estado);
+  }
+
   // Salva no banco de dados local
   FirebaseHelper.salvarEstadoJogo(estado);
 
   // Limpa campos customizados e sugere o próximo ID
   inputForcedPdvCustom.value = '';
   inputStartTime.value = '';
+  if (inputStartDate) {
+    inputStartDate.value = obterDataHojeLocalString();
+  }
   sugerirProximoGameId();
 
   alert(`Rodada ${gameIdVal} agendada com sucesso!`);

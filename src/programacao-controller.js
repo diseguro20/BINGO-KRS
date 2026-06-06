@@ -233,7 +233,7 @@ function renderizarFila() {
     const statusHtml = `<span class="badge-status ${statusClass}">${statusLabel}</span>`;
 
     const contagemHtml = `
-      <div style="display: flex; gap: 8px; align-items: center;">
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
         <span class="${modoBadge}">${rodada.schedulingMode}</span>
         ${statusHtml}
       </div>

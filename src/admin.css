@@ -245,7 +245,7 @@ body {
 
 .grid-2-cols {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
 }
 
@@ -364,4 +364,28 @@ body {
   0% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.2); }
   50% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); }
   100% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.2); }
+}
+
+@media (max-width: 992px) {
+  .admin-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+    text-align: center;
+  }
+  .admin-header .header-logo {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px !important;
+  }
+  .admin-header nav {
+    flex-direction: column;
+    gap: 10px !important;
+    align-items: center;
+  }
+  .status-connection {
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px !important;
+  }
 }

@@ -276,7 +276,7 @@ body {
 
 .action-buttons-sales {
   display: grid;
-  grid-template-columns: 1fr 1.5fr;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
 }
 
@@ -348,6 +348,7 @@ body {
 /* Lote Sales */
 .form-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 15px;
   margin-bottom: 15px;
 }
@@ -671,4 +672,36 @@ body {
   font-size: 14px;
   letter-spacing: 1px;
   opacity: 0.8;
+}
+
+.grid-2-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 15px;
+}
+
+@media (max-width: 768px) {
+  .pdv-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+    text-align: center;
+  }
+  .pdv-selector {
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+  }
+  .pdv-selector .input-wrapper {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .pdv-selector input {
+    width: 220px;
+    padding-right: 12px;
+  }
+  .pdv-selector .status-badge {
+    position: static;
+    margin-top: 5px;
+  }
 }

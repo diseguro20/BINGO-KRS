@@ -39,6 +39,10 @@ const widgetCurrentBall = document.getElementById('widget-current-ball');
 const widgetStatusText = document.getElementById('widget-status-text');
 const widgetOrderText = document.getElementById('widget-order-text');
 const btnLogout = document.getElementById('btn-logout');
+const btnConnectPrinter = document.getElementById('btn-connect-printer');
+const printerStatusLabel = document.getElementById('printer-status-label');
+const printerIcon = document.getElementById('printer-icon');
+const selectPrintMode = document.getElementById('select-print-mode');
 
 // Cliente
 const inputClientPhone = document.getElementById('client-phone');
@@ -525,9 +529,243 @@ cartelaModal.addEventListener('click', (e) => {
   if (e.target === cartelaModal) fecharModal();
 });
 
-btnPrintTicket.addEventListener('click', () => {
+// ==========================================
+// 8. LOGICA DE IMPRESSÃO BLUETOOTH E ESC/POS
+// ==========================================
+
+let printerCharacteristic = null;
+let bluetoothDevice = null;
+let selectedPrintMode = localStorage.getItem('bingokrs_print_mode') || 'RAWBT';
+
+// Inicializa o seletor com o valor salvo
+if (selectPrintMode) {
+  selectPrintMode.value = selectedPrintMode;
+}
+atualizarUIImpressoraStatus();
+
+if (selectPrintMode) {
+  selectPrintMode.addEventListener('change', (e) => {
+    selectedPrintMode = e.target.value;
+    localStorage.setItem('bingokrs_print_mode', selectedPrintMode);
+    atualizarUIImpressoraStatus();
+  });
+}
+
+function atualizarUIImpressoraStatus() {
+  if (!btnConnectPrinter || !printerStatusLabel || !printerIcon) return;
+
+  if (selectedPrintMode === 'RAWBT') {
+    printerStatusLabel.innerText = "Modo: App RawBT";
+    btnConnectPrinter.style.background = "rgba(0, 243, 255, 0.1)";
+    btnConnectPrinter.style.borderColor = "var(--primary)";
+    btnConnectPrinter.style.color = "var(--primary)";
+    printerIcon.innerText = "📲";
+  } else if (selectedPrintMode === 'NAV') {
+    printerStatusLabel.innerText = "Modo: Navegador";
+    btnConnectPrinter.style.background = "rgba(255, 255, 255, 0.05)";
+    btnConnectPrinter.style.borderColor = "var(--pdv-border)";
+    btnConnectPrinter.style.color = "var(--text-muted)";
+    printerIcon.innerText = "📄";
+  } else if (selectedPrintMode === 'BLE') {
+    printerIcon.innerText = "📶";
+    if (printerCharacteristic) {
+      const pName = localStorage.getItem('bingokrs_bt_printer_name') || "Impressora BLE";
+      printerStatusLabel.innerText = pName;
+      btnConnectPrinter.style.background = "rgba(0, 230, 118, 0.15)";
+      btnConnectPrinter.style.borderColor = "var(--success)";
+      btnConnectPrinter.style.color = "var(--success)";
+    } else {
+      printerStatusLabel.innerText = "Desconectada";
+      btnConnectPrinter.style.background = "rgba(255, 23, 68, 0.15)";
+      btnConnectPrinter.style.borderColor = "var(--danger)";
+      btnConnectPrinter.style.color = "var(--danger)";
+    }
+  }
+}
+
+// Conectar impressora via BLE GATT
+async function conectarImpressoraBluetooth() {
+  try {
+    printerStatusLabel.innerText = "Buscando...";
+    
+    // Solicita o device Bluetooth BLE do navegador
+    bluetoothDevice = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [
+        '000018f0-0000-1000-8000-00805f9b34fb', // Serviço de escrita comum
+        '00001101-0000-1000-8000-00805f9b34fb', // SPP BLE UUID alternativo
+        'e7e1a12c-4527-11e4-8988-041f72c48976'  // Outro UUID de impressora térmica
+      ]
+    });
+
+    const server = await bluetoothDevice.gatt.connect();
+    
+    // Tenta obter o serviço primário compatível
+    let service = null;
+    const serviceUUIDs = [
+      '000018f0-0000-1000-8000-00805f9b34fb',
+      'e7e1a12c-4527-11e4-8988-041f72c48976'
+    ];
+    
+    for (const uuid of serviceUUIDs) {
+      try {
+        service = await server.getPrimaryService(uuid);
+        if (service) break;
+      } catch (e) {
+        console.warn(`Serviço BLE ${uuid} não disponível, tentando próximo...`);
+      }
+    }
+    
+    if (!service) {
+      // Pega qualquer primeiro serviço se nenhum dos comuns der certo
+      const services = await server.getPrimaryServices();
+      if (services.length > 0) {
+        service = services[0];
+      } else {
+        throw new Error("Nenhum serviço primário disponível na impressora.");
+      }
+    }
+    
+    const characteristics = await service.getCharacteristics();
+    // Procura por uma característica que aceite escrita
+    printerCharacteristic = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse);
+    
+    if (!printerCharacteristic) {
+      throw new Error("Característica de escrita não localizada.");
+    }
+
+    const deviceName = bluetoothDevice.name || "Impressora BLE";
+    localStorage.setItem('bingokrs_bt_printer_name', deviceName);
+    
+    atualizarUIImpressoraStatus();
+    alert(`Impressora Bluetooth ${deviceName} conectada com sucesso!`);
+  } catch (err) {
+    console.error("Erro Bluetooth:", err);
+    bluetoothDevice = null;
+    printerCharacteristic = null;
+    atualizarUIImpressoraStatus();
+    alert("Falha na conexão: " + err.message);
+  }
+}
+
+if (btnConnectPrinter) {
+  btnConnectPrinter.addEventListener('click', async () => {
+    if (selectedPrintMode === 'RAWBT') {
+      alert("No modo 'App RawBT', a conexão bluetooth é operada de forma nativa e automática pelo aplicativo RawBT do seu PAX/Smart. Não é necessário emparelhar no navegador.");
+      return;
+    }
+    if (selectedPrintMode === 'NAV') {
+      alert("No modo 'Navegador', a impressão usa o menu nativo do sistema operacional. Não requer pareamento Bluetooth direto.");
+      return;
+    }
+    
+    if (!navigator.bluetooth) {
+      alert("Web Bluetooth não é suportado neste dispositivo/navegador ou requer conexão HTTPS segura.");
+      return;
+    }
+    
+    await conectarImpressoraBluetooth();
+  });
+}
+
+// Auxiliares para formatação de recibo e envio de bytes
+function stringToUint8Array(str) {
+  const arr = new Uint8Array(str.length);
+  for (let i = 0; i < str.length; i++) {
+    arr[i] = str.charCodeAt(i) & 0xff;
+  }
+  return arr;
+}
+
+function formatarReciboTexto(card, dataSorteio) {
+  let text = "";
+  text += "\x1b\x40"; // Inicializa impressora (ESC @)
+  text += "\x1b\x61\x01"; // Alinhamento centralizado (ESC a 1)
+  text += "\x1d\x21\x11"; // Letra tamanho duplo (GS ! 17)
+  text += "KRS BINGO\n";
+  text += "\x1d\x21\x00"; // Letra tamanho normal (GS ! 0)
+  text += "--------------------------------\n";
+  text += `PDV: ${card.pdv}\n`;
+  text += `Sorteio: #${card.gameId}\n`;
+  text += `Data: ${dataSorteio}\n`;
+  text += "--------------------------------\n";
+  text += "\x1d\x21\x01"; // Altura dupla (GS ! 1)
+  text += `CARTELA: ${card.id}\n`;
+  text += "\x1d\x21\x00"; // Normal
+  text += "--------------------------------\n\n";
+
+  // Desenhar a tabela da cartela
+  text += "+-------------------------------+\n";
+  for (let r = 0; r < 3; r++) {
+    let rowText = "| ";
+    for (let c = 0; c < 9; c++) {
+      const val = card.gridFlat[r * 9 + c];
+      if (val === null || val === undefined) {
+        rowText += "   "; // Célula vazia
+      } else {
+        rowText += val.toString().padStart(2, '0') + " ";
+      }
+    }
+    rowText += "|\n";
+    text += rowText;
+  }
+  text += "+-------------------------------+\n\n";
+
+  text += "--------------------------------\n";
+  const precoVal = (estado ? estado.prizes.cupom : 2.0).toFixed(2).replace('.', ',');
+  text += `VALOR DO CUPOM: R$ ${precoVal}\n`;
+  text += "Boa Sorte! Obrigado.\n\n\n\n\n";
+  text += "\x1d\x56\x01"; // Comando de corte parcial (GS V 1)
+  return text;
+}
+
+btnPrintTicket.addEventListener('click', async () => {
   if (!cartelaSelecionada) return;
-  alert(`Simulando Impressão da Cartela ${cartelaSelecionada.id}...\n\nImpressora Térmica acionada no ponto de venda.`);
+
+  const dataSorteio = estado ? estado.dataSorteio : new Date().toLocaleDateString('pt-BR');
+  const reciboTexto = formatarReciboTexto(cartelaSelecionada, dataSorteio);
+
+  if (selectedPrintMode === 'NAV') {
+    // Impressão nativa do Navegador (abre janela do Chrome)
+    window.print();
+  } else if (selectedPrintMode === 'RAWBT') {
+    // Impressão via aplicativo RawBT (PAX moderninha embutida)
+    try {
+      const base64Data = btoa(reciboTexto);
+      // Intent padrão do Android para disparar o RawBT e voltar ao PDV
+      const rawbtIntent = `intent:#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;S.base64=${base64Data};end;`;
+      window.location.href = rawbtIntent;
+    } catch (e) {
+      alert("Erro ao disparar aplicativo RawBT. Certifique-se de que ele está instalado no seu terminal PAX Android.");
+    }
+  } else if (selectedPrintMode === 'BLE') {
+    // Impressão nativa direta por Bluetooth Low Energy
+    if (!printerCharacteristic) {
+      alert("Nenhuma impressora Bluetooth pareada no navegador. Clique no ícone '📶 Impressora' no topo para parear.");
+      return;
+    }
+
+    btnPrintTicket.disabled = true;
+    btnPrintTicket.innerText = 'Imprimindo...';
+
+    try {
+      const bytes = stringToUint8Array(reciboTexto);
+      
+      // Envia em fatias menores de 20 bytes (MTU comum do BLE) para não travar o buffer da impressora
+      const fatias = 20;
+      for (let i = 0; i < bytes.length; i += fatias) {
+        const fatia = bytes.slice(i, i + fatias);
+        await printerCharacteristic.writeValue(fatia);
+      }
+      
+      alert("Comando de impressão enviado!");
+    } catch (err) {
+      alert("Erro ao imprimir via BLE: " + err.message);
+    } finally {
+      btnPrintTicket.disabled = false;
+      btnPrintTicket.innerText = 'Imprimir Cartela';
+    }
+  }
 });
 
 // Inscreve para atualizações do estado do jogo

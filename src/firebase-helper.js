@@ -373,23 +373,69 @@ export const FirebaseHelper = {
         await setDoc(doc(db, "cartelas", card.id), card);
       }
 
-      // Atualiza métricas no Firestore via Transação para evitar concorrência
+      // Atualiza métricas e estado da partida via Transação Única
       const metricaRef = doc(db, "metricas", "financeiro");
+      const partidaRef = doc(db, "partidas", "atual");
       try {
         await runTransaction(db, async (transaction) => {
-          const docSnap = await transaction.get(metricaRef);
-          let data = { totalFaturamento: 0, totalPremiosPagos: 0, rankingPdvs: {} };
-          if (docSnap.exists()) {
-            data = docSnap.data();
-          }
-          data.totalFaturamento = (data.totalFaturamento || 0) + totalVenda;
-          if (!data.rankingPdvs) data.rankingPdvs = {};
-          data.rankingPdvs[pdv] = (data.rankingPdvs[pdv] || 0) + totalVenda;
+          const metricaSnap = await transaction.get(metricaRef);
+          const partidaSnap = await transaction.get(partidaRef);
 
-          transaction.set(metricaRef, data);
+          // 1. Processa métricas
+          let dataMetricas = { totalFaturamento: 0, totalPremiosPagos: 0, rankingPdvs: {} };
+          if (metricaSnap.exists()) {
+            dataMetricas = metricaSnap.data();
+          }
+          dataMetricas.totalFaturamento = (dataMetricas.totalFaturamento || 0) + totalVenda;
+          if (!dataMetricas.rankingPdvs) dataMetricas.rankingPdvs = {};
+          dataMetricas.rankingPdvs[pdv] = (dataMetricas.rankingPdvs[pdv] || 0) + totalVenda;
+
+          // 2. Processa estado da partida (Direct sync cross-device)
+          if (partidaSnap.exists()) {
+            const partidaData = partidaSnap.data();
+            const statusAtual = partidaData.status;
+
+            const targetGameId = (statusAtual === 'WAITING') ? partidaData.gameId : partidaData.nextGameId;
+            cartelas.forEach(c => {
+              c.gameId = targetGameId;
+              if (clienteInfo) {
+                c.clienteNome = clienteInfo.nome;
+                c.clienteCelular = clienteInfo.celular;
+              }
+              c.dataVenda = Date.now();
+            });
+
+            if (statusAtual === 'WAITING') {
+              if (!partidaData.cards) partidaData.cards = [];
+              cartelas.forEach(c => {
+                if (!partidaData.cards.some(existing => existing.id === c.id)) {
+                  partidaData.cards.push(c);
+                }
+              });
+            } else {
+              if (!partidaData.nextCards) partidaData.nextCards = [];
+              cartelas.forEach(c => {
+                if (!partidaData.nextCards.some(existing => existing.id === c.id)) {
+                  partidaData.nextCards.push(c);
+                }
+              });
+            }
+
+            const { processarEstadoJogo } = await import('./game.js');
+            const partidaAtualizada = processarEstadoJogo(partidaData);
+
+            transaction.update(partidaRef, {
+              cards: partidaAtualizada.cards || [],
+              nextCards: partidaAtualizada.nextCards || [],
+              winners: partidaAtualizada.winners || { quadra: [], quina: [], bingo: [], acumulado: [] },
+              status: partidaAtualizada.status
+            });
+          }
+
+          transaction.set(metricaRef, dataMetricas);
         });
       } catch (err) {
-        console.error("Erro ao atualizar métricas financeiras:", err);
+        console.error("Erro na transação de faturamento e estado:", err);
       }
     } else {
       // MODO SIMULADO

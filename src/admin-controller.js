@@ -17,6 +17,7 @@ let autoDrawIntervalId = null;
 let autoAdvanceTimeoutId = null;
 let premioPausado = false; // Pausa o auto-sorteio quando sai prêmio
 let winnersAnterior = { quadra: 0, quina: 0, bingo: 0, acumulado: 0 }; // Track winner counts
+let resettingGame = false; // Evita que o reset seja sobrescrito por snapshots antigos
 
 // Elementos do DOM - Console e Sorteio
 const gameStatusText = document.getElementById('game-status-text');
@@ -87,6 +88,28 @@ let camposPreenchidosIniciais = false;
  */
 function renderizarAdmin(novoEstado) {
   if (!novoEstado) return;
+
+  // Se estamos resetando o jogo, ignora snapshots que ainda contêm bolas sorteadas
+  if (resettingGame) {
+    if (novoEstado.drawnBalls && novoEstado.drawnBalls.length > 0) {
+      console.log("[ADMIN] Ignorando snapshot antigo do Firestore durante o reset do jogo.");
+      return;
+    } else {
+      resettingGame = false; // Confirmado pelo banco que o reset foi salvo
+    }
+  }
+
+  // Previne retrocesso de estado se o snapshot do Firestore for mais antigo (lagging)
+  // que o estado local atual do administrador (evita travamentos e repetição de bolas)
+  if (estado && estado.gameId === novoEstado.gameId) {
+    const localCount = estado.drawnBalls ? estado.drawnBalls.length : 0;
+    const novoCount = novoEstado.drawnBalls ? novoEstado.drawnBalls.length : 0;
+    if (novoCount < localCount) {
+      console.warn(`[ADMIN] Ignorando snapshot antigo. Firestore: ${novoCount} bolas, Local: ${localCount} bolas.`);
+      return;
+    }
+  }
+
   estado = novoEstado;
 
   const rodadaAtivaFila = estado.rodadasQueue ? estado.rodadasQueue.find(r => r.gameId === estado.gameId) : null;
@@ -314,6 +337,7 @@ btnNextRound.addEventListener('click', () => {
 // Reiniciar Sorteio Atual
 btnResetGame.addEventListener('click', () => {
   if (confirm("Deseja reiniciar o sorteio ATUAL? Isso limpará apenas as bolas sorteadas e os vencedores da rodada corrente. As cartelas ativas serão mantidas.")) {
+    resettingGame = true;
     pararAutoSorteio();
     
     // Zera acertos das cartelas ativas
@@ -547,9 +571,11 @@ function adicionarCardAoEstado(card) {
   card.gameId = (statusAtual === 'WAITING') ? estado.gameId : estado.nextGameId;
 
   if (statusAtual === 'WAITING') {
+    if (estado.cards.some(c => c.id === card.id)) return;
     estado.cards.push(card);
   } else {
     if (!estado.nextCards) estado.nextCards = [];
+    if (estado.nextCards.some(c => c.id === card.id)) return;
     estado.nextCards.push(card);
   }
   

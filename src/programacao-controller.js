@@ -27,6 +27,13 @@ const groupForcedPdvCustom = document.getElementById('group-forced-pdv-custom');
 const inputForcedPdvCustom = document.getElementById('input-forced-pdv-custom');
 const selectRiggingProb = document.getElementById('input-rigging-prob');
 
+// Elementos da IA Inteligente
+const iaSchedulingContainer = document.getElementById('ia-scheduling-container');
+const iaWarningBox = document.getElementById('ia-warning-box');
+const iaPdvCountMsg = document.getElementById('ia-pdv-count-msg');
+const iaRecommendationMsg = document.getElementById('ia-recommendation-msg');
+const btnIaGenerateDay = document.getElementById('btn-ia-generate-day');
+
 // Função auxiliar para obter data local YYYY-MM-DD
 function obterDataHojeLocalString() {
   const hoje = new Date();
@@ -108,6 +115,17 @@ selectForcedPdv.addEventListener('change', () => {
     groupForcedPdvCustom.style.display = "none";
     inputForcedPdvCustom.required = false;
   }
+});
+
+// Toggle do contêiner de IA inteligente
+document.querySelectorAll('input[name="scheduling-mode"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    if (radio.value === 'IA') {
+      iaSchedulingContainer.style.display = 'block';
+    } else {
+      iaSchedulingContainer.style.display = 'none';
+    }
+  });
 });
 
 /**
@@ -456,3 +474,132 @@ FirebaseHelper.assinarAutenticacao((user, profile) => {
 
 // Inscreve no estado do jogo
 FirebaseHelper.assinarEstadoJogo(renderizarProgramacao);
+
+// Monitorar PDVs online em tempo real
+let pdvsOnlineCount = 0;
+FirebaseHelper.assinarPdvsOnline((count, pdvsList) => {
+  pdvsOnlineCount = count;
+  iaPdvCountMsg.innerText = `Bares/PDVs Online: ${count} ativo(s)`;
+  
+  if (count >= 3) {
+    iaWarningBox.style.borderLeft = "4px solid var(--neon-cyan)";
+    iaPdvCountMsg.style.color = "var(--neon-cyan)";
+    iaRecommendationMsg.innerHTML = `✅ Saúde da plataforma está estável. <br>Recomendação: <strong>Grade Padrão (12:00 às 23:45)</strong> de 15 em 15 min.`;
+  } else {
+    iaWarningBox.style.borderLeft = "4px solid var(--neon-gold)";
+    iaPdvCountMsg.style.color = "var(--neon-gold)";
+    iaRecommendationMsg.innerHTML = `⚠️ Poucos PDVs online! <br>Recomendação: <strong>Grade Reduzida (18:00 às 23:00)</strong> para evitar prejuízos.`;
+  }
+});
+
+// Ação do Botão Gerar Grade IA
+btnIaGenerateDay.addEventListener('click', async () => {
+  if (!estado) return;
+
+  const pdvsCount = pdvsOnlineCount;
+  let startHour = 12;
+  let endHour = 23;
+  let maxMinutes = 45;
+  let recommendedMsg = "";
+
+  if (pdvsCount >= 3) {
+    startHour = 12;
+    endHour = 23;
+    maxMinutes = 45;
+    recommendedMsg = "Grade Padrão (12:00 às 23:45)";
+  } else {
+    startHour = 18;
+    endHour = 23;
+    maxMinutes = 0;
+    recommendedMsg = "Grade Reduzida (18:00 às 23:00) devido a poucos PDVs online";
+  }
+
+  const confirmacao = confirm(`Deseja gerar automaticamente a programação IA para hoje?\n\n- Recomendação: ${recommendedMsg}\n- Intervalo: de 15 em 15 minutos\n\nIsso criará uma série de rodadas na fila e salvará no banco.`);
+  if (!confirmacao) return;
+
+  btnIaGenerateDay.disabled = true;
+  btnIaGenerateDay.innerText = "Gerando Rodadas...";
+
+  try {
+    const dataHoje = obterDataHojeLocalString();
+    let rodadasGeradas = 0;
+
+    for (let h = startHour; h <= endHour; h++) {
+      for (let m = 0; m < 60; m += 15) {
+        if (h === endHour && m > maxMinutes) break;
+
+        const horaReal = h === 24 ? 0 : h;
+        const horaStr = String(horaReal).padStart(2, '0');
+        const minStr = String(m).padStart(2, '0');
+        const horarioStr = `${horaStr}:${minStr}`;
+
+        // Verifica se já existe uma rodada na fila para hoje neste horário
+        const jaExiste = estado.rodadasQueue && estado.rodadasQueue.some(r => r.startDate === dataHoje && r.startTime === horarioStr);
+        if (jaExiste) continue;
+
+        // Gera um ID de jogo aleatório de 4 dígitos
+        let proximoId;
+        let tentativas = 0;
+        do {
+          const randomNum = Math.floor(1000 + Math.random() * 9000);
+          proximoId = `#${randomNum}`;
+          tentativas++;
+        } while (
+          ((estado.rodadasQueue && estado.rodadasQueue.some(r => r.gameId === proximoId)) ||
+           estado.gameId === proximoId ||
+           estado.nextGameId === proximoId) && 
+          tentativas < 100
+        );
+
+        const novaRodada = {
+          gameId: proximoId,
+          prizes: {
+            cupom: parseFloat(inputCupom.value) || 2.0,
+            quadra: parseFloat(inputQuadra.value) || 50.0,
+            quina: parseFloat(inputQuina.value) || 100.0,
+            bingo: parseFloat(inputBingo.value) || 250.0,
+            acumulado: parseFloat(inputAcumulado.value) || 1000.0
+          },
+          schedulingMode: 'IA',
+          countdownMinutes: null,
+          startTime: horarioStr,
+          startDate: dataHoje,
+          drawSpeed: parseInt(selectDrawSpeed.value) || 3,
+          autoStartDraw: inputAutoStart.checked,
+          forcedPdvWinner: 'NENHUM',
+          forcedRiggingProbability: 75
+        };
+
+        estado.rodadasQueue.push(novaRodada);
+        rodadasGeradas++;
+      }
+    }
+
+    if (rodadasGeradas > 0) {
+      // Verifica se a rodada atual deve avançar automaticamente
+      const activeRoundQueue = estado.rodadasQueue ? estado.rodadasQueue.find(r => r.gameId === estado.gameId) : null;
+      const isRoundActive = activeRoundQueue && (activeRoundQueue.status === 'PLAYING' || activeRoundQueue.status === 'FINISHED');
+
+      if (estado.status === 'WAITING' && 
+          !isRoundActive &&
+          !estado.countdownEndTime && 
+          (!estado.drawnBalls || estado.drawnBalls.length === 0)) {
+        console.log("[PROGRAMAÇÃO IA] Canal ocioso. Avançando para a primeira rodada programada...");
+        const { avancarProximaRodada } = await import('./game.js');
+        estado = avancarProximaRodada(estado);
+      }
+
+      // Salva no banco
+      FirebaseHelper.salvarEstadoJogo(estado);
+      alert(`Sucesso! ${rodadasGeradas} rodadas programadas adicionadas à fila para hoje.`);
+    } else {
+      alert("Nenhuma rodada foi adicionada (todas as rodadas nesta faixa de horário já estão programadas).");
+    }
+  } catch (err) {
+    console.error("Erro ao gerar grade de rodadas IA:", err);
+    alert("Erro ao gerar grade: " + err.message);
+  } finally {
+    btnIaGenerateDay.disabled = false;
+    btnIaGenerateDay.innerText = "🤖 Gerar Grade de Rodadas IA para Hoje";
+  }
+});

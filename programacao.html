@@ -141,6 +141,17 @@
             </div>
           </div>
 
+          <div id="ia-scheduling-container" style="display: none; margin-top: 15px; padding: 15px; border-radius: 8px; background: rgba(0, 242, 254, 0.05); border: 1px dashed var(--neon-cyan); margin-bottom: 15px;">
+            <div id="ia-warning-box" style="margin-bottom: 15px; border-left: 4px solid var(--neon-gold); padding: 10px; background: rgba(255, 215, 0, 0.05); border-radius: 4px; display: flex; flex-direction: column; gap: 4px;">
+              <span id="ia-pdv-count-msg" style="font-weight: bold; color: var(--neon-gold); font-size: 13px;">Carregando PDVs online...</span>
+              <span id="ia-recommendation-msg" style="color: var(--text-muted); font-size: 12px;">Recomendação: Carregando...</span>
+            </div>
+            
+            <button type="button" id="btn-ia-generate-day" class="btn btn-primary" style="width: 100%; text-shadow: 0 0 5px var(--neon-cyan); font-weight: bold; font-family: 'Outfit', sans-serif;">
+              🤖 Gerar Grade de Rodadas IA para Hoje
+            </button>
+          </div>
+
           <div class="grid-2-cols">
             <div class="form-group">
               <label for="input-countdown">Contagem (minutos):</label>

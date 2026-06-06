@@ -10,6 +10,7 @@ let estado = null;
 let rascunhoCartela = null;
 let cartelaSelecionada = null; // Para o modal
 let operadorLogado = null;
+let heartbeatIntervalId = null;
 
 // Elementos do DOM - Autenticação
 const loginOverlay = document.getElementById('login-overlay');
@@ -154,6 +155,15 @@ FirebaseHelper.assinarAutenticacao((user, profile) => {
     // Esconde tela de login
     loginOverlay.style.display = 'none';
     
+    // Heartbeat
+    if (heartbeatIntervalId !== null) clearInterval(heartbeatIntervalId);
+    FirebaseHelper.registrarHeartbeat(profile.pdvNome);
+    heartbeatIntervalId = setInterval(() => {
+      if (operadorLogado) {
+        FirebaseHelper.registrarHeartbeat(operadorLogado.pdvNome);
+      }
+    }, 15000);
+
     // Renderiza dados locais
     renderizarListaVendidas();
   } else {
@@ -162,6 +172,11 @@ FirebaseHelper.assinarAutenticacao((user, profile) => {
     pdvNameStatus.innerText = "Inativo";
     pdvNameStatus.style.background = "var(--danger)";
     
+    if (heartbeatIntervalId !== null) {
+      clearInterval(heartbeatIntervalId);
+      heartbeatIntervalId = null;
+    }
+
     // Mostra tela de login
     loginOverlay.style.display = 'flex';
   }

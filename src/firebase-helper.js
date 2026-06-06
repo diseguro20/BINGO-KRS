@@ -527,6 +527,67 @@ export const FirebaseHelper = {
   },
 
   // ==========================================
+  // 4.5 HEARTBEAT E PDVS ONLINE
+  // ==========================================
+
+  async registrarHeartbeat(pdvNome) {
+    if (isFirebaseConfigured && db) {
+      try {
+        const pdvRef = doc(db, "pdvs_online", pdvNome);
+        await setDoc(pdvRef, {
+          pdvNome: pdvNome,
+          lastActive: Date.now()
+        });
+      } catch (e) {
+        console.error("Erro ao registrar heartbeat do PDV:", e);
+      }
+    } else {
+      // MODO SIMULADO
+      const saved = localStorage.getItem('bingokrs_pdvs_online') || '{}';
+      const pdvs = JSON.parse(saved);
+      pdvs[pdvNome] = Date.now();
+      localStorage.setItem('bingokrs_pdvs_online', JSON.stringify(pdvs));
+    }
+  },
+
+  assinarPdvsOnline(callback) {
+    if (isFirebaseConfigured && db) {
+      return onSnapshot(collection(db, "pdvs_online"), (snapshot) => {
+        const agora = Date.now();
+        let count = 0;
+        const list = [];
+        snapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          if (data.lastActive >= agora - 60000) {
+            count++;
+            list.push(data.pdvNome);
+          }
+        });
+        callback(count, list);
+      });
+    } else {
+      // MODO SIMULADO
+      const checkSimulado = () => {
+        const saved = localStorage.getItem('bingokrs_pdvs_online') || '{}';
+        const pdvs = JSON.parse(saved);
+        const agora = Date.now();
+        let count = 0;
+        const list = [];
+        for (const pdv in pdvs) {
+          if (pdvs[pdv] >= agora - 60000) {
+            count++;
+            list.push(pdv);
+          }
+        }
+        callback(count, list);
+      };
+      const intervalId = setInterval(checkSimulado, 5000);
+      checkSimulado();
+      return () => clearInterval(intervalId);
+    }
+  },
+
+  // ==========================================
   // 5. EVENTOS E COMANDOS DIRETOS (SOM, ALERTAS)
   // ==========================================
 

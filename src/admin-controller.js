@@ -57,6 +57,8 @@ const selectAdminRiggingMode = document.getElementById('select-admin-rigging-mod
 const groupAdminForcedPdv = document.getElementById('group-admin-forced-pdv');
 const riggingAgentBox = document.getElementById('rigging-agent-box');
 const riggingAgentStats = document.getElementById('rigging-agent-stats');
+const riggingGeneralSummaryBox = document.getElementById('rigging-general-summary-box');
+const riggingSummaryContent = document.getElementById('rigging-summary-content');
 
 let ultimoMetricas = null;
 
@@ -552,6 +554,30 @@ async function atualizarPainelDirecionamento() {
   
   // 3. Atualiza visibilidade com base no número de cartelas vendidas
   const cardsCount = cartelasRodada.length;
+  
+  // Determina qual é a configuração atual no banco
+  let currentForcedPdv = "NENHUM";
+  let currentRiggingProb = 75;
+  
+  if (targetRoundId === "ATIVO") {
+    currentForcedPdv = estado.forcedPdvWinner || "NENHUM";
+    currentRiggingProb = estado.forcedRiggingProbability || 75;
+  } else {
+    const roundObj = estado.rodadasQueue ? estado.rodadasQueue.find(r => r.gameId === targetRoundId) : null;
+    if (roundObj) {
+      currentForcedPdv = roundObj.forcedPdvWinner || "NENHUM";
+      currentRiggingProb = roundObj.forcedRiggingProbability || 75;
+    }
+  }
+
+  let roundPrizes = { ...estado.prizes };
+  if (targetRoundId !== "ATIVO" && estado.rodadasQueue) {
+    const rConfig = estado.rodadasQueue.find(r => r.gameId === targetRoundId);
+    if (rConfig && rConfig.prizes) {
+      roundPrizes = { ...rConfig.prizes };
+    }
+  }
+
   if (cardsCount === 0) {
     if (riggingFields) riggingFields.style.display = 'none';
     if (riggingStatusMsg) {
@@ -564,21 +590,6 @@ async function atualizarPainelDirecionamento() {
     
     // Lista os PDVs únicos das cartelas vendidas nesta rodada específica
     const pdvsComCartelas = [...new Set(cartelasRodada.map(c => c.pdv))];
-    
-    // Determina qual é a configuração atual no banco
-    let currentForcedPdv = "NENHUM";
-    let currentRiggingProb = 75;
-    
-    if (targetRoundId === "ATIVO") {
-      currentForcedPdv = estado.forcedPdvWinner || "NENHUM";
-      currentRiggingProb = estado.forcedRiggingProbability || 75;
-    } else {
-      const roundObj = estado.rodadasQueue ? estado.rodadasQueue.find(r => r.gameId === targetRoundId) : null;
-      if (roundObj) {
-        currentForcedPdv = roundObj.forcedPdvWinner || "NENHUM";
-        currentRiggingProb = roundObj.forcedRiggingProbability || 75;
-      }
-    }
     
     const selectedPdvValue = selectAdminForcedPdv.value || currentForcedPdv;
     
@@ -621,6 +632,83 @@ async function atualizarPainelDirecionamento() {
       if (groupAdminForcedPdv) groupAdminForcedPdv.style.display = 'block';
       if (riggingAgentBox) riggingAgentBox.style.display = 'none';
     }
+  }
+
+  // 4. Renderiza o Resumo de Prêmios e Estatísticas Geral (Mostra Sempre)
+  if (riggingSummaryContent) {
+    const valQuadra = roundPrizes.quadra ? parseFloat(roundPrizes.quadra) : 0;
+    const valQuina = roundPrizes.quina ? parseFloat(roundPrizes.quina) : 0;
+    const valBingo = roundPrizes.bingo ? parseFloat(roundPrizes.bingo) : 0;
+    const valAcumulado = roundPrizes.acumulado ? parseFloat(roundPrizes.acumulado) : 0;
+
+    let summaryHtml = `
+      <div style="border-bottom: 1px solid rgba(255, 193, 7, 0.2); padding-bottom: 8px; margin-bottom: 8px;">
+        <span style="color: var(--neon-cyan); font-weight: bold; text-shadow: 0 0 5px rgba(0, 243, 255, 0.3);">💰 Valores dos Prêmios:</span><br>
+        • Quadra: <span style="color: var(--success); font-weight: bold;">R$ ${valQuadra.toFixed(2).replace('.', ',')}</span><br>
+        • Quina: <span style="color: var(--success); font-weight: bold;">R$ ${valQuina.toFixed(2).replace('.', ',')}</span><br>
+        • Bingo: <span style="color: var(--success); font-weight: bold;">R$ ${valBingo.toFixed(2).replace('.', ',')}</span><br>
+        • Acumulado: <span style="color: var(--success); font-weight: bold;">R$ ${valAcumulado.toFixed(2).replace('.', ',')}</span> <span style="font-size: 10px; color: var(--text-muted);">(até a bola 44)</span>
+      </div>
+      <div style="margin-bottom: 6px;"><span style="color: var(--neon-cyan); font-weight: bold; text-shadow: 0 0 5px rgba(0, 243, 255, 0.3);">🎯 Alvos de Direcionamento:</span></div>
+    `;
+
+    if (currentForcedPdv === "INTELIGENTE") {
+      summaryHtml += `<strong>Modo Ativo:</strong> <span style="color: var(--primary); font-weight: bold;">Prioritário Inteligente</span><br>`;
+      if (cardsCount === 0) {
+        summaryHtml += `<span style="color: var(--text-muted); font-style: italic;">Aguardando vendas de cartelas para listar as probabilidades dos bares.</span>`;
+      } else {
+        const activePdvs = [...new Set(cartelasRodada.map(c => c.pdv))];
+        const sales = (estado && estado.pdvDailySales) ? estado.pdvDailySales : (ultimoMetricas ? ultimoMetricas.rankingPdvs : {});
+        let totalWeight = 0;
+        const weights = activePdvs.map(pdv => {
+          const weight = Math.max(10, parseFloat(sales && sales[pdv] ? sales[pdv] : 10));
+          totalWeight += weight;
+          return { pdv, weight };
+        });
+
+        weights.forEach(item => {
+          const prob = ((item.weight / totalWeight) * 100).toFixed(1);
+          const valVenda = sales && sales[item.pdv] ? `R$ ${parseFloat(sales[item.pdv]).toFixed(2).replace('.', ',')}` : 'R$ 0,00';
+          summaryHtml += `
+            <div style="margin-top: 6px; padding-left: 8px; border-left: 2px solid var(--primary);">
+              <strong>${item.pdv}</strong>: <span style="color: var(--neon-gold); font-weight: 700;">${prob}% de chance de ganhar</span><br>
+              <span style="font-size: 10px; color: var(--text-muted);">Métrica Diária: ${valVenda} | Alvo provável dos prêmios</span>
+            </div>
+          `;
+        });
+      }
+    } else if (currentForcedPdv !== "NENHUM") {
+      summaryHtml += `<strong>Modo Ativo:</strong> <span style="color: var(--warning); font-weight: bold;">Manual (PDV Fixo)</span><br>`;
+      summaryHtml += `
+        <div style="margin-top: 6px; padding-left: 8px; border-left: 2px solid var(--warning);">
+          <strong>${currentForcedPdv}</strong>: <span style="color: var(--warning); font-weight: 700;">${currentRiggingProb}% de direcionamento</span><br>
+          <span style="font-size: 10px; color: var(--text-muted);">Este bar receberá prioritariamente os prêmios da rodada se tiver cartelas vendidas.</span>
+        </div>
+      `;
+    } else {
+      summaryHtml += `<strong>Modo Ativo:</strong> <span style="color: var(--text-muted); font-weight: bold;">Sorteio 100% Aleatório</span><br>`;
+      if (cardsCount === 0) {
+        summaryHtml += `<span style="color: var(--text-muted); font-style: italic;">Aguardando vendas de cartelas para estimar chances naturais.</span>`;
+      } else {
+        const pdvCounts = {};
+        cartelasRodada.forEach(c => {
+          pdvCounts[c.pdv] = (pdvCounts[c.pdv] || 0) + 1;
+        });
+        const activePdvs = Object.keys(pdvCounts);
+        activePdvs.forEach(pdv => {
+          const count = pdvCounts[pdv];
+          const prob = ((count / cardsCount) * 100).toFixed(1);
+          summaryHtml += `
+            <div style="margin-top: 6px; padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.2);">
+              <strong>${pdv}</strong>: <span style="color: #fff; font-weight: 700;">${prob}% de chance natural</span><br>
+              <span style="font-size: 10px; color: var(--text-muted);">Vendeu ${count} cartelas (${prob}% do total da rodada)</span>
+            </div>
+          `;
+        });
+      }
+    }
+    
+    riggingSummaryContent.innerHTML = summaryHtml;
   }
 }
 

@@ -9,6 +9,7 @@ export default defineConfig({
         admin: resolve(__dirname, 'admin.html'),
         pdv: resolve(__dirname, 'pdv.html'),
         programacao: resolve(__dirname, 'programacao.html'),
+        autoatendimento: resolve(__dirname, 'autoatendimento.html'),
       },
     },
   },

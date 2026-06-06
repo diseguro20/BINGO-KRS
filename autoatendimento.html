@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BINGOKRS - Autoatendimento & Compra de Cartelas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/autoatendimento.css">
+</head>
+<body>
+
+  <div class="totem-layout">
+    
+    <!-- Topo / Branding -->
+    <header class="totem-header">
+      <div style="display: flex; align-items: center; gap: 10px; justify-content: center; width: 100%;">
+        <img src="./src/logo.png" alt="KRS BINGO" style="height: 55px; filter: drop-shadow(0 0 8px rgba(0, 243, 255, 0.35));">
+        <span class="badge">COMPRA RÁPIDA</span>
+      </div>
+    </header>
+
+    <main class="totem-main">
+      <div class="totem-card">
+        
+        <!-- ================= PASSO 1: IDENTIFICAÇÃO E QUANTIDADE ================= -->
+        <section id="step-selection" class="step-section active">
+          <h2>Adquira suas Cartelas</h2>
+          <p class="step-subtitle">Insira seus dados e escolha a quantidade para participar do próximo sorteio.</p>
+          
+          <form id="form-selection">
+            <div class="form-group" style="margin-bottom: 18px;">
+              <label for="client-phone">Celular do Cliente (para receber as cartelas):</label>
+              <input type="text" id="client-phone" class="form-control" placeholder="Ex: (11) 99999-9999" required>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 18px;">
+              <label for="client-name">Nome do Cliente (opcional):</label>
+              <input type="text" id="client-name" class="form-control" placeholder="Digite seu nome">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 24px;">
+              <label>Escolha a quantidade de cartelas:</label>
+              <div class="quick-qty-grid">
+                <button type="button" class="btn btn-qty" data-qty="1">1 Cartela</button>
+                <button type="button" class="btn btn-qty active" data-qty="3">3 Cartelas</button>
+                <button type="button" class="btn btn-qty" data-qty="5">5 Cartelas</button>
+                <button type="button" class="btn btn-qty" data-qty="10">10 Cartelas</button>
+              </div>
+              
+              <div style="margin-top: 15px; display: flex; align-items: center; gap: 15px;">
+                <label for="custom-qty" style="margin-bottom: 0; white-space: nowrap;">Outra quantidade:</label>
+                <input type="number" id="custom-qty" class="form-control" min="1" max="100" style="width: 100px; padding: 6px 10px;">
+              </div>
+            </div>
+
+            <div class="price-display-box">
+              <div style="font-size: 13px; color: var(--text-muted); text-transform: uppercase;">Valor total a pagar:</div>
+              <div class="total-value">R$ <span id="total-price-label">6,00</span></div>
+              <div style="font-size: 11px; color: var(--neon-cyan); margin-top: 4px;">Sorteio Sugerido: <strong id="suggested-game-id">--</strong></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-action" style="margin-top: 25px;">Gerar Código Pix</button>
+          </form>
+        </section>
+
+        <!-- ================= PASSO 2: PAGAMENTO SIMULADO DO PIX ================= -->
+        <section id="step-payment" class="step-section">
+          <h2>Pagamento via Pix</h2>
+          <p class="step-subtitle">Escaneie o QR Code abaixo ou copie a chave Pix para efetuar o pagamento.</p>
+          
+          <div class="pix-container">
+            <div class="qr-code-box">
+              <!-- Placeholder de QR Code usando SVG dinâmico -->
+              <svg width="200" height="200" viewBox="0 0 100 100" style="background: white; padding: 10px; border-radius: 8px;">
+                <rect x="0" y="0" width="100" height="100" fill="white" />
+                <!-- Bordas de canto do QR Code -->
+                <rect x="5" y="5" width="25" height="25" fill="black" />
+                <rect x="9" y="9" width="17" height="17" fill="white" />
+                <rect x="13" y="13" width="9" height="9" fill="black" />
+                
+                <rect x="70" y="5" width="25" height="25" fill="black" />
+                <rect x="74" y="9" width="17" height="17" fill="white" />
+                <rect x="78" y="13" width="9" height="9" fill="black" />
+                
+                <rect x="5" y="70" width="25" height="25" fill="black" />
+                <rect x="9" y="74" width="17" height="17" fill="white" />
+                <rect x="13" y="78" width="9" height="9" fill="black" />
+                
+                <!-- Dados mockados do QR Code -->
+                <rect x="35" y="15" width="15" height="5" fill="black" />
+                <rect x="40" y="30" width="20" height="8" fill="black" />
+                <rect x="15" y="45" width="35" height="10" fill="black" />
+                <rect x="55" y="45" width="25" height="25" fill="black" />
+                <rect x="35" y="60" width="10" height="30" fill="black" />
+                <rect x="50" y="80" width="45" height="10" fill="black" />
+              </svg>
+            </div>
+            
+            <div class="form-group" style="width: 100%; margin-top: 15px;">
+              <label>Pix Copia e Cola:</label>
+              <div class="copia-cola-wrapper">
+                <input type="text" id="pix-copia-cola" class="form-control" readonly value="00020101021226830014br.gov.bcb.pix0136krsbingo-auto-pix-key-placeholder5204000053039865802BR5915KRS_BINGO_LOTTO6009SAO_PAULO62070503***6304ABCD">
+                <button type="button" id="btn-copy-pix" class="btn btn-secondary">Copiar</button>
+              </div>
+            </div>
+
+            <div class="payment-status-box">
+              <div class="spinner"></div>
+              <span>Aguardando confirmação do pagamento...</span>
+            </div>
+          </div>
+
+          <div style="margin-top: 35px; border-top: 1px dashed var(--prog-border); padding-top: 25px;">
+            <div style="font-size: 11px; color: var(--neon-gold); text-align: center; margin-bottom: 10px; font-weight: bold;">
+              ⚙️ AMBIENTE DE HOMOLOGAÇÃO / TESTES:
+            </div>
+            <button type="button" id="btn-simulate-payment" class="btn btn-success" style="font-weight: bold;">
+              💰 Simular Pagamento Aprovado (Pix Pago)
+            </button>
+          </div>
+        </section>
+
+        <!-- ================= PASSO 3: RECIBO E ENTREGA DE CARTELAS ================= -->
+        <section id="step-receipt" class="step-section">
+          <div class="success-animation-header" style="text-align: center; margin-bottom: 25px;">
+            <div style="font-size: 50px; margin-bottom: 10px;">🎉</div>
+            <h2 style="color: var(--success); text-shadow: 0 0 10px rgba(0, 230, 118, 0.3);">Pagamento Confirmado!</h2>
+            <p class="step-subtitle" style="margin-top: 5px;">Suas cartelas foram geradas com sucesso para o sorteio.</p>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
+            
+            <!-- Configuração de Impressão Bluetooth opcional na entrega -->
+            <div class="print-config-totem" style="width: 100%; padding: 15px; background: rgba(255,255,255,0.02); border: 1px solid var(--prog-border); border-radius: 10px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+                <label for="select-print-mode" style="font-size: 12px; color: var(--text-muted); font-weight: bold; margin-bottom: 0;">Método de Impressão:</label>
+                <select id="select-print-mode" class="form-control" style="padding: 4px 8px; font-size: 12px; width: auto; height: auto; background: rgba(0,0,0,0.3); border: 1px solid var(--prog-border); color: #fff;">
+                  <option value="NAV">Imprimir via Navegador</option>
+                  <option value="RAWBT" selected>Imprimir via App RawBT (Moderninha)</option>
+                  <option value="BLE">Bluetooth Direto (GATT BLE)</option>
+                </select>
+              </div>
+              
+              <div style="display: flex; gap: 10px;">
+                <button type="button" id="btn-connect-printer" class="btn btn-secondary btn-mini" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                  <span id="printer-icon">📶</span> <span id="printer-status-label">Conectar Impressora</span>
+                </button>
+                <button type="button" id="btn-print-all" class="btn btn-primary" style="flex: 1.2; font-weight: bold;">🖨️ Imprimir Todas</button>
+              </div>
+            </div>
+
+            <!-- Listagem visual das cartelas geradas -->
+            <div style="width: 100%; margin-top: 15px;">
+              <h3 style="font-size: 15px; color: var(--text-main); margin-bottom: 10px; border-left: 3px solid var(--neon-cyan); padding-left: 8px;">
+                Suas Cartelas Adquiridas:
+              </h3>
+              <div id="receipt-tickets-list" style="display: flex; flex-direction: column; gap: 20px; align-items: center; width: 100%;">
+                <!-- As cartelas no formato cupom imprimível serão renderizadas aqui pelo JS -->
+              </div>
+            </div>
+
+          </div>
+
+          <button type="button" id="btn-restart-totem" class="btn btn-secondary btn-action" style="margin-top: 30px;">Comprar Mais Cartelas</button>
+        </section>
+
+      </div>
+    </main>
+
+  </div>
+
+  <script type="module" src="/src/autoatendimento-controller.js"></script>
+</body>
+</html>

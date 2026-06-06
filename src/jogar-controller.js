@@ -13,6 +13,10 @@ let ticketPrice = 2.0;
 let selectedQty = 3;
 let pollingInterval = null;
 let lastPrizeTriggered = {}; // Evita tocar áudio repetidas vezes para o mesmo prêmio
+let currentTab = 'buy';
+let lastGameIdChecked = null;
+let shownGlobalWinners = new Set();
+let hidePrizeAlertTimeout = null;
 
 // Seletores DOM - Autenticação
 const screenAuth = document.getElementById('screen-auth');
@@ -44,6 +48,23 @@ const btnTabLive = document.getElementById('btn-tab-live');
 const tabContentBuy = document.getElementById('tab-content-buy');
 const tabContentCards = document.getElementById('tab-content-cards');
 const tabContentLive = document.getElementById('tab-content-live');
+
+// Seletores DOM - Mini Preview e Alerta Global de Prêmios
+const miniPreviewAuth = document.getElementById('mini-preview-auth');
+const miniBallAuth = document.getElementById('mini-ball-auth');
+const miniBallsAuthList = document.getElementById('mini-balls-auth-list');
+const miniBallsAuthCount = document.getElementById('mini-balls-auth-count');
+
+const miniPreviewPortal = document.getElementById('mini-preview-portal');
+const miniBallPortal = document.getElementById('mini-ball-portal');
+const miniBallsPortalList = document.getElementById('mini-balls-portal-list');
+const miniBallsPortalCount = document.getElementById('mini-balls-portal-count');
+
+const livePrizeAlert = document.getElementById('live-prize-alert');
+const alertPrizeCategory = document.getElementById('alert-prize-category');
+const alertPrizeCardId = document.getElementById('alert-prize-card-id');
+const alertPrizePdv = document.getElementById('alert-prize-pdv');
+const btnClosePrizeAlert = document.getElementById('btn-close-prize-alert');
 
 // Seletores DOM - Checkout e Compra
 const formBuyTickets = document.getElementById('form-buy-tickets');
@@ -165,6 +186,8 @@ btnLogout.addEventListener('click', () => {
   screenPortal.classList.remove('active');
   screenAuth.style.display = 'flex';
   formLogin.reset();
+
+  atualizarVisibilidadeMiniPreview();
 });
 
 // ==========================================
@@ -178,6 +201,8 @@ function entrarNoPortal() {
   
   // Carrega as cartelas do jogador
   carregarCartelasDoJogador();
+
+  atualizarVisibilidadeMiniPreview();
 }
 
 async function carregarCartelasDoJogador() {
@@ -256,6 +281,7 @@ function renderizarListagemCartelasDashboard() {
 // ==========================================
 
 function switchTab(tabId) {
+  currentTab = tabId;
   [btnTabBuy, btnTabCards, btnTabLive].forEach(btn => btn.classList.remove('active'));
   [tabContentBuy, tabContentCards, tabContentLive].forEach(cont => cont.classList.remove('active'));
 
@@ -269,6 +295,8 @@ function switchTab(tabId) {
     btnTabLive.classList.add('active');
     tabContentLive.classList.add('active');
   }
+
+  atualizarVisibilidadeMiniPreview();
 }
 
 btnTabBuy.addEventListener('click', () => switchTab('buy'));
@@ -684,6 +712,190 @@ function playVictorySound() {
   }
 }
 
+// Sintetizador de alerta de vitória geral (curto e chamativo)
+function playAlertSound() {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+    notes.forEach((freq, index) => {
+      setTimeout(() => {
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+      }, index * 80);
+    });
+  } catch (e) {
+    console.warn("Audio blocked by browser policies", e);
+  }
+}
+
+// Atualiza a visibilidade do mini preview
+function atualizarVisibilidadeMiniPreview() {
+  if (!estadoJogo) return;
+
+  if (estadoJogo.status === 'PLAYING') {
+    if (!jogadorAtual) {
+      miniPreviewAuth.style.display = 'block';
+      miniPreviewPortal.style.display = 'none';
+    } else {
+      miniPreviewAuth.style.display = 'none';
+      if (currentTab !== 'live') {
+        miniPreviewPortal.style.display = 'block';
+      } else {
+        miniPreviewPortal.style.display = 'none';
+      }
+    }
+  } else {
+    miniPreviewAuth.style.display = 'none';
+    miniPreviewPortal.style.display = 'none';
+  }
+}
+
+// Atualiza o conteúdo do mini preview com dezenas recentes
+function atualizarConteudoMiniPreview(bolasSorteadas) {
+  const count = bolasSorteadas.length;
+  const ultimaBola = count > 0 ? bolasSorteadas[count - 1] : null;
+
+  // 1. Auth Mini Preview
+  if (miniBallAuth) {
+    miniBallAuth.innerText = ultimaBola ? ultimaBola.toString().padStart(2, '0') : '--';
+    if (ultimaBola) {
+      miniBallAuth.style.animation = 'none';
+      void miniBallAuth.offsetWidth;
+      miniBallAuth.style.animation = 'bounceBall 0.4s ease-out forwards';
+    }
+  }
+  if (miniBallsAuthCount) {
+    miniBallsAuthCount.innerText = count;
+  }
+  if (miniBallsAuthList) {
+    miniBallsAuthList.innerHTML = '';
+    // Últimas 5 dezenas (antes da última bola principal)
+    const recentes = bolasSorteadas.slice(-6, -1);
+    recentes.forEach(b => {
+      const ballEl = document.createElement('div');
+      ballEl.className = 'mini-ball-small';
+      ballEl.innerText = b.toString().padStart(2, '0');
+      miniBallsAuthList.appendChild(ballEl);
+    });
+  }
+
+  // 2. Portal Mini Preview
+  if (miniBallPortal) {
+    miniBallPortal.innerText = ultimaBola ? ultimaBola.toString().padStart(2, '0') : '--';
+    if (ultimaBola) {
+      miniBallPortal.style.animation = 'none';
+      void miniBallPortal.offsetWidth;
+      miniBallPortal.style.animation = 'bounceBall 0.4s ease-out forwards';
+    }
+  }
+  if (miniBallsPortalCount) {
+    miniBallsPortalCount.innerText = count;
+  }
+  if (miniBallsPortalList) {
+    miniBallsPortalList.innerHTML = '';
+    // Últimas 3 dezenas (antes da última bola principal)
+    const recentes = bolasSorteadas.slice(-4, -1);
+    recentes.forEach(b => {
+      const ballEl = document.createElement('div');
+      ballEl.className = 'mini-ball-small';
+      ballEl.innerText = b.toString().padStart(2, '0');
+      miniBallsPortalList.appendChild(ballEl);
+    });
+  }
+}
+
+// Monitora se há novos vencedores no jogo para exibir alerta gigante
+function verificarGanhadoresGerais() {
+  if (!estadoJogo) return;
+  const activeGameId = estadoJogo.gameId || 'default';
+
+  // Se iniciou/mudou de rodada, limpa o set de alertas exibidos
+  if (activeGameId !== lastGameIdChecked) {
+    lastGameIdChecked = activeGameId;
+    shownGlobalWinners.clear();
+  }
+
+  const winners = estadoJogo.winners;
+  if (!winners) return;
+
+  const categorias = ['acumulado', 'bingo', 'quina', 'quadra'];
+  let novoGanhadorDetectado = false;
+  let novoGanhadorInfo = null;
+
+  for (const cat of categorias) {
+    const listWinners = winners[cat] || [];
+    for (const w of listWinners) {
+      const winKey = `${activeGameId}_${cat}_${w.cardId}`;
+      if (!shownGlobalWinners.has(winKey)) {
+        shownGlobalWinners.add(winKey);
+
+        if (!novoGanhadorDetectado) {
+          novoGanhadorDetectado = true;
+          novoGanhadorInfo = {
+            categoria: cat,
+            cardId: w.cardId,
+            pdv: w.pdv || 'Online'
+          };
+        }
+      }
+    }
+  }
+
+  if (novoGanhadorDetectado && novoGanhadorInfo) {
+    exibirAlertaGanhadorGeral(novoGanhadorInfo.categoria, novoGanhadorInfo.cardId, novoGanhadorInfo.pdv);
+  }
+}
+
+// Exibe o overlay gigante de vitória geral
+function exibirAlertaGanhadorGeral(categoria, cardId, pdv) {
+  if (!livePrizeAlert) return;
+
+  alertPrizeCategory.innerText = categoria.toUpperCase();
+  alertPrizeCardId.innerText = `#${cardId}`;
+  alertPrizePdv.innerText = `PDV: ${pdv}`;
+
+  if (categoria === 'acumulado' || categoria === 'bingo') {
+    alertPrizeCategory.style.borderColor = 'var(--neon-gold)';
+    alertPrizeCategory.style.color = 'var(--neon-gold)';
+    alertPrizeCategory.style.textShadow = '0 0 5px var(--neon-gold)';
+  } else {
+    alertPrizeCategory.style.borderColor = 'var(--neon-pink)';
+    alertPrizeCategory.style.color = 'var(--neon-pink)';
+    alertPrizeCategory.style.textShadow = '0 0 5px var(--neon-pink)';
+  }
+
+  livePrizeAlert.classList.add('active');
+  playAlertSound();
+
+  if (hidePrizeAlertTimeout) {
+    clearTimeout(hidePrizeAlertTimeout);
+  }
+  hidePrizeAlertTimeout = setTimeout(() => {
+    livePrizeAlert.classList.remove('active');
+  }, 4000);
+}
+
+// Fechamento manual do popup geral
+if (btnClosePrizeAlert) {
+  btnClosePrizeAlert.addEventListener('click', () => {
+    if (livePrizeAlert) {
+      livePrizeAlert.classList.remove('active');
+    }
+    if (hidePrizeAlertTimeout) {
+      clearTimeout(hidePrizeAlertTimeout);
+      hidePrizeAlertTimeout = null;
+    }
+  });
+}
+
 // ==========================================
 // 6. INICIALIZAÇÃO DO CONTROLLER
 // ==========================================
@@ -764,4 +976,11 @@ FirebaseHelper.assinarEstadoJogo((gameData) => {
 
   // 6. Verificar se o jogador atual é vencedor
   verificarGanhadoresJogador();
+
+  // 7. Atualizar visibilidade e conteúdo das mini telas de sorteio ao vivo
+  atualizarVisibilidadeMiniPreview();
+  atualizarConteudoMiniPreview(bolasSorteadas);
+
+  // 8. Monitorar se há ganhadores gerais no jogo
+  verificarGanhadoresGerais();
 });

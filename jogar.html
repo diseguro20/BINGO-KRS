@@ -74,6 +74,29 @@
       </div>
     </div>
 
+    <!-- MINI PREVIEW DE SORTEIO (AO VIVO PARA LEADS) -->
+    <div id="mini-preview-auth" class="auth-card mini-preview-card" style="display: none; border-color: var(--neon-cyan); box-shadow: 0 0 20px rgba(0, 243, 255, 0.15); max-width: 350px;">
+      <h3 style="text-align: center; margin-top: 0; color: var(--neon-cyan); font-size: 15px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <span class="spinner" style="width: 12px; height: 12px; border-width: 1px;"></span> Sorteio ao Vivo
+      </h3>
+      <p style="text-align: center; font-size: 11px; margin-bottom: 15px; color: var(--text-muted);">Acompanhe o sorteio em andamento agora!</p>
+      
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+        <div id="mini-ball-auth" class="live-ball-sphere" style="width: 75px; height: 75px; font-size: 32px;">--</div>
+        
+        <div style="width: 100%; text-align: center;">
+          <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Últimas Bolas:</div>
+          <div id="mini-balls-auth-list" style="display: flex; justify-content: center; gap: 6px; min-height: 30px;">
+            <!-- Células geradas dinamicamente -->
+          </div>
+        </div>
+        
+        <div style="width: 100%; border-top: 1px solid var(--prog-border); padding-top: 12px; text-align: center; font-size: 12px;">
+          Bolas Sorteadas: <strong id="mini-balls-auth-count" style="color: var(--neon-cyan);">0</strong>/90
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ================= PORTAL DO JOGADOR LOGADO ================= -->
@@ -98,6 +121,24 @@
       </div>
       <div style="text-align: right;">
         <span id="badge-game-status" class="game-status-badge waiting">Aguardando</span>
+      </div>
+    </div>
+
+    <!-- MINI PREVIEW PORTAL (LOBBY AO VIVO) -->
+    <div id="mini-preview-portal" class="player-card" style="display: none; border-color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0, 243, 255, 0.1); margin-bottom: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+          <div id="mini-ball-portal" class="live-ball-sphere" style="width: 50px; height: 50px; font-size: 20px; text-shadow: 0 0 5px #00f3ff; box-shadow: 0 0 10px rgba(0,243,255,0.4);">--</div>
+          <div>
+            <span style="font-size: 11px; color: var(--neon-cyan); font-weight: bold;">🔴 SORTEIO EM ANDAMENTO</span>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+              Bolas: <strong id="mini-balls-portal-count" style="color: #fff;">0</strong>/90
+            </div>
+          </div>
+        </div>
+        <div id="mini-balls-portal-list" style="display: flex; gap: 4px;">
+          <!-- 3 dezenas recentes -->
+        </div>
       </div>
     </div>
 
@@ -239,6 +280,25 @@
       </p>
       
       <button id="btn-close-celebration" class="btn btn-primary" style="margin-top: 15px; padding: 8px 25px;">Fechar e Voltar</button>
+    </div>
+  </div>
+
+  <!-- ================= ALERTA GRANDE DE GANHADORES DO SORTEIO ================= -->
+  <div id="live-prize-alert" class="celebration-overlay" style="z-index: 20005;">
+    <div class="celebration-card" style="border-color: var(--neon-pink); box-shadow: 0 0 35px rgba(255, 0, 127, 0.4);">
+      <div style="font-size: 50px; animation: bounceBall 0.5s infinite alternate;">🔥</div>
+      <h2 class="celebration-title" style="color: var(--neon-pink); text-shadow: 0 0 12px rgba(255, 0, 127, 0.5); font-size: 26px;">GANHADOR DA RODADA!</h2>
+      <p class="celebration-subtitle">Acabam de bater um prêmio no sorteio ao vivo!</p>
+      
+      <div id="alert-prize-category" class="celebration-badge" style="background: rgba(255, 0, 127, 0.1); border-color: var(--neon-pink); color: var(--neon-pink); text-shadow: 0 0 5px var(--neon-pink); font-size: 16px; padding: 10px 20px;">BINGO</div>
+      
+      <div style="font-size: 15px; color: #fff; font-weight: bold; margin: 10px 0;">
+        Cartela Vencedora: <strong id="alert-prize-card-id" style="font-size: 22px; color: var(--neon-gold);">#---</strong>
+      </div>
+      
+      <div id="alert-prize-pdv" style="font-size: 13px; color: var(--text-muted); font-weight: bold;">PDV: ---</div>
+      
+      <button id="btn-close-prize-alert" class="btn btn-secondary" style="margin-top: 15px; padding: 6px 20px; font-size: 12px;">Fechar Alerta</button>
     </div>
   </div>
 

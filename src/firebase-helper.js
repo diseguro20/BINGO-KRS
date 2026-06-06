@@ -150,6 +150,77 @@ export const FirebaseHelper = {
   },
 
   /**
+   * Cadastra um novo operador de PDV exigindo a autorização de um operador ou administrador existente
+   */
+  async cadastrarOperadorComAutorizacao(emailNovo, passwordNovo, pdvNome, operadorName, emailAutorizador, passwordAutorizador) {
+    if (isFirebaseConfigured && auth && db) {
+      // 1. Tenta autenticar o autorizador em segundo plano
+      try {
+        const userCredAuth = await signInWithEmailAndPassword(auth, emailAutorizador.trim(), passwordAutorizador);
+        const docRef = doc(db, "operadores", userCredAuth.user.uid);
+        const userDoc = await getDoc(docRef);
+        if (!userDoc.exists()) {
+          throw new Error("Perfil do autorizador não encontrado.");
+        }
+        const profileAuth = userDoc.data();
+        if (profileAuth.tipo !== 'operador' && profileAuth.tipo !== 'admin') {
+          throw new Error("Apenas operadores ativos ou administradores podem autorizar.");
+        }
+        
+        // Desloga o autorizador para limpar a sessão temporária
+        await signOut(auth);
+      } catch (err) {
+        throw new Error("Autorização falhou: E-mail ou senha do autorizador incorretos ou permissão insuficiente.");
+      }
+
+      // 2. Autorização confirmada, cria o novo operador e faz login
+      const userCredential = await createUserWithEmailAndPassword(auth, emailNovo.trim(), passwordNovo);
+      const profile = {
+        uid: userCredential.user.uid,
+        email: emailNovo.trim(),
+        nome: operadorName,
+        pdvNome: pdvNome.trim(),
+        tipo: "operador"
+      };
+      
+      await setDoc(doc(db, "operadores", userCredential.user.uid), profile);
+      return { user: userCredential.user, profile };
+    } else {
+      // MODO SIMULADO
+      const saved = localStorage.getItem('bingokrs_operadores') || '[]';
+      const operadores = JSON.parse(saved);
+      
+      // Procura o autorizador
+      const autorizador = operadores.find(o => o.email === emailAutorizador.trim() && o.password === passwordAutorizador);
+      const isAdminSimulado = (emailAutorizador.trim() === "admin@bingo.com" && passwordAutorizador === "admin123");
+      
+      if (!autorizador && !isAdminSimulado) {
+        throw new Error("Autorização falhou: Apenas um operador ou admin cadastrado no sistema pode autorizar a criação.");
+      }
+
+      if (operadores.some(o => o.email === emailNovo.trim())) {
+        throw new Error("E-mail do novo operador já cadastrado.");
+      }
+      
+      const profile = {
+        uid: "user-" + Date.now(),
+        email: emailNovo.trim(),
+        password: passwordNovo,
+        nome: operadorName,
+        pdvNome: pdvNome.trim(),
+        tipo: "operador"
+      };
+      
+      operadores.push(profile);
+      localStorage.setItem('bingokrs_operadores', JSON.stringify(operadores));
+      // Loga automaticamente
+      localStorage.setItem('bingokrs_sessao_atual', JSON.stringify(profile));
+      localChannel.postMessage({ type: 'AUTH_CHANGED' });
+      return { user: { uid: profile.uid, email: emailNovo.trim() }, profile };
+    }
+  },
+
+  /**
    * Encerra a sessão
    */
   async logout() {

@@ -28,6 +28,10 @@ const btnLoginSubmit = document.getElementById('btn-login-submit');
 const btnToggleLoginMode = document.getElementById('btn-toggle-login-mode');
 const toggleText = document.getElementById('toggle-text');
 
+const loginGroupAuth = document.getElementById('login-group-auth');
+const inputAuthEmail = document.getElementById('login-auth-email');
+const inputAuthPassword = document.getElementById('login-auth-password');
+
 // Elementos do DOM - Caixa PDV
 const inputPdvName = document.getElementById('select-pdv-name');
 const pdvNameStatus = document.getElementById('pdv-name-status');
@@ -88,8 +92,11 @@ btnToggleLoginMode.addEventListener('click', (e) => {
     loginSubtitle.innerText = 'Cadastre sua conta de operador de caixa e dê nome ao seu estabelecimento.';
     loginGroupPdv.style.display = 'block';
     loginGroupName.style.display = 'block';
+    loginGroupAuth.style.display = 'block';
     inputLoginPdvName.required = true;
     inputLoginOperatorName.required = true;
+    inputAuthEmail.required = true;
+    inputAuthPassword.required = true;
     btnLoginSubmit.innerText = 'Cadastrar e Entrar';
     toggleText.innerText = 'Já possui conta?';
     btnToggleLoginMode.innerText = 'Acessar Caixa';
@@ -99,8 +106,11 @@ btnToggleLoginMode.addEventListener('click', (e) => {
     loginSubtitle.innerText = 'Faça login com seu operador ou registre seu novo estabelecimento.';
     loginGroupPdv.style.display = 'none';
     loginGroupName.style.display = 'none';
+    loginGroupAuth.style.display = 'none';
     inputLoginPdvName.required = false;
     inputLoginOperatorName.required = false;
+    inputAuthEmail.required = false;
+    inputAuthPassword.required = false;
     btnLoginSubmit.innerText = 'Entrar no Caixa';
     toggleText.innerText = 'Novo estabelecimento?';
     btnToggleLoginMode.innerText = 'Cadastrar Novo PDV';
@@ -123,10 +133,12 @@ formLogin.addEventListener('submit', async (e) => {
     } else {
       const pdvName = inputLoginPdvName.value.trim();
       const opName = inputLoginOperatorName.value.trim();
-      if (!pdvName || !opName) {
-        throw new Error("Preencha todos os campos do cadastro.");
+      const authEmail = inputAuthEmail.value.trim();
+      const authPassword = inputAuthPassword.value;
+      if (!pdvName || !opName || !authEmail || !authPassword) {
+        throw new Error("Preencha todos os campos do cadastro e autorização.");
       }
-      await FirebaseHelper.cadastrarOperador(email, password, pdvName, opName);
+      await FirebaseHelper.cadastrarOperadorComAutorizacao(email, password, pdvName, opName, authEmail, authPassword);
     }
   } catch (error) {
     loginErrorMsg.innerText = error.message || "Erro desconhecido na autenticação.";

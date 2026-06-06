@@ -408,23 +408,32 @@ export function processarEstadoJogo(estado) {
     if (estado.status === "PLAYING") {
       // BINGO/KENO: 15 acertos (restam 0)
       if (card.numbersRemaining === 0) {
-        adicionarVencedor(estado, 'bingo', card.id, card.pdv, ordem);
-        // Se fechou até a bola configurada, ganha Acumulado
-        const limiteAcumulado = estado.acumuladoLimiteBola !== undefined ? estado.acumuladoLimiteBola : 44;
-        if (ordem <= limiteAcumulado) {
-          adicionarVencedor(estado, 'acumulado', card.id, card.pdv, ordem);
+        const podeGanharBingo = estado.winners.bingo.length === 0 || estado.winners.bingo.some(w => w.ordemSorteio === ordem);
+        if (podeGanharBingo) {
+          adicionarVencedor(estado, 'bingo', card.id, card.pdv, ordem);
+          // Se fechou até a bola configurada, ganha Acumulado
+          const limiteAcumulado = estado.acumuladoLimiteBola !== undefined ? estado.acumuladoLimiteBola : 44;
+          if (ordem <= limiteAcumulado) {
+            adicionarVencedor(estado, 'acumulado', card.id, card.pdv, ordem);
+          }
+          alguemBateuBingo = true;
         }
-        alguemBateuBingo = true;
       }
       
       // QUINA: 5 acertos
       if (card.drawnCount >= 5) {
-        adicionarVencedor(estado, 'quina', card.id, card.pdv, ordem);
+        const podeGanharQuina = estado.winners.quina.length === 0 || estado.winners.quina.some(w => w.ordemSorteio === ordem);
+        if (podeGanharQuina) {
+          adicionarVencedor(estado, 'quina', card.id, card.pdv, ordem);
+        }
       }
       
       // QUADRA: 4 acertos
       if (card.drawnCount >= 4) {
-        adicionarVencedor(estado, 'quadra', card.id, card.pdv, ordem);
+        const podeGanharQuadra = estado.winners.quadra.length === 0 || estado.winners.quadra.some(w => w.ordemSorteio === ordem);
+        if (podeGanharQuadra) {
+          adicionarVencedor(estado, 'quadra', card.id, card.pdv, ordem);
+        }
       }
     }
   });

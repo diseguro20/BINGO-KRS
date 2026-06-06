@@ -263,6 +263,15 @@ function renderizarApp(estado) {
   
   if (estado.status === 'WAITING') {
     atualizarContagemRegressivaLocal();
+  } else if (estado.status === 'ENDED') {
+    if (panelHeaderCentered) {
+      panelHeaderCentered.innerText = "RODADA ENCERRADA";
+      panelHeaderCentered.style.color = "var(--neon-pink)";
+    }
+    currentBallNum.innerText = 'BINGO';
+    currentBallNum.style.fontSize = '34px';
+    giantBall.className = 'giant-ball-3d ball-color-6';
+    ultimoNumeroRenderizado = null;
   } else {
     // Restaura o cabeçalho original
     if (panelHeaderCentered) {

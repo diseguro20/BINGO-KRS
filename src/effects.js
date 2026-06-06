@@ -58,27 +58,27 @@ export function launchFireworks(durationMs = 10000) {
 
   function createExplosion(x, y) {
     const color = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
-    const particleCount = 60 + Math.floor(Math.random() * 40);
+    const particleCount = 20 + Math.floor(Math.random() * 15);
     for (let i = 0; i < particleCount; i++) {
       const angle = (Math.PI * 2 / particleCount) * i;
-      const speed = Math.random() * 6 + 2;
+      const speed = Math.random() * 5 + 1.5;
       particles.push(new Particle(
         x, y, color,
         { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
-        0.05,
-        0.008 + Math.random() * 0.012
+        0.04,
+        0.012 + Math.random() * 0.015
       ));
     }
     // Inner ring with different color
     const color2 = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
-    for (let i = 0; i < 20; i++) {
-      const angle = (Math.PI * 2 / 20) * i;
-      const speed = Math.random() * 3 + 1;
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI * 2 / 6) * i;
+      const speed = Math.random() * 2.5 + 0.8;
       particles.push(new Particle(
         x, y, color2,
         { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
-        0.04,
-        0.01 + Math.random() * 0.008
+        0.03,
+        0.015 + Math.random() * 0.01
       ));
     }
   }

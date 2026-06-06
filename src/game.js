@@ -439,7 +439,7 @@ export function processarEstadoJogo(estado) {
   });
 
   // Encerra a rodada imediatamente quando o último prêmio (BINGO) for conquistado
-  if (alguemBateuBingo) {
+  if (alguemBateuBingo || (estado.winners && estado.winners.bingo && estado.winners.bingo.length > 0)) {
     estado.status = "ENDED";
   }
 

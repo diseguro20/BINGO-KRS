@@ -768,7 +768,7 @@ async function atualizarPainelDirecionamento() {
                     const probNum = (item.weight / totalWeight) * 100;
                     const prob = probNum.toFixed(1);
                     
-                    let estimatedBingo = Math.max(50, Math.round(item.faturamento * 0.25));
+                    let estimatedBingo = 50 + Math.round(item.faturamento * 2.0);
                     estimatedBingo = Math.min(1500, estimatedBingo);
                     
                     detailsHtml += `
@@ -796,7 +796,7 @@ async function atualizarPainelDirecionamento() {
             const valVenda = `R$ ${valVendaNum.toFixed(2).replace('.', ',')}`;
             
             if (valVendaNum > 0) {
-              let estimatedBingo = Math.max(50, Math.round(valVendaNum * 0.25));
+              let estimatedBingo = 50 + Math.round(valVendaNum * 2.0);
               estimatedBingo = Math.min(1500, estimatedBingo);
               
               detailsHtml += `
@@ -823,7 +823,7 @@ async function atualizarPainelDirecionamento() {
         }
 
         // Se lockedBar já existia, o prêmio do Bingo exibido no cabeçalho do resumo é o real pago
-        const headerBingoPrize = lockedBar ? valBingo : (round.forcedPdvWinner === "INTELIGENTE" ? valBingo : (valVendaNum > 0 ? Math.min(1500, Math.max(50, Math.round(valVendaNum * 0.25))) : valBingo));
+        const headerBingoPrize = lockedBar ? valBingo : (round.forcedPdvWinner === "INTELIGENTE" ? valBingo : (valVendaNum > 0 ? Math.min(1500, 50 + Math.round(valVendaNum * 2.0)) : valBingo));
 
         summaryHtml += `
           <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 193, 7, 0.15); border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
@@ -908,7 +908,7 @@ function exibirEstatisticasAgenteInteligente(cartelasRodada) {
       const valVenda = `R$ ${item.faturamento.toFixed(2).replace('.', ',')}`;
       if (item.weight > 0) {
         const prob = ((item.weight / totalWeight) * 100).toFixed(1);
-        let estimatedBingo = Math.max(50, Math.round(item.faturamento * 0.25));
+        let estimatedBingo = 50 + Math.round(item.faturamento * 2.0);
         estimatedBingo = Math.min(1500, estimatedBingo);
         statsHtml += `• <strong>${item.pdv}</strong>: <span style="color: var(--neon-gold); font-weight: bold;">${prob}%</span> <span style="font-size: 9px; color: var(--text-muted);">(Vendas: ${valVenda} | Prêmio Bingo: R$ ${estimatedBingo.toFixed(2).replace('.', ',')})</span><br>`;
       } else {

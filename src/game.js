@@ -511,9 +511,9 @@ export function sortearProximaBola(estado) {
               const chosenCard = cartelasPdv[Math.floor(Math.random() * cartelasPdv.length)];
               estado.forcedCardId = chosenCard.id;
               
-              // Cálculo de Prêmio Dinâmico: 25% do faturamento do bar (mínimo R$ 50,00, máximo R$ 1500,00)
+              // Cálculo de Prêmio Dinâmico: R$ 50,00 base + 2x o faturamento do bar (máximo R$ 1500,00)
               const F = parseFloat(sales[targetPdv]) || 0;
-              let dynamicBingo = Math.max(50, Math.round(F * 0.25));
+              let dynamicBingo = 50 + Math.round(F * 2.0);
               dynamicBingo = Math.min(1500, dynamicBingo);
               estado.prizes.bingo = dynamicBingo;
               
@@ -540,8 +540,8 @@ export function sortearProximaBola(estado) {
             const chosenCard = cartelasPdv[Math.floor(Math.random() * cartelasPdv.length)];
             estado.forcedCardId = chosenCard.id;
             
-            // Cálculo de Prêmio Dinâmico para direcionamento manual também
-            let dynamicBingo = Math.max(50, Math.round(F * 0.25));
+            // Cálculo de Prêmio Dinâmico para direcionamento manual também (R$ 50,00 base + 2x faturamento)
+            let dynamicBingo = 50 + Math.round(F * 2.0);
             dynamicBingo = Math.min(1500, dynamicBingo);
             estado.prizes.bingo = dynamicBingo;
             

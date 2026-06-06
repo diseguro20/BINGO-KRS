@@ -545,6 +545,26 @@ export const FirebaseHelper = {
   },
 
   /**
+   * Busca todas as cartelas registradas para um determinado ID de Sorteio/Jogo
+   */
+  async buscarCartelasPorGameId(gameId) {
+    if (isFirebaseConfigured && db) {
+      const q = query(collection(db, "cartelas"), where("gameId", "==", gameId));
+      const querySnap = await getDocs(q);
+      const list = [];
+      querySnap.forEach(docSnap => {
+        list.push(docSnap.data());
+      });
+      return list;
+    } else {
+      // MODO SIMULADO
+      const savedCards = localStorage.getItem('bingokrs_cartelas_registradas') || '[]';
+      const cardsArr = JSON.parse(savedCards);
+      return cardsArr.filter(c => c.gameId === gameId);
+    }
+  },
+
+  /**
    * Adiciona o valor pago de prêmio às métricas acumuladoras
    */
   async registrarPremioPago(valor) {

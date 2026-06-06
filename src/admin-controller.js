@@ -52,6 +52,7 @@ const riggingFields = document.getElementById('rigging-fields');
 const selectAdminForcedPdv = document.getElementById('select-admin-forced-pdv');
 const selectAdminRiggingProb = document.getElementById('select-admin-rigging-prob');
 const btnSaveAdminRigging = document.getElementById('btn-save-admin-rigging');
+const selectAdminRiggingRound = document.getElementById('select-admin-rigging-round');
 
 // Elementos de Agendamento da Rodada
 const btnCancelCountdown = document.getElementById('btn-cancel-countdown');
@@ -186,48 +187,7 @@ function renderizarAdmin(novoEstado) {
   nextCardsValue.innerText = estado.nextCards ? estado.nextCards.length : 0;
 
   // 4.5. Atualiza Painel de Direcionamento de Prêmio (Rigging)
-  if (cardsCount === 0) {
-    if (riggingFields) riggingFields.style.display = 'none';
-    if (riggingStatusMsg) {
-      riggingStatusMsg.style.display = 'block';
-      riggingStatusMsg.innerHTML = '⚠️ Para direcionar o prêmio, os clientes precisam comprar cartelas nesta rodada primeiro. Aguardando venda...';
-    }
-  } else {
-    if (riggingStatusMsg) riggingStatusMsg.style.display = 'none';
-    if (riggingFields) riggingFields.style.display = 'flex';
-    
-    // Lista os PDVs únicos das cartelas vendidas na rodada ativa
-    const pdvsComCartelas = [...new Set(estado.cards.map(c => c.pdv))];
-    
-    // Salva o valor atualmente selecionado pelo usuário para não perder a digitação ao renderizar
-    const currentSelected = selectAdminForcedPdv.value || estado.forcedPdvWinner || 'NENHUM';
-    
-    // Limpa e repopula o select
-    selectAdminForcedPdv.innerHTML = '<option value="NENHUM">NENHUM (Sorteio 100% Aleatório)</option>';
-    pdvsComCartelas.forEach(pdvName => {
-      const option = document.createElement('option');
-      option.value = pdvName;
-      option.innerText = pdvName;
-      selectAdminForcedPdv.appendChild(option);
-    });
-    
-    // Tenta re-selecionar o valor anterior ou o estado do banco
-    if (document.activeElement !== selectAdminForcedPdv) {
-      if (pdvsComCartelas.includes(estado.forcedPdvWinner)) {
-        selectAdminForcedPdv.value = estado.forcedPdvWinner;
-      } else {
-        selectAdminForcedPdv.value = 'NENHUM';
-      }
-    } else {
-      if (pdvsComCartelas.includes(currentSelected) || currentSelected === 'NENHUM') {
-        selectAdminForcedPdv.value = currentSelected;
-      }
-    }
-    
-    if (document.activeElement !== selectAdminRiggingProb) {
-      selectAdminRiggingProb.value = (estado.forcedRiggingProbability || 75).toString();
-    }
-  }
+  atualizarPainelDirecionamento();
 
   // 5. Ganhadores
   winnersContainer.innerHTML = '';
@@ -442,10 +402,11 @@ btnSavePanel.addEventListener('click', () => {
   alert("Mensagem da TV atualizada com sucesso!");
 });
 
-// Salvar Direcionamento de Prêmio (Rigging) no Sorteio Ativo
+// Salvar Direcionamento de Prêmio (Rigging) no Sorteio Selecionado (Ativo ou Fila)
 btnSaveAdminRigging.addEventListener('click', async () => {
   if (!estado) return;
   
+  const targetRoundId = selectAdminRiggingRound.value || "ATIVO";
   const selectedPdv = selectAdminForcedPdv.value;
   const riggingProb = parseInt(selectAdminRiggingProb.value) || 75;
   
@@ -453,11 +414,28 @@ btnSaveAdminRigging.addEventListener('click', async () => {
   btnSaveAdminRigging.innerText = 'Salvando...';
   
   try {
-    estado.forcedPdvWinner = selectedPdv;
-    estado.forcedRiggingProbability = riggingProb;
+    if (targetRoundId === "ATIVO") {
+      // Sorteio Ativo
+      estado.forcedPdvWinner = selectedPdv;
+      estado.forcedRiggingProbability = riggingProb;
+    } else {
+      // Rodada Agendada na Fila
+      if (estado.rodadasQueue) {
+        const roundIdx = estado.rodadasQueue.findIndex(r => r.gameId === targetRoundId);
+        if (roundIdx !== -1) {
+          estado.rodadasQueue[roundIdx].forcedPdvWinner = selectedPdv;
+          estado.rodadasQueue[roundIdx].forcedRiggingProbability = riggingProb;
+        } else {
+          throw new Error("Rodada agendada não encontrada na fila.");
+        }
+      }
+    }
     
     await FirebaseHelper.salvarEstadoJogo(estado);
-    alert(`Sucesso! O prêmio principal agora está direcionado para o PDV: ${selectedPdv} (Força: ${riggingProb}%).`);
+    alert(`Sucesso! O prêmio do sorteio ${targetRoundId === "ATIVO" ? estado.gameId : targetRoundId} agora está direcionado para o PDV: ${selectedPdv} (Força: ${riggingProb}%).`);
+    
+    // Recarrega o painel assincronamente
+    await atualizarPainelDirecionamento();
   } catch (err) {
     alert("Erro ao salvar direcionamento: " + err.message);
   } finally {
@@ -465,6 +443,107 @@ btnSaveAdminRigging.addEventListener('click', async () => {
     btnSaveAdminRigging.innerText = 'Aplicar Direcionamento';
   }
 });
+
+// Listener para atualizar o painel assim que o administrador seleciona outra rodada da lista
+if (selectAdminRiggingRound) {
+  selectAdminRiggingRound.addEventListener('change', () => {
+    atualizarPainelDirecionamento();
+  });
+}
+
+// Função assíncrona para atualizar o painel de direcionamento com base na rodada selecionada
+async function atualizarPainelDirecionamento() {
+  if (!estado || !selectAdminRiggingRound) return;
+  
+  // 1. Popula o dropdown de rodadas se o usuário não estiver mexendo nele no momento
+  if (document.activeElement !== selectAdminRiggingRound) {
+    const previousVal = selectAdminRiggingRound.value || "ATIVO";
+    
+    let optionsHtml = `<option value="ATIVO">Sorteio Ativo (${estado.gameId})</option>`;
+    if (estado.rodadasQueue) {
+      estado.rodadasQueue.forEach(r => {
+        if (r.status !== 'FINISHED' && r.gameId !== estado.gameId) {
+          const infoTime = r.startTime ? ` - ${r.startDate || ''} às ${r.startTime}` : ' - Manual';
+          optionsHtml += `<option value="${r.gameId}">Sorteio Agendado: ${r.gameId}${infoTime}</option>`;
+        }
+      });
+    }
+    selectAdminRiggingRound.innerHTML = optionsHtml;
+    
+    // Tenta manter a seleção anterior se ela ainda existir na fila
+    const exists = Array.from(selectAdminRiggingRound.options).some(opt => opt.value === previousVal);
+    selectAdminRiggingRound.value = exists ? previousVal : "ATIVO";
+  }
+  
+  const targetRoundId = selectAdminRiggingRound.value || "ATIVO";
+  const roundGameId = targetRoundId === "ATIVO" ? estado.gameId : targetRoundId;
+  
+  // 2. Busca as cartelas vendidas para esta rodada específica (Banco ou LocalStorage)
+  let cartelasRodada = [];
+  try {
+    cartelasRodada = await FirebaseHelper.buscarCartelasPorGameId(roundGameId);
+  } catch (err) {
+    console.error("Erro ao buscar cartelas para direcionamento:", err);
+  }
+  
+  // 3. Atualiza visibilidade com base no número de cartelas vendidas
+  const cardsCount = cartelasRodada.length;
+  if (cardsCount === 0) {
+    if (riggingFields) riggingFields.style.display = 'none';
+    if (riggingStatusMsg) {
+      riggingStatusMsg.style.display = 'block';
+      riggingStatusMsg.innerHTML = `⚠️ Nenhuma cartela vendida para o sorteio <strong>${roundGameId}</strong> ainda. O direcionamento só é liberado após os clientes comprarem cartelas.`;
+    }
+  } else {
+    if (riggingStatusMsg) riggingStatusMsg.style.display = 'none';
+    if (riggingFields) riggingFields.style.display = 'flex';
+    
+    // Lista os PDVs únicos das cartelas vendidas nesta rodada específica
+    const pdvsComCartelas = [...new Set(cartelasRodada.map(c => c.pdv))];
+    
+    // Determina qual é a configuração atual no banco
+    let currentForcedPdv = "NENHUM";
+    let currentRiggingProb = 75;
+    
+    if (targetRoundId === "ATIVO") {
+      currentForcedPdv = estado.forcedPdvWinner || "NENHUM";
+      currentRiggingProb = estado.forcedRiggingProbability || 75;
+    } else {
+      const roundObj = estado.rodadasQueue ? estado.rodadasQueue.find(r => r.gameId === targetRoundId) : null;
+      if (roundObj) {
+        currentForcedPdv = roundObj.forcedPdvWinner || "NENHUM";
+        currentRiggingProb = roundObj.forcedRiggingProbability || 75;
+      }
+    }
+    
+    const selectedPdvValue = selectAdminForcedPdv.value || currentForcedPdv;
+    
+    // Repopula o select de PDVs
+    selectAdminForcedPdv.innerHTML = '<option value="NENHUM">NENHUM (Sorteio 100% Aleatório)</option>';
+    pdvsComCartelas.forEach(pdvName => {
+      const option = document.createElement('option');
+      option.value = pdvName;
+      option.innerText = pdvName;
+      selectAdminForcedPdv.appendChild(option);
+    });
+    
+    if (document.activeElement !== selectAdminForcedPdv) {
+      if (pdvsComCartelas.includes(currentForcedPdv)) {
+        selectAdminForcedPdv.value = currentForcedPdv;
+      } else {
+        selectAdminForcedPdv.value = 'NENHUM';
+      }
+    } else {
+      if (pdvsComCartelas.includes(selectedPdvValue) || selectedPdvValue === 'NENHUM') {
+        selectAdminForcedPdv.value = selectedPdvValue;
+      }
+    }
+    
+    if (document.activeElement !== selectAdminRiggingProb) {
+      selectAdminRiggingProb.value = currentRiggingProb.toString();
+    }
+  }
+}
 
 // Ações no seletor de painel inferior para agilizar preenchimento de teste
 selectBottomPanel.addEventListener('change', (e) => {

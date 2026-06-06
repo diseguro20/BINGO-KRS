@@ -570,14 +570,38 @@
           </div>
           
           <div id="rigging-fields" style="display: none; flex-direction: column; gap: 15px;">
-            <div class="form-group">
+            
+            <!-- Modo de Direcionamento -->
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 13px; color: var(--text-main); margin-bottom: 6px; display: block; font-weight: bold;">Modo de Direcionamento:</label>
+              <select id="select-admin-rigging-mode" class="form-control" style="padding: 10px 15px; font-size: 14px; background: rgba(0,0,0,0.4); border: 1px solid var(--admin-border); color: #fff;">
+                <option value="MANUAL" selected>Manual (Definir PDV Fixo)</option>
+                <option value="INTELIGENTE">Prioritário Inteligente (Agente de Métricas de Vendas)</option>
+              </select>
+            </div>
+
+            <!-- Seleção de PDV (apenas manual) -->
+            <div class="form-group" id="group-admin-forced-pdv" style="margin-bottom: 0;">
               <label style="font-size: 13px; color: var(--text-main); margin-bottom: 6px; display: block; font-weight: bold;">Selecione o PDV/Bar Alvo:</label>
               <select id="select-admin-forced-pdv" class="form-control" style="padding: 10px 15px; font-size: 14px;">
                 <!-- Preenchido via JS -->
               </select>
             </div>
+
+            <!-- Informações do Agente Inteligente (apenas inteligente) -->
+            <div id="rigging-agent-box" style="display: none; padding: 15px; background: rgba(0, 243, 255, 0.05); border: 1px solid var(--primary); border-radius: 8px; margin-bottom: 0;">
+              <h4 style="margin-top: 0; margin-bottom: 8px; color: var(--primary); font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                🤖 Agente de Direcionamento Ativo
+              </h4>
+              <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4; margin-bottom: 10px;">
+                O agente analisará o faturamento diário dos bares e distribuirá os prêmios proporcionalmente ao volume de vendas.
+              </p>
+              <div id="rigging-agent-stats" style="font-size: 11px; color: #fff; line-height: 1.5; font-family: monospace;">
+                <!-- Estatísticas das probabilidades calculadas pelo agente -->
+              </div>
+            </div>
             
-            <div class="form-group">
+            <div class="form-group" style="margin-bottom: 0;">
               <label style="font-size: 13px; color: var(--text-main); margin-bottom: 6px; display: block; font-weight: bold;">Força da Manipulação:</label>
               <select id="select-admin-rigging-prob" class="form-control" style="padding: 10px 15px; font-size: 14px;">
                 <option value="50">50% (Levemente inclinado)</option>

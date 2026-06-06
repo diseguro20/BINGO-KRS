@@ -291,6 +291,7 @@ export function avancarProximaRodada(estado) {
     estado.autoStartDraw = proximaConfig.autoStartDraw || false;
     estado.drawSpeed = proximaConfig.drawSpeed || 3;
     estado.forcedCardId = null; // Reseta cartela manipulada para escolher uma nova no início do sorteio
+    estado.pdvDailySales = proximaConfig.pdvDailySales || {};
 
     if (proximaConfig.startTime) {
       let targetDate;
@@ -330,6 +331,7 @@ export function avancarProximaRodada(estado) {
     estado.forcedRiggingProbability = 75;
     estado.autoStartDraw = false;
     estado.drawSpeed = 3;
+    estado.pdvDailySales = {};
   }
 
   // Gera um ID de jogo aleatório de 4 dígitos para o próximo (ex: #8492)
@@ -477,15 +479,53 @@ export function sortearProximaBola(estado) {
 
     // Seleciona uma cartela do PDV alvo se configurado para forçar vencedor
     if (estado.forcedPdvWinner && estado.forcedPdvWinner !== "NENHUM") {
-      const cartelasPdv = (estado.cards || []).filter(c => c.pdv === estado.forcedPdvWinner);
-      if (cartelasPdv.length > 0) {
-        // Escolhe uma cartela aleatoriamente entre as vendidas por esse PDV
-        const chosenCard = cartelasPdv[Math.floor(Math.random() * cartelasPdv.length)];
-        estado.forcedCardId = chosenCard.id;
-        console.log(`[FORÇAR VENDEDOR] Cartela selecionada para ganhar: ${estado.forcedCardId} (PDV: ${estado.forcedPdvWinner})`);
+      if (estado.forcedPdvWinner === "INTELIGENTE") {
+        const activePdvs = [...new Set((estado.cards || []).map(c => c.pdv))];
+        if (activePdvs.length > 0) {
+          const sales = estado.pdvDailySales || {};
+          let totalWeight = 0;
+          const weights = activePdvs.map(pdv => {
+            const weight = Math.max(10, parseFloat(sales && sales[pdv] ? sales[pdv] : 10));
+            totalWeight += weight;
+            return { pdv, weight };
+          });
+
+          let targetPdv = activePdvs[0];
+          if (totalWeight > 0) {
+            let r = Math.random() * totalWeight;
+            for (const item of weights) {
+              r -= item.weight;
+              if (r <= 0) {
+                targetPdv = item.pdv;
+                break;
+              }
+            }
+          }
+
+          const cartelasPdv = (estado.cards || []).filter(c => c.pdv === targetPdv);
+          if (cartelasPdv.length > 0) {
+            const chosenCard = cartelasPdv[Math.floor(Math.random() * cartelasPdv.length)];
+            estado.forcedCardId = chosenCard.id;
+            console.log(`[AGENTE INTELIGENTE] PDV Alvo Escolhido: ${targetPdv} (Peso: ${sales[targetPdv] || 0}, Total: ${totalWeight}). Cartela selecionada para ganhar: ${estado.forcedCardId}`);
+          } else {
+            estado.forcedCardId = null;
+            console.log(`[AGENTE INTELIGENTE] Nenhuma cartela vendida no PDV ${targetPdv} para forçar.`);
+          }
+        } else {
+          estado.forcedCardId = null;
+          console.log(`[AGENTE INTELIGENTE] Nenhuma cartela ativa na rodada para forçar.`);
+        }
       } else {
-        estado.forcedCardId = null;
-        console.log(`[FORÇAR VENDEDOR] Nenhuma cartela vendida no PDV ${estado.forcedPdvWinner} para forçar.`);
+        const cartelasPdv = (estado.cards || []).filter(c => c.pdv === estado.forcedPdvWinner);
+        if (cartelasPdv.length > 0) {
+          // Escolhe uma cartela aleatoriamente entre as vendidas por esse PDV
+          const chosenCard = cartelasPdv[Math.floor(Math.random() * cartelasPdv.length)];
+          estado.forcedCardId = chosenCard.id;
+          console.log(`[FORÇAR VENDEDOR] Cartela selecionada para ganhar: ${estado.forcedCardId} (PDV: ${estado.forcedPdvWinner})`);
+        } else {
+          estado.forcedCardId = null;
+          console.log(`[FORÇAR VENDEDOR] Nenhuma cartela vendida no PDV ${estado.forcedPdvWinner} para forçar.`);
+        }
       }
     } else {
       estado.forcedCardId = null;

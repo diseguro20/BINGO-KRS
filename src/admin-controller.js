@@ -53,6 +53,12 @@ const selectAdminForcedPdv = document.getElementById('select-admin-forced-pdv');
 const selectAdminRiggingProb = document.getElementById('select-admin-rigging-prob');
 const btnSaveAdminRigging = document.getElementById('btn-save-admin-rigging');
 const selectAdminRiggingRound = document.getElementById('select-admin-rigging-round');
+const selectAdminRiggingMode = document.getElementById('select-admin-rigging-mode');
+const groupAdminForcedPdv = document.getElementById('group-admin-forced-pdv');
+const riggingAgentBox = document.getElementById('rigging-agent-box');
+const riggingAgentStats = document.getElementById('rigging-agent-stats');
+
+let ultimoMetricas = null;
 
 // Elementos de Agendamento da Rodada
 const btnCancelCountdown = document.getElementById('btn-cancel-countdown');
@@ -306,6 +312,10 @@ btnDrawBall.addEventListener('click', () => {
     return;
   }
   
+  if (estado.status === 'WAITING' && ultimoMetricas && ultimoMetricas.rankingPdvs) {
+    estado.pdvDailySales = ultimoMetricas.rankingPdvs;
+  }
+  
   estado = sortearProximaBola(estado);
   FirebaseHelper.salvarEstadoJogo(estado);
 });
@@ -323,6 +333,9 @@ btnAutoDraw.addEventListener('click', () => {
   
   // Se ainda estiver aguardando, inicia o jogo na primeira bola
   if (estado.status === 'WAITING') {
+    if (ultimoMetricas && ultimoMetricas.rankingPdvs) {
+      estado.pdvDailySales = ultimoMetricas.rankingPdvs;
+    }
     estado = sortearProximaBola(estado);
     FirebaseHelper.salvarEstadoJogo(estado);
   }
@@ -451,7 +464,8 @@ btnSaveAdminRigging.addEventListener('click', async () => {
   if (!estado) return;
   
   const targetRoundId = selectAdminRiggingRound.value || "ATIVO";
-  const selectedPdv = selectAdminForcedPdv.value;
+  const mode = selectAdminRiggingMode ? selectAdminRiggingMode.value : 'MANUAL';
+  const selectedPdv = mode === 'INTELIGENTE' ? 'INTELIGENTE' : selectAdminForcedPdv.value;
   const riggingProb = parseInt(selectAdminRiggingProb.value) || 75;
   
   btnSaveAdminRigging.disabled = true;
@@ -462,6 +476,9 @@ btnSaveAdminRigging.addEventListener('click', async () => {
       // Sorteio Ativo
       estado.forcedPdvWinner = selectedPdv;
       estado.forcedRiggingProbability = riggingProb;
+      if (ultimoMetricas && ultimoMetricas.rankingPdvs) {
+        estado.pdvDailySales = ultimoMetricas.rankingPdvs;
+      }
     } else {
       // Rodada Agendada na Fila
       if (estado.rodadasQueue) {
@@ -469,6 +486,9 @@ btnSaveAdminRigging.addEventListener('click', async () => {
         if (roundIdx !== -1) {
           estado.rodadasQueue[roundIdx].forcedPdvWinner = selectedPdv;
           estado.rodadasQueue[roundIdx].forcedRiggingProbability = riggingProb;
+          if (ultimoMetricas && ultimoMetricas.rankingPdvs) {
+            estado.rodadasQueue[roundIdx].pdvDailySales = ultimoMetricas.rankingPdvs;
+          }
         } else {
           throw new Error("Rodada agendada não encontrada na fila.");
         }
@@ -476,7 +496,7 @@ btnSaveAdminRigging.addEventListener('click', async () => {
     }
     
     await FirebaseHelper.salvarEstadoJogo(estado);
-    alert(`Sucesso! O prêmio do sorteio ${targetRoundId === "ATIVO" ? estado.gameId : targetRoundId} agora está direcionado para o PDV: ${selectedPdv} (Força: ${riggingProb}%).`);
+    alert(`Sucesso! O prêmio do sorteio ${targetRoundId === "ATIVO" ? estado.gameId : targetRoundId} agora está configurado no modo: ${mode === 'INTELIGENTE' ? 'Prioritário Inteligente' : selectedPdv} (Força: ${riggingProb}%).`);
     
     // Recarrega o painel assincronamente
     await atualizarPainelDirecionamento();
@@ -586,7 +606,76 @@ async function atualizarPainelDirecionamento() {
     if (document.activeElement !== selectAdminRiggingProb) {
       selectAdminRiggingProb.value = currentRiggingProb.toString();
     }
+
+    // Sincroniza o modo de direcionamento na tela
+    if (selectAdminRiggingMode && document.activeElement !== selectAdminRiggingMode) {
+      selectAdminRiggingMode.value = currentForcedPdv === 'INTELIGENTE' ? 'INTELIGENTE' : 'MANUAL';
+    }
+
+    const mode = selectAdminRiggingMode ? selectAdminRiggingMode.value : 'MANUAL';
+    if (mode === 'INTELIGENTE') {
+      if (groupAdminForcedPdv) groupAdminForcedPdv.style.display = 'none';
+      if (riggingAgentBox) riggingAgentBox.style.display = 'block';
+      exibirEstatisticasAgenteInteligente(cartelasRodada);
+    } else {
+      if (groupAdminForcedPdv) groupAdminForcedPdv.style.display = 'block';
+      if (riggingAgentBox) riggingAgentBox.style.display = 'none';
+    }
   }
+}
+
+// Alternância manual de modo de direcionamento
+if (selectAdminRiggingMode) {
+  selectAdminRiggingMode.addEventListener('change', () => {
+    const mode = selectAdminRiggingMode.value;
+    if (mode === 'INTELIGENTE') {
+      if (groupAdminForcedPdv) groupAdminForcedPdv.style.display = 'none';
+      if (riggingAgentBox) riggingAgentBox.style.display = 'block';
+      
+      // Busca cartelas da rodada selecionada para exibir as probabilidades atualizadas
+      const targetRoundId = selectAdminRiggingRound.value || "ATIVO";
+      const roundGameId = targetRoundId === "ATIVO" ? estado.gameId : targetRoundId;
+      FirebaseHelper.buscarCartelasPorGameId(roundGameId).then(cards => {
+        exibirEstatisticasAgenteInteligente(cards);
+      }).catch(() => {
+        exibirEstatisticasAgenteInteligente([]);
+      });
+    } else {
+      if (groupAdminForcedPdv) groupAdminForcedPdv.style.display = 'block';
+      if (riggingAgentBox) riggingAgentBox.style.display = 'none';
+    }
+  });
+}
+
+// Exibe estatísticas das probabilidades do agente inteligente
+function exibirEstatisticasAgenteInteligente(cartelasRodada) {
+  if (!riggingAgentStats) return;
+  
+  const cards = cartelasRodada || [];
+  const activePdvs = [...new Set(cards.map(c => c.pdv))];
+  
+  if (activePdvs.length === 0) {
+    riggingAgentStats.innerHTML = `<span style="color: var(--text-muted);">Nenhuma cartela ativa na rodada.</span>`;
+    return;
+  }
+  
+  // Utiliza as vendas salvas no estado ou no último snapshot de métricas
+  const sales = (estado && estado.pdvDailySales) ? estado.pdvDailySales : (ultimoMetricas ? ultimoMetricas.rankingPdvs : {});
+  let totalWeight = 0;
+  const weights = activePdvs.map(pdv => {
+    const weight = Math.max(10, parseFloat(sales && sales[pdv] ? sales[pdv] : 10));
+    totalWeight += weight;
+    return { pdv, weight };
+  });
+  
+  let statsHtml = '<div style="margin-bottom: 4px; color: var(--neon-cyan);">Probabilidades Ponderadas:</div>';
+  weights.forEach(item => {
+    const prob = ((item.weight / totalWeight) * 100).toFixed(1);
+    const valVenda = sales && sales[item.pdv] ? `R$ ${parseFloat(sales[item.pdv]).toFixed(2).replace('.', ',')}` : 'R$ 0,00';
+    statsHtml += `• <strong>${item.pdv}</strong>: <span style="color: var(--neon-gold); font-weight: bold;">${prob}%</span> <span style="font-size: 9px; color: var(--text-muted);">(Vendas: ${valVenda})</span><br>`;
+  });
+  
+  riggingAgentStats.innerHTML = statsHtml;
 }
 
 // Ações no seletor de painel inferior para agilizar preenchimento de teste
@@ -728,6 +817,7 @@ FirebaseHelper.assinarAutenticacao((user, profile) => {
 // ==========================================
 FirebaseHelper.assinarMetricasFinanceiras((metricas) => {
   if (!metricas) return;
+  ultimoMetricas = metricas;
 
   const faturamento = metricas.totalFaturamento || 0;
   const premiosPagos = metricas.totalPremiosPagos || 0;
@@ -823,6 +913,11 @@ FirebaseHelper.assinarMetricasFinanceiras((metricas) => {
       metFinancialHealth.innerText = 'CRÍTICO (Prejuízo)';
       metFinancialHealth.style.color = 'var(--danger)';
     }
+
+    // Atualiza estatísticas do prioritário inteligente em tempo real se o modo estiver ativo
+    if (selectAdminRiggingMode && selectAdminRiggingMode.value === 'INTELIGENTE') {
+      atualizarPainelDirecionamento();
+    }
   }
 });
 
@@ -917,6 +1012,9 @@ setInterval(() => {
       }
       
       // Inicia rodada
+      if (ultimoMetricas && ultimoMetricas.rankingPdvs) {
+        estado.pdvDailySales = ultimoMetricas.rankingPdvs;
+      }
       estado = sortearProximaBola(estado);
       FirebaseHelper.salvarEstadoJogo(estado);
 

@@ -38,6 +38,12 @@ export function criarEstadoInicial() {
     forcedPdvWinner: "NENHUM", // PDV alvo para ganhar o prêmio principal
     forcedCardId: null, // Cartela específica selecionada para ganhar
     forcedRiggingProbability: 100, // Probabilidade de manipulação (0 a 100)
+    forcedPrizes: {
+      quadra: false,
+      quina: false,
+      bingo: true
+    },
+    acumuladoLimiteBola: 44, // Limite de bolas para ganhar o acumulado
     autoStartDraw: false, // Iniciar sorteio automático ao fim da contagem
     drawSpeed: 3, // Velocidade do auto sorteio em segundos
     prizes: {
@@ -288,6 +294,8 @@ export function avancarProximaRodada(estado) {
     estado.schedulingMode = proximaConfig.schedulingMode || "MANUAL";
     estado.forcedPdvWinner = proximaConfig.forcedPdvWinner || "NENHUM";
     estado.forcedRiggingProbability = proximaConfig.forcedRiggingProbability !== undefined ? proximaConfig.forcedRiggingProbability : 100;
+    estado.forcedPrizes = proximaConfig.forcedPrizes || { quadra: false, quina: false, bingo: true };
+    estado.acumuladoLimiteBola = proximaConfig.acumuladoLimiteBola !== undefined ? proximaConfig.acumuladoLimiteBola : 44;
     estado.autoStartDraw = proximaConfig.autoStartDraw || false;
     estado.drawSpeed = proximaConfig.drawSpeed || 3;
     estado.forcedCardId = null; // Reseta cartela manipulada para escolher uma nova no início do sorteio
@@ -329,6 +337,8 @@ export function avancarProximaRodada(estado) {
     estado.forcedPdvWinner = "NENHUM";
     estado.forcedCardId = null;
     estado.forcedRiggingProbability = 100;
+    estado.forcedPrizes = { quadra: false, quina: false, bingo: true };
+    estado.acumuladoLimiteBola = 44;
     estado.autoStartDraw = false;
     estado.drawSpeed = 3;
     estado.pdvDailySales = {};
@@ -399,8 +409,9 @@ export function processarEstadoJogo(estado) {
       // BINGO/KENO: 15 acertos (restam 0)
       if (card.numbersRemaining === 0) {
         adicionarVencedor(estado, 'bingo', card.id, card.pdv, ordem);
-        // Se fechou até a bola 44, ganha Acumulado
-        if (ordem <= ACUMULADO_LIMITE_ORDEM) {
+        // Se fechou até a bola configurada, ganha Acumulado
+        const limiteAcumulado = estado.acumuladoLimiteBola !== undefined ? estado.acumuladoLimiteBola : 44;
+        if (ordem <= limiteAcumulado) {
           adicionarVencedor(estado, 'acumulado', card.id, card.pdv, ordem);
         }
         alguemBateuBingo = true;
@@ -569,9 +580,34 @@ export function sortearProximaBola(estado) {
   // Se houver uma cartela marcada para vencer, aplica a probabilidade de manipulação
   if (estado.forcedCardId) {
     const forcedCard = (estado.cards || []).find(c => c.id === estado.forcedCardId);
-    // Apenas manipula quando a Quina já foi ganha naturalmente, garantindo que o bar alvo ganhe APENAS o prêmio principal do Bingo
-    const jogarSomenteBingo = estado.winners && estado.winners.quina && estado.winners.quina.length > 0;
-    if (forcedCard && forcedCard.numbersRemaining > 0 && jogarSomenteBingo) {
+    
+    // Determinando se deve manipular com base nos prêmios selecionados
+    const forcedPrizes = estado.forcedPrizes || { quadra: false, quina: false, bingo: true };
+    const n_drawn = forcedCard ? forcedCard.drawnCount : 0;
+    let deveManipular = false;
+
+    if (forcedCard && forcedCard.numbersRemaining > 0) {
+      if (n_drawn < 4) {
+        // Estágio da Quadra
+        if (forcedPrizes.quadra) {
+          deveManipular = true;
+        }
+      } else if (n_drawn < 5) {
+        // Estágio da Quina
+        const quadraResolvida = forcedPrizes.quadra || (estado.winners && estado.winners.quadra && estado.winners.quadra.length > 0);
+        if (quadraResolvida && forcedPrizes.quina) {
+          deveManipular = true;
+        }
+      } else if (n_drawn < 15) {
+        // Estágio do Bingo
+        const quinaResolvida = forcedPrizes.quina || (estado.winners && estado.winners.quina && estado.winners.quina.length > 0);
+        if (quinaResolvida && forcedPrizes.bingo) {
+          deveManipular = true;
+        }
+      }
+    }
+
+    if (forcedCard && deveManipular) {
       const prob = estado.forcedRiggingProbability !== undefined ? estado.forcedRiggingProbability : 100;
       const roll = Math.random() * 100;
       if (roll <= prob) {

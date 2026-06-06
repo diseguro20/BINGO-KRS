@@ -17,6 +17,7 @@ const inputQuadra = document.getElementById('input-quadra');
 const inputQuina = document.getElementById('input-quina');
 const inputBingo = document.getElementById('input-bingo');
 const inputAcumulado = document.getElementById('input-acumulado');
+const inputAcumuladoLimit = document.getElementById('input-acumulado-limit');
 const selectCountdown = document.getElementById('input-countdown');
 const inputStartDate = document.getElementById('input-start-date');
 const inputStartTime = document.getElementById('input-start-time');
@@ -198,6 +199,7 @@ function renderizarFila() {
       <div>Quina: R$ ${rodada.prizes.quina.toFixed(2)}</div>
       <div>Bingo: R$ ${rodada.prizes.bingo.toFixed(2)}</div>
       <div>Acumulado: R$ ${rodada.prizes.acumulado.toFixed(2)}</div>
+      <div style="font-size: 11px; color: var(--neon-gold);">Limite Acumulado: ${rodada.acumuladoLimiteBola !== undefined ? rodada.acumuladoLimiteBola : 44} bolas</div>
       <div style="font-size: 11px; color: var(--text-muted);">Preço Cupom: R$ ${rodada.prizes.cupom.toFixed(2)}</div>
     `;
 
@@ -368,7 +370,8 @@ formScheduler.addEventListener('submit', (e) => {
       drawSpeed: parseInt(selectDrawSpeed.value) || 3,
       autoStartDraw: inputAutoStart.checked,
       forcedPdvWinner: forcedPdvValue,
-      forcedRiggingProbability: parseInt(selectRiggingProb.value) || 100
+      forcedRiggingProbability: parseInt(selectRiggingProb.value) || 100,
+      acumuladoLimiteBola: parseInt(inputAcumuladoLimit.value) || 44
     };
 
     // Adiciona na fila
@@ -567,7 +570,8 @@ btnIaGenerateDay.addEventListener('click', async () => {
           drawSpeed: parseInt(selectDrawSpeed.value) || 3,
           autoStartDraw: inputAutoStart.checked,
           forcedPdvWinner: 'NENHUM',
-          forcedRiggingProbability: 100
+          forcedRiggingProbability: 100,
+          acumuladoLimiteBola: parseInt(inputAcumuladoLimit.value) || 44
         };
 
         estado.rodadasQueue.push(novaRodada);

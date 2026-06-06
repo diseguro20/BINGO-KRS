@@ -304,6 +304,11 @@
           </div>
         </div>
 
+        <div class="form-group">
+          <label for="input-val-acumulado-limit">Limite de Bolas para ganhar o Acumulado:</label>
+          <input type="number" id="input-val-acumulado-limit" class="form-control" value="44" min="15" max="90">
+        </div>
+
         <button id="btn-save-settings" class="btn btn-info">Atualizar Prêmios na TV</button>
 
         <hr class="divider">
@@ -599,6 +604,26 @@
               <div id="rigging-agent-stats" style="font-size: 11px; color: #fff; line-height: 1.5; font-family: monospace;">
                 <!-- Estatísticas das probabilidades calculadas pelo agente -->
               </div>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 13px; color: var(--text-main); margin-bottom: 6px; display: block; font-weight: bold;">Prêmios a Entregar no Direcionamento:</label>
+              <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 5px; padding: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--admin-border); border-radius: 8px;">
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; color: #fff;">
+                  <input type="checkbox" id="checkbox-rigging-quadra" style="cursor: pointer; width: 16px; height: 16px;"> Quadra
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; color: #fff;">
+                  <input type="checkbox" id="checkbox-rigging-quina" style="cursor: pointer; width: 16px; height: 16px;"> Quina
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; color: #fff;">
+                  <input type="checkbox" id="checkbox-rigging-bingo" checked style="cursor: pointer; width: 16px; height: 16px;"> Bingo
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 13px; color: var(--text-main); margin-bottom: 6px; display: block; font-weight: bold;">Limite de Bolas do Acumulado para esta Rodada:</label>
+              <input type="number" id="input-rigging-acumulado-limit" class="form-control" value="44" min="15" max="90" style="padding: 10px 15px; font-size: 14px;">
             </div>
             
             <div class="form-group" style="margin-bottom: 0;">

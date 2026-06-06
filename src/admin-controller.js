@@ -38,6 +38,7 @@ const inputValQuadra = document.getElementById('input-val-quadra');
 const inputValQuina = document.getElementById('input-val-quina');
 const inputValBingo = document.getElementById('input-val-bingo');
 const inputValAcumulado = document.getElementById('input-val-acumulado');
+const inputValAcumuladoLimit = document.getElementById('input-val-acumulado-limit');
 const btnSaveSettings = document.getElementById('btn-save-settings');
 
 // Ganhadores
@@ -59,6 +60,10 @@ const riggingAgentBox = document.getElementById('rigging-agent-box');
 const riggingAgentStats = document.getElementById('rigging-agent-stats');
 const riggingGeneralSummaryBox = document.getElementById('rigging-general-summary-box');
 const riggingSummaryContent = document.getElementById('rigging-summary-content');
+const checkboxRiggingQuadra = document.getElementById('checkbox-rigging-quadra');
+const checkboxRiggingQuina = document.getElementById('checkbox-rigging-quina');
+const checkboxRiggingBingo = document.getElementById('checkbox-rigging-bingo');
+const inputRiggingAcumuladoLimit = document.getElementById('input-rigging-acumulado-limit');
 
 let ultimoMetricas = null;
 
@@ -221,6 +226,7 @@ function renderizarAdmin(novoEstado) {
     if (document.activeElement !== inputValQuina) inputValQuina.value = estado.prizes.quina;
     if (document.activeElement !== inputValBingo) inputValBingo.value = estado.prizes.bingo;
     if (document.activeElement !== inputValAcumulado) inputValAcumulado.value = estado.prizes.acumulado;
+    if (document.activeElement !== inputValAcumuladoLimit) inputValAcumuladoLimit.value = estado.acumuladoLimiteBola !== undefined ? estado.acumuladoLimiteBola : 44;
 
     if (document.activeElement !== selectBottomPanel) selectBottomPanel.value = estado.bottomPanelSettings.type;
     if (document.activeElement !== inputPanelTitle) inputPanelTitle.value = estado.bottomPanelSettings.title;
@@ -443,6 +449,7 @@ btnSaveSettings.addEventListener('click', () => {
   estado.prizes.quina = parseFloat(inputValQuina.value) || 100.0;
   estado.prizes.bingo = parseFloat(inputValBingo.value) || 250.0;
   estado.prizes.acumulado = parseFloat(inputValAcumulado.value) || 1000.0;
+  estado.acumuladoLimiteBola = parseInt(inputValAcumuladoLimit.value) || 44;
 
   // Processa para recalcular estados caso o jogo esteja ativo
   estado = processarEstadoJogo(estado);
@@ -469,6 +476,10 @@ btnSaveAdminRigging.addEventListener('click', async () => {
   const mode = selectAdminRiggingMode ? selectAdminRiggingMode.value : 'MANUAL';
   const selectedPdv = mode === 'INTELIGENTE' ? 'INTELIGENTE' : selectAdminForcedPdv.value;
   const riggingProb = parseInt(selectAdminRiggingProb.value) || 75;
+  const forceQuadra = checkboxRiggingQuadra.checked;
+  const forceQuina = checkboxRiggingQuina.checked;
+  const forceBingo = checkboxRiggingBingo.checked;
+  const riggingAcumuladoLimit = parseInt(inputRiggingAcumuladoLimit.value) || 44;
   
   btnSaveAdminRigging.disabled = true;
   btnSaveAdminRigging.innerText = 'Salvando...';
@@ -478,6 +489,8 @@ btnSaveAdminRigging.addEventListener('click', async () => {
       // Sorteio Ativo
       estado.forcedPdvWinner = selectedPdv;
       estado.forcedRiggingProbability = riggingProb;
+      estado.forcedPrizes = { quadra: forceQuadra, quina: forceQuina, bingo: forceBingo };
+      estado.acumuladoLimiteBola = riggingAcumuladoLimit;
       if (ultimoMetricas && ultimoMetricas.rankingPdvs) {
         estado.pdvDailySales = ultimoMetricas.rankingPdvs;
       }
@@ -488,6 +501,8 @@ btnSaveAdminRigging.addEventListener('click', async () => {
         if (roundIdx !== -1) {
           estado.rodadasQueue[roundIdx].forcedPdvWinner = selectedPdv;
           estado.rodadasQueue[roundIdx].forcedRiggingProbability = riggingProb;
+          estado.rodadasQueue[roundIdx].forcedPrizes = { quadra: forceQuadra, quina: forceQuina, bingo: forceBingo };
+          estado.rodadasQueue[roundIdx].acumuladoLimiteBola = riggingAcumuladoLimit;
           if (ultimoMetricas && ultimoMetricas.rankingPdvs) {
             estado.rodadasQueue[roundIdx].pdvDailySales = ultimoMetricas.rankingPdvs;
           }
@@ -558,15 +573,21 @@ async function atualizarPainelDirecionamento() {
   // Determina qual é a configuração atual no banco
   let currentForcedPdv = "NENHUM";
   let currentRiggingProb = 100;
+  let currentForcedPrizes = { quadra: false, quina: false, bingo: true };
+  let currentAcumuladoLimit = 44;
   
   if (targetRoundId === "ATIVO") {
     currentForcedPdv = estado.forcedPdvWinner || "NENHUM";
     currentRiggingProb = estado.forcedRiggingProbability || 100;
+    currentForcedPrizes = estado.forcedPrizes || { quadra: false, quina: false, bingo: true };
+    currentAcumuladoLimit = estado.acumuladoLimiteBola !== undefined ? estado.acumuladoLimiteBola : 44;
   } else {
     const roundObj = estado.rodadasQueue ? estado.rodadasQueue.find(r => r.gameId === targetRoundId) : null;
     if (roundObj) {
       currentForcedPdv = roundObj.forcedPdvWinner || "NENHUM";
       currentRiggingProb = roundObj.forcedRiggingProbability || 100;
+      currentForcedPrizes = roundObj.forcedPrizes || { quadra: false, quina: false, bingo: true };
+      currentAcumuladoLimit = roundObj.acumuladoLimiteBola !== undefined ? roundObj.acumuladoLimiteBola : 44;
     }
   }
 
@@ -641,6 +662,10 @@ async function atualizarPainelDirecionamento() {
     if (document.activeElement !== selectAdminRiggingProb) {
       selectAdminRiggingProb.value = currentRiggingProb.toString();
     }
+    if (checkboxRiggingQuadra && document.activeElement !== checkboxRiggingQuadra) checkboxRiggingQuadra.checked = currentForcedPrizes.quadra;
+    if (checkboxRiggingQuina && document.activeElement !== checkboxRiggingQuina) checkboxRiggingQuina.checked = currentForcedPrizes.quina;
+    if (checkboxRiggingBingo && document.activeElement !== checkboxRiggingBingo) checkboxRiggingBingo.checked = currentForcedPrizes.bingo;
+    if (inputRiggingAcumuladoLimit && document.activeElement !== inputRiggingAcumuladoLimit) inputRiggingAcumuladoLimit.value = currentAcumuladoLimit;
 
     // Sincroniza o modo de direcionamento na tela
     if (selectAdminRiggingMode && document.activeElement !== selectAdminRiggingMode) {
@@ -731,15 +756,21 @@ async function atualizarPainelDirecionamento() {
           if (targetCard) lockedBar = targetCard.pdv;
         }
 
+        const prizesForced = round.forcedPrizes || { quadra: false, quina: false, bingo: true };
+        const forcedNames = Object.entries(prizesForced).filter(([_, v]) => v).map(([k]) => k.toUpperCase());
+        const naturalNames = Object.entries(prizesForced).filter(([_, v]) => !v).map(([k]) => k.toUpperCase());
+        const estBola = round.acumuladoLimiteBola !== undefined ? round.acumuladoLimiteBola : 44;
+
         if (lockedBar) {
           detailsHtml += `
             <div style="margin-top: 5px; padding: 10px; background: rgba(0, 243, 255, 0.05); border: 1px solid var(--primary); border-radius: 6px; font-size: 11px;">
-              <span style="color: var(--neon-cyan); font-weight: bold; font-size: 12px;">🏆 Bar Vencedor do Bingo (Na Certeza):</span><br>
+              <span style="color: var(--neon-cyan); font-weight: bold; font-size: 12px;">🏆 Bar Vencedor (Na Certeza):</span><br>
               <strong style="font-size: 13px; color: var(--neon-gold);">${lockedBar}</strong><br>
-              <div style="margin-top: 6px; font-weight: bold; color: #fff;">Valores Certeiros a Receber:</div>
+              <div style="margin-top: 6px; font-weight: bold; color: #fff;">Valores a Receber se Sorteado:</div>
+              • Prêmios Direcionados: <span style="color: var(--neon-gold); font-weight: bold;">${forcedNames.join(' + ')}</span><br>
               • Bingo: <span style="color: var(--success); font-weight: bold;">R$ ${valBingo.toFixed(2).replace('.', ',')}</span><br>
-              • Acumulado: <span style="color: var(--success); font-weight: bold;">R$ ${valAcumulado.toFixed(2).replace('.', ',')}</span> <span style="font-size: 9px; color: var(--text-muted);">(se bater até a bola 44)</span><br>
-              <span style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 4px;">* Quadra e Quina são entregues naturalmente para outros bares participantes.</span>
+              • Acumulado: <span style="color: var(--success); font-weight: bold;">R$ ${valAcumulado.toFixed(2).replace('.', ',')}</span> <span style="font-size: 9px; color: var(--text-muted);">(se bater até a bola ${estBola})</span><br>
+              ${naturalNames.length > 0 ? `<span style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 4px;">* ${naturalNames.join(' e ')} são entregues naturalmente para outros bares participantes.</span>` : ''}
             </div>
           `;
         } else {
@@ -775,6 +806,7 @@ async function atualizarPainelDirecionamento() {
                       <div style="margin-top: 5px; padding-left: 8px; border-left: 2px solid var(--neon-gold); font-size: 11px; margin-bottom: 6px;">
                         • <strong>${item.pdv}</strong>: <span style="color: var(--neon-gold); font-weight: bold;">${prob}% de chance de vitória</span><br>
                         &nbsp;&nbsp;↳ Se sorteado, recebe na certeza: <span style="color: var(--success); font-weight: bold;">R$ ${estimatedBingo.toFixed(2).replace('.', ',')}</span> <span style="color: var(--text-muted); font-size: 9.5px;">(Prêmio do Bingo dinâmico)</span><br>
+                        &nbsp;&nbsp;↳ Prêmios Direcionados: <span style="color: var(--primary); font-weight: bold;">${forcedNames.join(' + ')}</span><br>
                         &nbsp;&nbsp;↳ Desempenho Geral (Vendas na Plataforma): <span style="color: var(--neon-cyan); font-weight: bold;">${valVenda}</span>
                       </div>
                     `;
@@ -801,12 +833,14 @@ async function atualizarPainelDirecionamento() {
               
               detailsHtml += `
                 <div style="margin-top: 5px; padding: 10px; background: rgba(255, 193, 7, 0.05); border: 1px solid var(--warning); border-radius: 6px; font-size: 11px;">
-                  <span style="color: var(--warning); font-weight: bold; font-size: 12px;">🎯 Bar Vencedor do Bingo (Na Certeza):</span><br>
+                  <span style="color: var(--warning); font-weight: bold; font-size: 12px;">🎯 Bar Vencedor (Na Certeza):</span><br>
                   <strong style="font-size: 13px; color: var(--neon-gold);">${round.forcedPdvWinner}</strong><br>
                   <div style="margin-top: 6px; font-weight: bold; color: #fff;">Valores Certeiros a Receber:</div>
-                  • Bingo: <span style="color: var(--success); font-weight: bold;">R$ ${estimatedBingo.toFixed(2).replace('.', ',')}</span> <span style="color: var(--text-muted); font-size: 9.5px;">(Prêmio do Bingo dinâmico)</span><br>
-                  • Acumulado: <span style="color: var(--success); font-weight: bold;">R$ ${valAcumulado.toFixed(2).replace('.', ',')}</span> <span style="font-size: 9px; color: var(--text-muted);">(se bater até a bola 44)</span><br>
+                  • Prêmios Direcionados: <span style="color: var(--neon-gold); font-weight: bold;">${forcedNames.join(' + ')}</span><br>
+                  • Bingo: <span style="color: var(--success); font-weight: bold;">R$ ${estimatedBingo.toFixed(2).replace('.', ',')}</span><br>
+                  • Acumulado: <span style="color: var(--success); font-weight: bold;">R$ ${valAcumulado.toFixed(2).replace('.', ',')}</span> <span style="font-size: 9px; color: var(--text-muted);">(se bater até a bola ${estBola})</span><br>
                   &nbsp;&nbsp;↳ Desempenho Geral (Vendas na Plataforma): <span style="color: var(--neon-cyan); font-weight: bold;">${valVenda}</span>
+                  ${naturalNames.length > 0 ? `<span style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 4px;">* ${naturalNames.join(' e ')} são entregues naturalmente para outros bares participantes.</span>` : ''}
                 </div>
               `;
             } else {
@@ -824,6 +858,7 @@ async function atualizarPainelDirecionamento() {
 
         // Se lockedBar já existia, o prêmio do Bingo exibido no cabeçalho do resumo é o real pago
         const headerBingoPrize = lockedBar ? valBingo : (round.forcedPdvWinner === "INTELIGENTE" ? valBingo : (valVendaNum > 0 ? Math.min(1500, 50 + Math.round(valVendaNum * 2.0)) : valBingo));
+        const estBolaHeader = round.acumuladoLimiteBola !== undefined ? round.acumuladoLimiteBola : 44;
 
         summaryHtml += `
           <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 193, 7, 0.15); border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
@@ -839,7 +874,7 @@ async function atualizarPainelDirecionamento() {
               Bingo: <span style="color: var(--success); font-weight: 700;">R$ ${headerBingoPrize.toFixed(2).replace('.', ',')}</span> | 
               Quina: <span style="color: var(--success); font-weight: 700;">R$ ${valQuina.toFixed(2).replace('.', ',')}</span> | 
               Quadra: <span style="color: var(--success); font-weight: 700;">R$ ${valQuadra.toFixed(2).replace('.', ',')}</span> | 
-              Acumulado: <span style="color: var(--success); font-weight: 700;">R$ ${valAcumulado.toFixed(2).replace('.', ',')}</span>
+              Acumulado: <span style="color: var(--success); font-weight: 700;">R$ ${valAcumulado.toFixed(2).replace('.', ',')}</span> <span style="font-size: 9px; color: var(--text-muted);">(até bola ${estBolaHeader})</span>
             </div>
  
             <div style="font-size: 12px; line-height: 1.5; color: #eee; border-top: 1px dashed rgba(255,255,255,0.05); padding-top: 6px; margin-top: 6px;">

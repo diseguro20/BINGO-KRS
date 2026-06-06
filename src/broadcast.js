@@ -63,9 +63,17 @@ function atualizarContagemRegressivaLocal() {
     const tempoRestante = Math.max(0, Math.round((estadoGlobal.countdownEndTime - agora) / 1000));
     
     if (tempoRestante > 0) {
-      const min = Math.floor(tempoRestante / 60);
-      const seg = tempoRestante % 60;
-      const textoTime = `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+      let textoTime;
+      if (tempoRestante >= 3600) {
+        const hrs = Math.floor(tempoRestante / 3600);
+        const min = Math.floor((tempoRestante % 3600) / 60);
+        const seg = tempoRestante % 60;
+        textoTime = `${hrs}:${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+      } else {
+        const min = Math.floor(tempoRestante / 60);
+        const seg = tempoRestante % 60;
+        textoTime = `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+      }
       
       currentBallNum.innerText = textoTime;
       currentBallNum.style.fontSize = '34px'; // Tamanho menor para caber "MM:SS"
@@ -116,9 +124,18 @@ function atualizarPainelProximaRodada() {
         const tempoRestante = Math.max(0, Math.round((estadoGlobal.countdownEndTime - agora) / 1000));
         
         if (tempoRestante > 0) {
-          const min = Math.floor(tempoRestante / 60);
-          const seg = tempoRestante % 60;
-          tvNextRoundCountdown.innerText = `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+          let textoTime;
+          if (tempoRestante >= 3600) {
+            const hrs = Math.floor(tempoRestante / 3600);
+            const min = Math.floor((tempoRestante % 3600) / 60);
+            const seg = tempoRestante % 60;
+            textoTime = `${hrs}:${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+          } else {
+            const min = Math.floor(tempoRestante / 60);
+            const seg = tempoRestante % 60;
+            textoTime = `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+          }
+          tvNextRoundCountdown.innerText = textoTime;
           tvNextRoundCountdown.style.color = "var(--neon-cyan)";
         } else {
           tvNextRoundCountdown.innerText = "INICIANDO...";

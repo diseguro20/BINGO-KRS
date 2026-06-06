@@ -17,6 +17,7 @@ const inputQuina = document.getElementById('input-quina');
 const inputBingo = document.getElementById('input-bingo');
 const inputAcumulado = document.getElementById('input-acumulado');
 const selectCountdown = document.getElementById('input-countdown');
+const inputStartTime = document.getElementById('input-start-time');
 const selectDrawSpeed = document.getElementById('select-draw-speed');
 const inputAutoStart = document.getElementById('input-auto-start');
 const selectForcedPdv = document.getElementById('select-forced-pdv');
@@ -142,9 +143,15 @@ function renderizarFila() {
     // Modo e contagem
     const modoBadge = rodada.schedulingMode === 'IA' ? 'badge-mode ia' : 'badge-mode manual';
     const autoDrawText = rodada.autoStartDraw ? `(Auto-start ${rodada.drawSpeed}s)` : '(Sem auto-start)';
+    
+    let tempoDisplay = `${rodada.countdownMinutes} min`;
+    if (rodada.startTime) {
+      tempoDisplay = `⏰ ${rodada.startTime}`;
+    }
+
     const contagemHtml = `
       <div><span class="${modoBadge}">${rodada.schedulingMode}</span></div>
-      <div style="margin-top: 6px;">${rodada.countdownMinutes} min ${autoDrawText}</div>
+      <div style="margin-top: 6px; font-weight: 600;">${tempoDisplay} <br><span style="font-size: 11px; opacity: 0.85;">${autoDrawText}</span></div>
     `;
 
     // Vendedor forçado
@@ -226,6 +233,8 @@ formScheduler.addEventListener('submit', (e) => {
     }
   }
 
+  const startTimeVal = inputStartTime.value || null;
+
   const novaRodada = {
     gameId: gameIdVal,
     prizes: {
@@ -236,7 +245,8 @@ formScheduler.addEventListener('submit', (e) => {
       acumulado: parseFloat(inputAcumulado.value) || 1000.0
     },
     schedulingMode: document.querySelector('input[name="scheduling-mode"]:checked').value,
-    countdownMinutes: parseInt(selectCountdown.value) || 2,
+    countdownMinutes: startTimeVal ? null : (parseInt(selectCountdown.value) || 2),
+    startTime: startTimeVal,
     drawSpeed: parseInt(selectDrawSpeed.value) || 3,
     autoStartDraw: inputAutoStart.checked,
     forcedPdvWinner: forcedPdvValue,
@@ -251,6 +261,7 @@ formScheduler.addEventListener('submit', (e) => {
 
   // Limpa campos customizados e sugere o próximo ID
   inputForcedPdvCustom.value = '';
+  inputStartTime.value = '';
   sugerirProximoGameId();
 
   alert(`Rodada ${gameIdVal} agendada com sucesso!`);

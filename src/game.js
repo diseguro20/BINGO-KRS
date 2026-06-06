@@ -250,7 +250,21 @@ export function avancarProximaRodada(estado) {
     estado.drawSpeed = proximaConfig.drawSpeed || 3;
     estado.forcedCardId = null; // Reseta cartela manipulada para escolher uma nova no início do sorteio
 
-    if (proximaConfig.countdownMinutes) {
+    if (proximaConfig.startTime) {
+      const parts = proximaConfig.startTime.split(':');
+      const hrs = parseInt(parts[0]) || 0;
+      const mins = parseInt(parts[1]) || 0;
+      const targetDate = new Date();
+      targetDate.setHours(hrs, mins, 0, 0);
+      
+      // Se o horário já passou hoje, agenda para amanhã
+      if (targetDate.getTime() <= Date.now()) {
+        targetDate.setDate(targetDate.getDate() + 1);
+      }
+      
+      estado.countdownEndTime = targetDate.getTime();
+      estado.aiActive = false;
+    } else if (proximaConfig.countdownMinutes) {
       estado.countdownEndTime = Date.now() + proximaConfig.countdownMinutes * 60 * 1000;
       estado.aiActive = (proximaConfig.schedulingMode === 'IA');
     } else {

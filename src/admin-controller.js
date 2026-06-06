@@ -1308,8 +1308,9 @@ function checarEAgendarProximaRodadaAutomatica() {
   if (estado.status !== 'ENDED') return;
   if (autoAdvanceTimeoutId !== null) return; // Já está agendado
   
-  if (estado.rodadasQueue && estado.rodadasQueue.length > 0) {
-    console.log("[PROGRAMAÇÃO] Detectada rodada agendada. Avançando automaticamente em 15 segundos...");
+  const temProxima = estado.rodadasQueue && estado.rodadasQueue.some(r => !r.status || r.status === 'PENDING');
+  if (temProxima) {
+    console.log("[PROGRAMAÇÃO] Detectada próxima rodada pendente na fila. Avançando automaticamente em 15 segundos...");
     autoAdvanceTimeoutId = setTimeout(() => {
       autoAdvanceTimeoutId = null;
       if (estado.status === 'ENDED') {

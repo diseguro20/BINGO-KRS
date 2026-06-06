@@ -14,12 +14,12 @@ import {
 
 // Cole suas configurações reais do Firebase Console aqui
 export const firebaseConfig = {
-  apiKey: "AIzaSyB5XxQ6ymvnXV58cmbSzlmnTU-mkAzL1Us",
-  authDomain: "bingokrs-251b2.firebaseapp.com",
-  projectId: "bingokrs-251b2",
-  storageBucket: "bingokrs-251b2.firebasestorage.app",
-  messagingSenderId: "1061685532450",
-  appId: "1:1061685532450:web:fcf3fcf53714b2aef3777b"
+  apiKey: "AIzaSyD5IxLkYGOpmo-HVyDv8rMZMly6jtyypQA",
+  authDomain: "krs-bingo.firebaseapp.com",
+  projectId: "krs-bingo",
+  storageBucket: "krs-bingo.firebasestorage.app",
+  messagingSenderId: "538951213822",
+  appId: "1:538951213822:web:fa9498761479dc5360fbaf"
 };
 
 // Verifica se o Firebase está configurado com chaves reais

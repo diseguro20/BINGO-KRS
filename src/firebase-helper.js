@@ -476,9 +476,10 @@ export const FirebaseHelper = {
             const partidaData = partidaSnap.data();
             const statusAtual = partidaData.status;
 
-            const targetGameId = (statusAtual === 'WAITING') ? partidaData.gameId : partidaData.nextGameId;
             cartelas.forEach(c => {
-              c.gameId = targetGameId;
+              if (!c.gameId) {
+                c.gameId = (statusAtual === 'WAITING') ? partidaData.gameId : partidaData.nextGameId;
+              }
               if (clienteInfo) {
                 c.clienteNome = clienteInfo.nome;
                 c.clienteCelular = clienteInfo.celular;
@@ -486,21 +487,20 @@ export const FirebaseHelper = {
               c.dataVenda = Date.now();
             });
 
-            if (statusAtual === 'WAITING') {
-              if (!partidaData.cards) partidaData.cards = [];
-              cartelas.forEach(c => {
+            if (!partidaData.cards) partidaData.cards = [];
+            if (!partidaData.nextCards) partidaData.nextCards = [];
+
+            cartelas.forEach(c => {
+              if (c.gameId === partidaData.gameId && statusAtual === 'WAITING') {
                 if (!partidaData.cards.some(existing => existing.id === c.id)) {
                   partidaData.cards.push(c);
                 }
-              });
-            } else {
-              if (!partidaData.nextCards) partidaData.nextCards = [];
-              cartelas.forEach(c => {
+              } else {
                 if (!partidaData.nextCards.some(existing => existing.id === c.id)) {
                   partidaData.nextCards.push(c);
                 }
-              });
-            }
+              }
+            });
 
             const { processarEstadoJogo } = await import('./game.js');
             const partidaAtualizada = processarEstadoJogo(partidaData);

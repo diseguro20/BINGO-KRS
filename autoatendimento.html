@@ -29,6 +29,10 @@
           <h2>Adquira suas Cartelas</h2>
           <p class="step-subtitle">Insira seus dados e escolha a quantidade para participar do próximo sorteio.</p>
           
+          <div id="no-rounds-warning" style="display: none; padding: 12px; background: rgba(255, 23, 68, 0.1); border: 1px solid var(--danger); border-radius: 8px; color: #ff1744; text-align: center; margin-bottom: 18px; font-weight: bold; font-size: 14px;">
+            ⚠️ Nenhum sorteio programado no momento. Venda de cartelas suspensa.
+          </div>
+
           <form id="form-selection">
             <div class="form-group" style="margin-bottom: 18px;">
               <label for="client-phone">Celular do Cliente (para receber as cartelas):</label>
@@ -55,13 +59,20 @@
               </div>
             </div>
 
+            <div class="form-group" style="margin-bottom: 18px;">
+              <label for="select-game-round">Escolha o Sorteio / Rodada:</label>
+              <select id="select-game-round" class="form-control" required>
+                <!-- Opções carregadas dinamicamente -->
+              </select>
+            </div>
+
             <div class="price-display-box">
               <div style="font-size: 13px; color: var(--text-muted); text-transform: uppercase;">Valor total a pagar:</div>
               <div class="total-value">R$ <span id="total-price-label">6,00</span></div>
-              <div style="font-size: 11px; color: var(--neon-cyan); margin-top: 4px;">Sorteio Sugerido: <strong id="suggested-game-id">--</strong></div>
+              <div style="font-size: 11px; color: var(--neon-cyan); margin-top: 4px;">Sorteio Selecionado: <strong id="suggested-game-id">--</strong></div>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-action" style="margin-top: 25px;">Gerar Código Pix</button>
+            <button type="submit" id="btn-submit-selection" class="btn btn-primary btn-action" style="margin-top: 25px;">Gerar Código Pix</button>
           </form>
         </section>
 

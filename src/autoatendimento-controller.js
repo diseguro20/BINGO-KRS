@@ -23,6 +23,9 @@ const qtyButtons = document.querySelectorAll('.btn-qty');
 const customQty = document.getElementById('custom-qty');
 const totalPriceLabel = document.getElementById('total-price-label');
 const suggestedGameId = document.getElementById('suggested-game-id');
+const selectGameRound = document.getElementById('select-game-round');
+const noRoundsWarning = document.getElementById('no-rounds-warning');
+const btnSubmitSelection = document.getElementById('btn-submit-selection');
 
 const btnCopyPix = document.getElementById('btn-copy-pix');
 const pixCopiaCola = document.getElementById('pix-copia-cola');
@@ -164,10 +167,9 @@ btnSimulatePayment.addEventListener('click', () => {
       const customVal = parseInt(customQty.value);
       const qty = (!isNaN(customVal) && customVal > 0) ? customVal : selectedQty;
       
-      let targetGameId = '#0001';
-      if (estado) {
-        // Direciona para o jogo atual se estiver aguardando, ou para o próximo se já começou
-        targetGameId = (estado.status === 'WAITING') ? estado.gameId : estado.nextGameId;
+      const targetGameId = selectGameRound.value;
+      if (!targetGameId) {
+        throw new Error("Nenhum sorteio selecionado ou disponível.");
       }
       
       const cartelas = [];
@@ -521,17 +523,107 @@ btnRestartTotem.addEventListener('click', () => {
 // ==========================================
 // 7. INICIALIZAÇÃO E ASSINATURA EM TEMPO REAL
 // ==========================================
+
+// Listener de mudança na rodada selecionada
+selectGameRound.addEventListener('change', () => {
+  const selectedOpt = selectGameRound.options[selectGameRound.selectedIndex];
+  if (selectedOpt) {
+    const selectedGameIdVal = selectedOpt.value;
+    const selectedPriceVal = parseFloat(selectedOpt.getAttribute('data-price'));
+    
+    suggestedGameId.innerText = selectedGameIdVal;
+    ticketPrice = selectedPriceVal;
+    localStorage.setItem('bingokrs_cupom_temp', ticketPrice.toString());
+    updateTotalPrice();
+  }
+});
+
 FirebaseHelper.assinarEstadoJogo((gameData) => {
   estado = gameData;
   if (estado) {
-    if (estado.prizes && estado.prizes.cupom) {
-      ticketPrice = parseFloat(estado.prizes.cupom);
-      localStorage.setItem('bingokrs_cupom_temp', ticketPrice.toString());
+    // Compilar rodadas disponíveis
+    const availableRounds = [];
+    
+    // Se a partida atual no Firebase estiver aguardando apostas
+    if (estado.status === 'WAITING' && estado.gameId) {
+      const activePrice = parseFloat(estado.prizes?.cupom || 2.0);
+      availableRounds.push({
+        gameId: estado.gameId,
+        price: activePrice,
+        label: `Rodada ${estado.gameId} (Próxima Ativa) - R$ ${activePrice.toFixed(2).replace('.', ',')}`
+      });
     }
     
-    // Exibe ID do Sorteio Sugerido
-    const targetGameId = (estado.status === 'WAITING') ? estado.gameId : estado.nextGameId;
-    suggestedGameId.innerText = targetGameId;
+    // Rodadas futuras programadas na fila
+    if (estado.rodadasQueue && Array.isArray(estado.rodadasQueue)) {
+      estado.rodadasQueue.forEach(item => {
+        // Evita duplicar a rodada ativa
+        if (item.gameId === estado.gameId && estado.status === 'WAITING') return;
+        
+        const price = parseFloat(item.prizes?.cupom || 2.0);
+        const timeStr = item.startTime ? ` às ${item.startTime}` : '';
+        const dateStr = item.startDate ? ` em ${item.startDate}` : '';
+        availableRounds.push({
+          gameId: item.gameId,
+          price: price,
+          label: `Rodada ${item.gameId} - R$ ${price.toFixed(2).replace('.', ',')}${dateStr}${timeStr}`
+        });
+      });
+    }
+    
+    // Sincronizar UI se não houver rodadas válidas (bloqueio de vendas)
+    if (availableRounds.length === 0) {
+      noRoundsWarning.style.display = 'block';
+      btnSubmitSelection.disabled = true;
+      
+      clientPhone.disabled = true;
+      clientName.disabled = true;
+      customQty.disabled = true;
+      qtyButtons.forEach(b => b.disabled = true);
+      selectGameRound.disabled = true;
+      
+      selectGameRound.innerHTML = '<option value="">Nenhuma rodada programada</option>';
+      suggestedGameId.innerText = '--';
+      ticketPrice = 2.0;
+    } else {
+      noRoundsWarning.style.display = 'none';
+      btnSubmitSelection.disabled = false;
+      
+      clientPhone.disabled = false;
+      clientName.disabled = false;
+      customQty.disabled = false;
+      qtyButtons.forEach(b => b.disabled = false);
+      selectGameRound.disabled = false;
+      
+      // Salva valor selecionado anteriormente
+      const prevSelected = selectGameRound.value;
+      
+      // Preenche select
+      selectGameRound.innerHTML = '';
+      availableRounds.forEach(round => {
+        const opt = document.createElement('option');
+        opt.value = round.gameId;
+        opt.setAttribute('data-price', round.price.toString());
+        opt.innerText = round.label;
+        selectGameRound.appendChild(opt);
+      });
+      
+      // Restaura seleção anterior se ainda estiver disponível
+      if (prevSelected && availableRounds.some(r => r.gameId === prevSelected)) {
+        selectGameRound.value = prevSelected;
+      }
+      
+      // Sincroniza dados da rodada selecionada
+      const selectedOpt = selectGameRound.options[selectGameRound.selectedIndex];
+      if (selectedOpt) {
+        const selectedGameIdVal = selectedOpt.value;
+        const selectedPriceVal = parseFloat(selectedOpt.getAttribute('data-price'));
+        
+        suggestedGameId.innerText = selectedGameIdVal;
+        ticketPrice = selectedPriceVal;
+        localStorage.setItem('bingokrs_cupom_temp', ticketPrice.toString());
+      }
+    }
     
     updateTotalPrice();
   }

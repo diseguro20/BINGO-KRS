@@ -350,13 +350,12 @@ export function avancarProximaRodada(estado) {
   const todasCartelas = (statusAnterior === 'WAITING')
     ? [...(estado.cards || []), ...(estado.nextCards || [])]
     : [...(estado.nextCards || [])];
-  estado.cards = todasCartelas.map(card => ({
-    ...card,
-    gameId: estado.gameId // Corrige o ID do sorteio associado para a nova rodada ativa
-  }));
+  
+  // Filtra as cartelas ativas para esta rodada pelo gameId correspondente
+  estado.cards = todasCartelas.filter(c => c.gameId === estado.gameId);
 
-  // Limpa as próximas cartelas
-  estado.nextCards = [];
+  // Mantém as cartelas destinadas a rodadas futuras na fila de nextCards
+  estado.nextCards = todasCartelas.filter(c => c.gameId !== estado.gameId);
 
   // Reseta globo de sorteio e bolas sorteadas
   estado.drawnBalls = [];

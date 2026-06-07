@@ -38,6 +38,7 @@ let premioEmExibicao = false; // Flag: true when prize popup is showing (pause a
 let winnersJaExibidos = { quadra: [], quina: [], bingo: [], acumulado: [] }; // Track which winners have been announced
 let filaAnuncios = []; // Fila de anúncios de ganhadores pendentes
 let ultimoGameId = null;
+let isFirstRender = true; // Controla se é o primeiro carregamento da tela do jogo
 
 // Inicializa a data local
 valData.innerText = new Date().toLocaleDateString('pt-BR');
@@ -270,6 +271,7 @@ function renderizarApp(estado) {
       if (ultimoGameId !== gameId) {
         console.log(`[TV] Novo ID de jogo detectado: ${gameId}. Resetando rastreamento de ganhadores e popups.`);
         ultimoGameId = gameId;
+        isFirstRender = true; // Novo jogo conta como primeiro render para não anunciar prêmios antigos caso entre atrasado
       }
       premioEmExibicao = false;
       filaAnuncios = [];
@@ -539,16 +541,30 @@ function renderizarApp(estado) {
         const listaAtual = winners[cat] || [];
         listaAtual.forEach(w => {
           if (w && w.cardId) {
-            adicionarFilaAnuncio({ categoria: cat, cardId: w.cardId, pdv: w.pdv });
+            if (isFirstRender) {
+              // No primeiro render do jogo, apenas preenche o cache de exibidos sem disparar o popup
+              if (!winnersJaExibidos[cat].includes(w.cardId)) {
+                winnersJaExibidos[cat].push(w.cardId);
+              }
+            } else {
+              // Somente anuncia se a ordemSorteio do prêmio for igual ou muito próxima à quantidade de bolas sorteadas
+              // Isso garante que não anunciemos prêmios de bolas muito antigas se o sinal oscilar ou a página recarregar
+              const diferencaBolas = Math.abs(drawnBalls.length - w.ordemSorteio);
+              if (diferencaBolas <= 1) {
+                adicionarFilaAnuncio({ categoria: cat, cardId: w.cardId, pdv: w.pdv });
+              }
+            }
           }
         });
       });
+      isFirstRender = false;
     }
 
     // Reset winners tracking quando muda de rodada
     if (status === 'WAITING') {
       winnersJaExibidos = { quadra: [], quina: [], bingo: [], acumulado: [] };
       filaAnuncios = [];
+      isFirstRender = true;
     }
   } catch (error) {
     console.error("Erro fatal ao renderizar o aplicativo de TV:", error);

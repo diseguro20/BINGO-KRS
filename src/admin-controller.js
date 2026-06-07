@@ -1364,10 +1364,11 @@ function executarTickContagem() {
       estado.countdownEndTime = null;
       estado.aiActive = false;
       
-      // Se não tiver cartelas no jogo, suspende o início (não bloqueante)
+      // Se não tiver cartelas no jogo, suspende/pula e avança para a próxima
       if (!estado.cards || estado.cards.length === 0) {
-        console.warn("[ADMIN] Sorteio programado suspenso: nenhuma cartela vendida para a rodada " + estado.gameId);
-        gameStatusText.innerText = "SUSPENSO: SEM VENDAS";
+        console.warn(`[ADMIN] Sorteio programado ${estado.gameId} suspenso/pulado: nenhuma cartela vendida para esta rodada. Avançando para a próxima.`);
+        gameStatusText.innerText = "SEM VENDAS: AVANÇANDO";
+        estado = avancarProximaRodada(estado);
         FirebaseHelper.salvarEstadoJogo(estado);
         return;
       }

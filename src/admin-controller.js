@@ -8,7 +8,8 @@ import {
   sortearProximaBola, 
   processarEstadoJogo, 
   gerarCartela90Bolas,
-  avancarProximaRodada
+  avancarProximaRodada,
+  verificarELimparEstadoSeAntigo
 } from './game.js';
 
 // Estado local do administrador
@@ -200,6 +201,14 @@ let camposPreenchidosIniciais = false;
  */
 function renderizarAdmin(novoEstado) {
   if (!novoEstado) return;
+
+  // Auto-limpeza de rodada antiga/bugada
+  const estadoLimpo = verificarELimparEstadoSeAntigo(novoEstado);
+  if (estadoLimpo) {
+    console.log(`[ADMIN] Rodada antiga corrigida. Salvando novo estado...`);
+    FirebaseHelper.salvarEstadoJogo(estadoLimpo);
+    return;
+  }
 
   // Se estamos resetando o jogo, ignora snapshots que ainda contêm bolas sorteadas
   if (resettingGame) {
@@ -1350,10 +1359,11 @@ function executarTickContagem() {
       estado.countdownEndTime = null;
       estado.aiActive = false;
       
-      // Se não tiver cartelas no jogo, suspende o início
+      // Se não tiver cartelas no jogo, suspende o início (não bloqueante)
       if (!estado.cards || estado.cards.length === 0) {
+        console.warn("[ADMIN] Sorteio programado suspenso: nenhuma cartela vendida para a rodada " + estado.gameId);
+        gameStatusText.innerText = "SUSPENSO: SEM VENDAS";
         FirebaseHelper.salvarEstadoJogo(estado);
-        alert("Sorteio programado suspenso: nenhuma cartela vendida para a rodada " + estado.gameId + ".");
         return;
       }
       

@@ -389,6 +389,21 @@ export function avancarProximaRodada(estado) {
 }
 
 /**
+ * Verifica se a rodada atual é antiga (de outro dia/bugada) e a limpa se necessário
+ */
+export function verificarELimparEstadoSeAntigo(estado) {
+  if (!estado) return null;
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  if (estado.dataSorteio && estado.dataSorteio !== hoje) {
+    console.log(`[GAME] Detectada rodada antiga/bugada (${estado.dataSorteio} vs ${hoje}). Executando autolimpeza...`);
+    const novoEstado = avancarProximaRodada({ ...estado });
+    novoEstado.dataSorteio = hoje; // Atualiza a data para hoje
+    return novoEstado;
+  }
+  return null;
+}
+
+/**
  * Atualiza o progresso de acerto de cada cartela baseado nas bolas sorteadas
  * e recalcula o ranking das 20 melhores cartelas (com menos números restantes).
  * Também verifica se há novos vencedores para cada categoria.
@@ -457,6 +472,49 @@ export function processarEstadoJogo(estado) {
     estado.status = "ENDED";
   }
 
+  // 2. Processamento pós-loop para divisão de prêmios e disparo de comandos
+  if (estado.status === "PLAYING" || estado.status === "ENDED") {
+    if (sorteadas.length > 0) {
+      ['quadra', 'quina', 'bingo', 'acumulado'].forEach(cat => {
+        const lista = estado.winners[cat] || [];
+        // Filtra os ganhadores que venceram exatamente nesta ordem de sorteio
+        const novosGanhadores = lista.filter(w => w.ordemSorteio === ordem);
+        
+        if (novosGanhadores.length > 0) {
+          const valorTotal = (estado.prizes && estado.prizes[cat]) ? parseFloat(estado.prizes[cat]) : 0;
+          const valorDividido = valorTotal / novosGanhadores.length;
+          
+          novosGanhadores.forEach(w => {
+            // Salva o valor exato ganho no objeto do vencedor
+            w.premioGanho = valorDividido;
+            
+            // Registra o prêmio nas métricas do banco (modo não bloqueante)
+            if (valorDividido > 0) {
+              try {
+                FirebaseHelper.registrarPremioPago(valorDividido);
+              } catch (err) {
+                console.error("[GAME] Erro ao registrar prêmio pago:", err);
+              }
+            }
+            
+            // Dispara comando rápido para alertas na TV com o valor dividido
+            try {
+              FirebaseHelper.enviarComando('NOVO_GANHADOR', { 
+                categoria: cat, 
+                cardId: w.cardId, 
+                pdv: w.pdv, 
+                ordem, 
+                valorPremio: valorDividido 
+              });
+            } catch (err) {
+              console.error("[GAME] Erro ao enviar comando de novo ganhador:", err);
+            }
+          });
+        }
+      });
+    }
+  }
+
   return estado;
 }
 
@@ -486,15 +544,6 @@ function adicionarVencedor(estado, categoria, cardId, pdv, ordem) {
       pdv,
       ordemSorteio: ordem
     });
-    
-    // Registra o prêmio pago nas métricas acumuladoras do banco
-    const valorPremio = (estado.prizes && estado.prizes[categoria]) ? parseFloat(estado.prizes[categoria]) : 0;
-    if (valorPremio > 0) {
-      FirebaseHelper.registrarPremioPago(valorPremio);
-    }
-    
-    // Dispara comando rápido para alertas sonoros/visuais na TV
-    FirebaseHelper.enviarComando('NOVO_GANHADOR', { categoria, cardId, pdv, ordem });
   }
 }
 

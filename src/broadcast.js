@@ -3,7 +3,7 @@
  */
 
 import { FirebaseHelper } from './firebase-helper.js';
-import { obterRankingTop20, ACUMULADO_LIMITE_ORDEM } from './game.js';
+import { obterRankingTop20, ACUMULADO_LIMITE_ORDEM, verificarELimparEstadoSeAntigo } from './game.js';
 import { launchFireworks, playSirenSound, playApplauseSound, playCelebrationHorn, narrarBola, narrarPremio, playBallDrawSound } from './effects.js';
 
 // Elementos do DOM
@@ -237,6 +237,15 @@ inicializarTabuleiro();
 function renderizarApp(estado) {
   try {
     if (!estado) return;
+
+    // Auto-limpeza de rodada antiga/bugada
+    const estadoLimpo = verificarELimparEstadoSeAntigo(estado);
+    if (estadoLimpo) {
+      console.log(`[TV] Rodada antiga detectada. Salvando novo estado...`);
+      FirebaseHelper.salvarEstadoJogo(estadoLimpo);
+      return;
+    }
+
     estadoGlobal = estado;
 
     // Defesas e Fallbacks Robustos
@@ -554,7 +563,12 @@ function renderizarApp(estado) {
               // Isso garante que não anunciemos prêmios de bolas muito antigas se o sinal oscilar ou a página recarregar
               const diferencaBolas = Math.abs(drawnBalls.length - w.ordemSorteio);
               if (diferencaBolas <= 1) {
-                adicionarFilaAnuncio({ categoria: cat, cardId: w.cardId, pdv: w.pdv });
+                adicionarFilaAnuncio({ 
+                  categoria: cat, 
+                  cardId: w.cardId, 
+                  pdv: w.pdv, 
+                  valorPremio: w.premioGanho 
+                });
               }
             }
           }
@@ -616,7 +630,7 @@ function mostrarAnuncioGanhadorGigante(payload) {
       return;
     }
 
-    const { categoria, cardId, pdv } = payload;
+    const { categoria, cardId, pdv, valorPremio } = payload;
     const catSafe = (categoria || '').toLowerCase();
     const rodadaId = (estadoGlobal && estadoGlobal.gameId) ? estadoGlobal.gameId : '--';
 
@@ -678,7 +692,7 @@ function mostrarAnuncioGanhadorGigante(payload) {
       bingo: estadoGlobal.prizes.bingo,
       acumulado: estadoGlobal.prizes.acumulado
     } : {};
-    const valorPremio = valoresPremios[catSafe] || 0;
+    const valorFinal = typeof valorPremio === 'number' ? valorPremio : (valoresPremios[catSafe] || 0);
 
     // Cria elemento do overlay se não existir
     let overlay = document.getElementById('tv-winner-overlay');
@@ -695,7 +709,7 @@ function mostrarAnuncioGanhadorGigante(payload) {
         <div class="winner-sparkle-bg"></div>
         <div class="winner-title">🏆 Prêmio Confirmado 🏆</div>
         <div class="winner-prize-name">${premioTexto}</div>
-        ${valorPremio > 0 ? `<div class="winner-prize-value">R$ ${valorPremio.toFixed(2).replace('.', ',')}</div>` : ''}
+        ${valorFinal > 0 ? `<div class="winner-prize-value">R$ ${valorFinal.toFixed(2).replace('.', ',')}</div>` : ''}
         <div class="winner-meta-label" style="font-size: 14px; margin-bottom: 8px; letter-spacing: 3px;">CARTELA VENCEDORA</div>
         <div class="winner-card-serial">${cardId || '--'}</div>
         

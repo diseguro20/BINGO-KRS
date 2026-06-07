@@ -340,6 +340,11 @@ function renderizarAdmin(novoEstado) {
     btnPauseDraw.disabled = !autoDrawRunning;
     btnNextRound.disabled = true;
     limparTimeoutAvancoAutomatico();
+    
+    // Se a rodada mudou ou foi resetada para WAITING, para o sorteio automático
+    if (estado.status === 'WAITING') {
+      pararAutoSorteio();
+    }
   }
 
   // Se a contagem regressiva estiver ativa

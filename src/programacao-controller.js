@@ -418,7 +418,26 @@ formScheduler.addEventListener('submit', (e) => {
  */
 function deletarRodadaDaFila(index) {
   if (confirm("Deseja realmente remover esta rodada da programação?")) {
+    const rodadaDeletada = estado.rodadasQueue[index];
     estado.rodadasQueue.splice(index, 1);
+    
+    // Se a rodada deletada for a rodada atual ativa (WAITING ou PLAYING)
+    if (rodadaDeletada && rodadaDeletada.gameId === estado.gameId) {
+      console.log(`[PROGRAMAÇÃO] A rodada ativa ${estado.gameId} foi deletada da fila. Cancelando sorteio ativo.`);
+      estado.countdownEndTime = null;
+      estado.aiActive = false;
+      estado.status = "WAITING";
+      estado.drawnBalls = [];
+      estado.ballsLeft = Array.from({ length: 90 }, (_, i) => i + 1);
+      estado.winners = { quadra: [], quina: [], bingo: [], acumulado: [] };
+      estado.horaInicio = "";
+      estado.forcedCardId = null;
+      estado.forcedPdvWinner = "NENHUM";
+      
+      // Carrega a próxima rodada da fila (se houver) ou gera novo ID aleatório
+      estado = avancarProximaRodada(estado);
+    }
+
     FirebaseHelper.salvarEstadoJogo(estado);
     sugerirProximoGameId();
   }
@@ -432,6 +451,22 @@ btnClearQueue.addEventListener('click', () => {
 
   if (confirm("Deseja remover absolutamente TODAS as rodadas da fila de agendamento?")) {
     estado.rodadasQueue = [];
+    
+    // Como a fila foi limpa, cancela qualquer jogo ativo que tenha sido carregado da fila
+    console.log(`[PROGRAMAÇÃO] A fila foi limpa. Cancelando sorteio ativo.`);
+    estado.countdownEndTime = null;
+    estado.aiActive = false;
+    estado.status = "WAITING";
+    estado.drawnBalls = [];
+    estado.ballsLeft = Array.from({ length: 90 }, (_, i) => i + 1);
+    estado.winners = { quadra: [], quina: [], bingo: [], acumulado: [] };
+    estado.horaInicio = "";
+    estado.forcedCardId = null;
+    estado.forcedPdvWinner = "NENHUM";
+    
+    // Avança para limpar o ID atual da fila e gerar um ID aleatório limpo
+    estado = avancarProximaRodada(estado);
+    
     FirebaseHelper.salvarEstadoJogo(estado);
     sugerirProximoGameId();
     alert("Fila de programação limpa.");

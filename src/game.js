@@ -398,6 +398,15 @@ export function processarEstadoJogo(estado) {
   const ordem = sorteadas.length;
   let alguemBateuBingo = false;
 
+  // Garante a existência do objeto de vencedores e seus arrays de categorias
+  if (!estado.winners) {
+    estado.winners = { quadra: [], quina: [], bingo: [], acumulado: [] };
+  }
+  if (!estado.winners.quadra) estado.winners.quadra = [];
+  if (!estado.winners.quina) estado.winners.quina = [];
+  if (!estado.winners.bingo) estado.winners.bingo = [];
+  if (!estado.winners.acumulado) estado.winners.acumulado = [];
+
   // 1. Atualizar informações de acerto para cada cartela
   estado.cards.forEach(card => {
     card.missingNumbers = card.numbers.filter(num => !sorteadas.includes(num));
@@ -412,8 +421,8 @@ export function processarEstadoJogo(estado) {
       if (matchUltimaBola) {
         // BINGO/KENO: 15 acertos (restam 0)
         if (card.numbersRemaining === 0) {
-          const podeGanharBingo = estado.winners.bingo.length === 0 || estado.winners.bingo.some(w => w.ordemSorteio === ordem);
-          if (podeGanharBingo) {
+          const jaFoiGanhadoBingo = estado.winners.bingo.some(w => w.ordemSorteio < ordem);
+          if (!jaFoiGanhadoBingo) {
             adicionarVencedor(estado, 'bingo', card.id, card.pdv, ordem);
             // Se fechou até a bola configurada, ganha Acumulado
             const limiteAcumulado = estado.acumuladoLimiteBola !== undefined ? estado.acumuladoLimiteBola : 44;
@@ -426,16 +435,16 @@ export function processarEstadoJogo(estado) {
         
         // QUINA: 5 acertos
         if (card.drawnCount === 5) {
-          const podeGanharQuina = estado.winners.quina.length === 0 || estado.winners.quina.some(w => w.ordemSorteio === ordem);
-          if (podeGanharQuina) {
+          const jaFoiGanhadoQuina = estado.winners.quina.some(w => w.ordemSorteio < ordem);
+          if (!jaFoiGanhadoQuina) {
             adicionarVencedor(estado, 'quina', card.id, card.pdv, ordem);
           }
         }
         
         // QUADRA: 4 acertos
         if (card.drawnCount === 4) {
-          const podeGanharQuadra = estado.winners.quadra.length === 0 || estado.winners.quadra.some(w => w.ordemSorteio === ordem);
-          if (podeGanharQuadra) {
+          const jaFoiGanhadoQuadra = estado.winners.quadra.some(w => w.ordemSorteio < ordem);
+          if (!jaFoiGanhadoQuadra) {
             adicionarVencedor(estado, 'quadra', card.id, card.pdv, ordem);
           }
         }
@@ -458,10 +467,13 @@ function adicionarVencedor(estado, categoria, cardId, pdv, ordem) {
   if (!estado.winners) {
     estado.winners = { quadra: [], quina: [], bingo: [], acumulado: [] };
   }
-  const lista = estado.winners[categoria] || [];
+  if (!estado.winners[categoria]) {
+    estado.winners[categoria] = [];
+  }
+  const lista = estado.winners[categoria];
   
   // REGRA DE NEGÓCIO: Bloqueia se a categoria já foi ganha em uma ordem de sorteio anterior (bola diferente)
-  const jaTemGanhadorOutraOrdem = lista.some(w => w.ordemSorteio !== ordem);
+  const jaTemGanhadorOutraOrdem = lista.some(w => w.ordemSorteio < ordem);
   if (jaTemGanhadorOutraOrdem) {
     console.warn(`[REGRA DE NEGÓCIO] Bloqueando vencedor duplicado na categoria ${categoria} para cartela ${cardId} no sorteio ${ordem}. Já existe vencedor no sorteio ${lista[0].ordemSorteio}.`);
     return;

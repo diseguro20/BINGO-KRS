@@ -330,7 +330,14 @@ export function narrarBola(numero) {
     
     // Cancel any ongoing speech only if speaking to prevent chrome engine hangs
     if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
+      try {
+        window.speechSynthesis.cancel();
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+      } catch (ce) {
+        console.warn('[NARRAÇÃO] Erro ao resetar fala:', ce);
+      }
     }
     
     setTimeout(() => {
@@ -379,7 +386,14 @@ export function narrarPremio(categoria, cardId, pdv) {
     if (!window.speechSynthesis) return;
     
     if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
+      try {
+        window.speechSynthesis.cancel();
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+      } catch (ce) {
+        console.warn('[NARRAÇÃO] Erro ao resetar fala do prêmio:', ce);
+      }
     }
     
     setTimeout(() => {

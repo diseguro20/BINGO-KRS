@@ -538,9 +538,12 @@ function renderizarApp(estado) {
     // Compara os winners atuais com os já exibidos para detectar novos prêmios
     if (status === 'PLAYING' || status === 'ENDED') {
       ['quadra', 'quina', 'bingo', 'acumulado'].forEach(cat => {
-        const listaAtual = winners[cat] || [];
+        const listaAtual = Array.isArray(winners[cat]) ? winners[cat] : [];
         listaAtual.forEach(w => {
           if (w && w.cardId) {
+            if (!winnersJaExibidos[cat]) {
+              winnersJaExibidos[cat] = [];
+            }
             if (isFirstRender) {
               // No primeiro render do jogo, apenas preenche o cache de exibidos sem disparar o popup
               if (!winnersJaExibidos[cat].includes(w.cardId)) {
@@ -787,3 +790,9 @@ document.addEventListener('click', () => {
     ctx.resume();
   } catch(e) {}
 }, { once: true });
+
+// Recarrega a página automaticamente se a internet cair e voltar, garantindo recuperação em TVs
+window.addEventListener('online', () => {
+  console.log('[TV] Conexão restabelecida. Recarregando a página para garantir sincronia...');
+  window.location.reload();
+});

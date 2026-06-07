@@ -312,23 +312,47 @@ export const FirebaseHelper = {
    */
   assinarEstadoJogo(callback) {
     if (isFirebaseConfigured && db) {
-      return onSnapshot(doc(db, "partidas", "atual"), async (docSnap) => {
-        if (docSnap.exists()) {
-          callback(docSnap.data());
-        } else {
-          // Documento não existe ainda (projeto novo) — cria estado inicial
-          console.log("[FIREBASE] Documento 'partidas/atual' não encontrado. Criando estado inicial...");
-          try {
-            const { criarEstadoInicial } = await import('./game.js');
-            const estadoInicial = criarEstadoInicial();
-            await setDoc(doc(db, "partidas", "atual"), estadoInicial);
-            console.log("[FIREBASE] Estado inicial criado com sucesso no Firestore.");
-            // O onSnapshot vai disparar de novo com o novo doc
-          } catch (err) {
-            console.error("[FIREBASE] Erro ao criar estado inicial:", err);
+      let unsubscribe = null;
+      let isSubscribed = true;
+
+      const subscribe = () => {
+        if (!isSubscribed) return;
+        unsubscribe = onSnapshot(doc(db, "partidas", "atual"), 
+          async (docSnap) => {
+            if (docSnap.exists()) {
+              callback(docSnap.data());
+            } else {
+              // Documento não existe ainda (projeto novo) — cria estado inicial
+              console.log("[FIREBASE] Documento 'partidas/atual' não encontrado. Criando estado inicial...");
+              try {
+                const { criarEstadoInicial } = await import('./game.js');
+                const estadoInicial = criarEstadoInicial();
+                await setDoc(doc(db, "partidas", "atual"), estadoInicial);
+                console.log("[FIREBASE] Estado inicial criado com sucesso no Firestore.");
+                // O onSnapshot vai disparar de novo com o novo doc
+              } catch (err) {
+                console.error("[FIREBASE] Erro ao criar estado inicial:", err);
+              }
+            }
+          },
+          (error) => {
+            console.error("[FIREBASE] Erro na assinatura do estado do jogo (partidas/atual):", error);
+            if (unsubscribe) {
+              try { unsubscribe(); } catch (e) {}
+            }
+            setTimeout(subscribe, 5000);
           }
+        );
+      };
+
+      subscribe();
+
+      return () => {
+        isSubscribed = false;
+        if (unsubscribe) {
+          try { unsubscribe(); } catch (e) {}
         }
-      });
+      };
     } else {
       // MODO SIMULADO
       const listener = (event) => {
@@ -598,13 +622,37 @@ export const FirebaseHelper = {
    */
   assinarMetricasFinanceiras(callback) {
     if (isFirebaseConfigured && db) {
-      return onSnapshot(doc(db, "metricas", "financeiro"), (docSnap) => {
-        if (docSnap.exists()) {
-          callback(docSnap.data());
-        } else {
-          callback({ totalFaturamento: 0, totalPremiosPagos: 0, rankingPdvs: {} });
+      let unsubscribe = null;
+      let isSubscribed = true;
+
+      const subscribe = () => {
+        if (!isSubscribed) return;
+        unsubscribe = onSnapshot(doc(db, "metricas", "financeiro"), 
+          (docSnap) => {
+            if (docSnap.exists()) {
+              callback(docSnap.data());
+            } else {
+              callback({ totalFaturamento: 0, totalPremiosPagos: 0, rankingPdvs: {} });
+            }
+          },
+          (error) => {
+            console.error("[FIREBASE] Erro ao assinar métricas financeiras:", error);
+            if (unsubscribe) {
+              try { unsubscribe(); } catch (e) {}
+            }
+            setTimeout(subscribe, 5000);
+          }
+        );
+      };
+
+      subscribe();
+
+      return () => {
+        isSubscribed = false;
+        if (unsubscribe) {
+          try { unsubscribe(); } catch (e) {}
         }
-      });
+      };
     } else {
       // MODO SIMULADO
       const listener = (event) => {
@@ -653,19 +701,43 @@ export const FirebaseHelper = {
 
   assinarPdvsOnline(callback) {
     if (isFirebaseConfigured && db) {
-      return onSnapshot(collection(db, "pdvs_online"), (snapshot) => {
-        const agora = Date.now();
-        let count = 0;
-        const list = [];
-        snapshot.forEach(docSnap => {
-          const data = docSnap.data();
-          if (data.lastActive >= agora - 60000) {
-            count++;
-            list.push(data.pdvNome);
+      let unsubscribe = null;
+      let isSubscribed = true;
+
+      const subscribe = () => {
+        if (!isSubscribed) return;
+        unsubscribe = onSnapshot(collection(db, "pdvs_online"), 
+          (snapshot) => {
+            const agora = Date.now();
+            let count = 0;
+            const list = [];
+            snapshot.forEach(docSnap => {
+              const data = docSnap.data();
+              if (data.lastActive >= agora - 60000) {
+                count++;
+                list.push(data.pdvNome);
+              }
+            });
+            callback(count, list);
+          },
+          (error) => {
+            console.error("[FIREBASE] Erro ao assinar PDVs online:", error);
+            if (unsubscribe) {
+              try { unsubscribe(); } catch (e) {}
+            }
+            setTimeout(subscribe, 5000);
           }
-        });
-        callback(count, list);
-      });
+        );
+      };
+
+      subscribe();
+
+      return () => {
+        isSubscribed = false;
+        if (unsubscribe) {
+          try { unsubscribe(); } catch (e) {}
+        }
+      };
     } else {
       // MODO SIMULADO
       const checkSimulado = () => {

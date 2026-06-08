@@ -1297,13 +1297,7 @@ FirebaseHelper.assinarMetricasFinanceiras((metricas) => {
 // Inscreve para atualizações do estado do jogo
 FirebaseHelper.assinarEstadoJogo(renderizarAdmin);
 
-// Envia heartbeat do motor do Admin a cada 3 segundos para sincronização cross-device
-const myEngineClientId = 'admin_' + Math.random().toString(36).substring(2, 9);
-setInterval(() => {
-  if (estado) {
-    FirebaseHelper.enviarHeartbeat(myEngineClientId, 'admin');
-  }
-}, 3000);
+// O Heartbeat do Admin agora é executado de forma não-bloqueante no tick do worker da contagem
 
 // Escuta comandos vindos dos Pontos de Venda (PDVs) em tempo real
 FirebaseHelper.assinarComandos((comando, payload) => {
@@ -1366,18 +1360,33 @@ const workerCountdownCode = `
     }
   };
 `;
+const myEngineClientId = 'admin_' + Math.random().toString(36).substring(2, 9);
+let ultimoHeartbeatEnviadoTimestamp = 0;
+
+function enviarHeartbeatSeNecessario() {
+  const agora = Date.now();
+  if (agora - ultimoHeartbeatEnviadoTimestamp >= 3000) {
+    ultimoHeartbeatEnviadoTimestamp = agora;
+    if (estado) {
+      FirebaseHelper.enviarHeartbeat(myEngineClientId, 'admin');
+    }
+  }
+}
+
 let countdownWorker = null;
 try {
   const blobCountdown = new Blob([workerCountdownCode], { type: 'application/javascript' });
   countdownWorker = new Worker(URL.createObjectURL(blobCountdown));
   countdownWorker.onmessage = function() {
     executarTickContagem();
+    enviarHeartbeatSeNecessario();
   };
   countdownWorker.postMessage({ action: 'start' });
 } catch (err) {
   console.warn('[ADMIN] Web Worker para contagem regressiva falhou (CSP ou incompatibilidade). Usando fallback de setInterval.', err);
   setInterval(() => {
     executarTickContagem();
+    enviarHeartbeatSeNecessario();
   }, 1000);
 }
 

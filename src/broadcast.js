@@ -40,6 +40,10 @@ let filaAnuncios = []; // Fila de anúncios de ganhadores pendentes
 let ultimoGameId = null;
 let isFirstRender = true; // Controla se é o primeiro carregamento da tela do jogo
 
+// Rastreamento local de heartbeat recebido para evitar problemas com clock drift entre dispositivos
+let ultimoHeartbeatRecebidoValor = 0;
+let ultimoHeartbeatRecebidoLocalTimestamp = 0;
+
 // Inicializa a data local
 valData.innerText = new Date().toLocaleDateString('pt-BR');
 
@@ -247,6 +251,12 @@ function renderizarApp(estado) {
     }
 
     estadoGlobal = estado;
+
+    // Rastreamento de heartbeat local (anti-clock-drift)
+    if (estado.engineHeartbeat && estado.engineHeartbeat !== ultimoHeartbeatRecebidoValor) {
+      ultimoHeartbeatRecebidoValor = estado.engineHeartbeat;
+      ultimoHeartbeatRecebidoLocalTimestamp = Date.now();
+    }
 
     // Defesas e Fallbacks Robustos
     const status = estado.status || 'WAITING';
@@ -842,11 +852,10 @@ setInterval(async () => {
   const agora = Date.now();
   const status = estadoGlobal.status || 'WAITING';
 
-  // Verifica se o motor principal (Admin) está ativo
+  // Verifica se o motor principal (Admin) está ativo (anti-clock-drift usando recebimento local)
   const heartbeatAdminAtivo = 
-    estadoGlobal.engineHeartbeat && 
     estadoGlobal.engineType === 'admin' && 
-    (agora - estadoGlobal.engineHeartbeat < 12000);
+    (agora - ultimoHeartbeatRecebidoLocalTimestamp < 12000);
 
   // Se o admin está ativo, a TV não interfere e reseta contadores de backup
   if (heartbeatAdminAtivo) {
@@ -870,7 +879,7 @@ setInterval(async () => {
     
     // Se a contagem regressiva terminou há mais de 3 segundos (margem de segurança)
     if (tempoRestante <= -3) {
-      const motorAtivoRecente = estadoGlobal.engineHeartbeat && (agora - estadoGlobal.engineHeartbeat < 8000);
+      const motorAtivoRecente = (agora - ultimoHeartbeatRecebidoLocalTimestamp < 8000);
       
       if (!motorAtivoRecente || souOMotorAtivo) {
         console.log("[TV-ENGINE] Admin offline e contagem zerada. Iniciando sorteio automaticamente!");
@@ -895,7 +904,7 @@ setInterval(async () => {
 
   // 2. Caso 2: Jogo em PLAYING (sorteio automático de bolas)
   if (status === 'PLAYING' && estadoGlobal.ballsLeft && estadoGlobal.ballsLeft.length > 0) {
-    const motorAtivoRecente = estadoGlobal.engineHeartbeat && (agora - estadoGlobal.engineHeartbeat < 8000);
+    const motorAtivoRecente = (agora - ultimoHeartbeatRecebidoLocalTimestamp < 8000);
     
     if (!motorAtivoRecente || souOMotorAtivo) {
       if (!premioEmExibicao) {
@@ -918,7 +927,7 @@ setInterval(async () => {
 
   // 3. Caso 3: Jogo em ENDED (avançar para a próxima rodada após 15 segundos)
   if (status === 'ENDED') {
-    const motorAtivoRecente = estadoGlobal.engineHeartbeat && (agora - estadoGlobal.engineHeartbeat < 8000);
+    const motorAtivoRecente = (agora - ultimoHeartbeatRecebidoLocalTimestamp < 8000);
     
     if (!motorAtivoRecente || souOMotorAtivo) {
       if (ultimoAvancoAutomaticaPelaTvTimestamp === 0) {

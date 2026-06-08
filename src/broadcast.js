@@ -26,6 +26,8 @@ const valQuadra = document.getElementById('val-quadra');
 const valQuina = document.getElementById('val-quina');
 const valBingo = document.getElementById('val-bingo');
 const valAcumuladoLeft = document.getElementById('val-acumulado-left');
+const jackpotLimit = document.getElementById('jackpot-limit');
+const titleAcumuladoLeft = document.getElementById('title-acumulado-left');
 const valSorteio = document.getElementById('val-sorteio');
 const valCupom = document.getElementById('val-cupom');
 const valData = document.getElementById('val-data');
@@ -309,6 +311,15 @@ function renderizarApp(estado) {
     const acumuladoFormatado = `R$ ${prizeAcumulado.toFixed(2).replace('.', ',')}`;
     if (valAcumuladoLeft) valAcumuladoLeft.innerText = acumuladoFormatado;
     if (jackpotValue) jackpotValue.innerText = acumuladoFormatado;
+    
+    // Atualiza dinamicamente as dezenas necessárias para o acumulado
+    const limiteBola = typeof estado.acumuladoLimiteBola === 'number' ? estado.acumuladoLimiteBola : 44;
+    if (jackpotLimit) {
+      jackpotLimit.innerText = `ATÉ A BOLA ${limiteBola}`;
+    }
+    if (titleAcumuladoLeft) {
+      titleAcumuladoLeft.innerText = `ACUMULADO (ATÉ BOLA ${limiteBola})`;
+    }
     
     if (valSorteio) valSorteio.innerText = gameId;
     if (valCupom) valCupom.innerText = `R$ ${prizeCupom.toFixed(2).replace('.', ',')}`;

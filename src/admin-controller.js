@@ -53,15 +53,21 @@ const workerAutoDrawCode = `
     }
   };
 `;
-const blobAutoDraw = new Blob([workerAutoDrawCode], { type: 'application/javascript' });
-const autoDrawWorker = new Worker(URL.createObjectURL(blobAutoDraw));
-autoDrawWorker.onmessage = function(e) {
-  if (e.data === 'tick') {
-    executarTickAutoSorteio();
-  } else if (e.data === 'resumed') {
-    console.log('[AUTO-DRAW-WORKER] Pausa de prêmio encerrada. Sorteio retomado.');
-  }
-};
+let autoDrawWorker = null;
+let autoDrawFallbackInterval = null;
+try {
+  const blobAutoDraw = new Blob([workerAutoDrawCode], { type: 'application/javascript' });
+  autoDrawWorker = new Worker(URL.createObjectURL(blobAutoDraw));
+  autoDrawWorker.onmessage = function(e) {
+    if (e.data === 'tick') {
+      executarTickAutoSorteio();
+    } else if (e.data === 'resumed') {
+      console.log('[AUTO-DRAW-WORKER] Pausa de prêmio encerrada. Sorteio retomado.');
+    }
+  };
+} catch (err) {
+  console.warn('[ADMIN] Web Worker para auto-sorteio falhou (CSP ou incompatibilidade). Usando fallback de setInterval.', err);
+}
 let premioPausado = false; // Pausa o auto-sorteio quando sai prêmio
 let winnersAnterior = { quadra: 0, quina: 0, bingo: 0, acumulado: 0 }; // Track winner counts
 let resettingGame = false; // Evita que o reset seja sobrescrito por snapshots antigos
@@ -408,8 +414,15 @@ btnAutoDraw.addEventListener('click', () => {
     FirebaseHelper.salvarEstadoJogo(estado);
   }
 
-  // Ativa o sorteio automático via Web Worker
-  autoDrawWorker.postMessage({ action: 'start', interval: segundos });
+  // Ativa o sorteio automático
+  if (autoDrawWorker) {
+    autoDrawWorker.postMessage({ action: 'start', interval: segundos });
+  } else {
+    if (autoDrawFallbackInterval) clearInterval(autoDrawFallbackInterval);
+    autoDrawFallbackInterval = setInterval(() => {
+      executarTickAutoSorteio();
+    }, segundos);
+  }
   autoDrawRunning = true;
 
   btnAutoDraw.disabled = true;
@@ -421,7 +434,14 @@ btnPauseDraw.addEventListener('click', pararAutoSorteio);
 
 function pararAutoSorteio() {
   if (autoDrawRunning) {
-    autoDrawWorker.postMessage({ action: 'stop' });
+    if (autoDrawWorker) {
+      autoDrawWorker.postMessage({ action: 'stop' });
+    } else {
+      if (autoDrawFallbackInterval) {
+        clearInterval(autoDrawFallbackInterval);
+        autoDrawFallbackInterval = null;
+      }
+    }
     autoDrawRunning = false;
   }
   btnAutoDraw.disabled = false;
@@ -452,8 +472,25 @@ function executarTickAutoSorteio() {
       estado.winners.acumulado.length > wAntes.acumulado;
     
     if (saiuPremio) {
-      console.log('[AUTO-DRAW] Prêmio detectado! Pausando por 12 segundos via Web Worker...');
-      autoDrawWorker.postMessage({ action: 'pause', duration: 12000 });
+      console.log('[AUTO-DRAW] Prêmio detectado! Pausando por 12 segundos...');
+      if (autoDrawWorker) {
+        autoDrawWorker.postMessage({ action: 'pause', duration: 12000 });
+      } else {
+        // Fallback pause: para e agenda a retomada
+        if (autoDrawFallbackInterval) {
+          clearInterval(autoDrawFallbackInterval);
+          autoDrawFallbackInterval = null;
+        }
+        setTimeout(() => {
+          if (autoDrawRunning && !autoDrawWorker) {
+            const segundos = parseInt(autoDrawSpeed.value) * 1000;
+            autoDrawFallbackInterval = setInterval(() => {
+              executarTickAutoSorteio();
+            }, segundos);
+            console.log('[AUTO-DRAW] Sorteio retomado após pausa de prêmio.');
+          }
+        }, 12000);
+      }
     }
   } else {
     pararAutoSorteio();
@@ -1260,6 +1297,14 @@ FirebaseHelper.assinarMetricasFinanceiras((metricas) => {
 // Inscreve para atualizações do estado do jogo
 FirebaseHelper.assinarEstadoJogo(renderizarAdmin);
 
+// Envia heartbeat do motor do Admin a cada 3 segundos para sincronização cross-device
+const myEngineClientId = 'admin_' + Math.random().toString(36).substring(2, 9);
+setInterval(() => {
+  if (estado) {
+    FirebaseHelper.enviarHeartbeat(myEngineClientId, 'admin');
+  }
+}, 3000);
+
 // Escuta comandos vindos dos Pontos de Venda (PDVs) em tempo real
 FirebaseHelper.assinarComandos((comando, payload) => {
   if (comando === 'REGISTRAR_CARTELA') {
@@ -1321,12 +1366,20 @@ const workerCountdownCode = `
     }
   };
 `;
-const blobCountdown = new Blob([workerCountdownCode], { type: 'application/javascript' });
-const countdownWorker = new Worker(URL.createObjectURL(blobCountdown));
-countdownWorker.onmessage = function() {
-  executarTickContagem();
-};
-countdownWorker.postMessage({ action: 'start' });
+let countdownWorker = null;
+try {
+  const blobCountdown = new Blob([workerCountdownCode], { type: 'application/javascript' });
+  countdownWorker = new Worker(URL.createObjectURL(blobCountdown));
+  countdownWorker.onmessage = function() {
+    executarTickContagem();
+  };
+  countdownWorker.postMessage({ action: 'start' });
+} catch (err) {
+  console.warn('[ADMIN] Web Worker para contagem regressiva falhou (CSP ou incompatibilidade). Usando fallback de setInterval.', err);
+  setInterval(() => {
+    executarTickContagem();
+  }, 1000);
+}
 
 function executarTickContagem() {
   if (!estado) return;

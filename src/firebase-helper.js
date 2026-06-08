@@ -780,6 +780,75 @@ export const FirebaseHelper = {
     };
   },
 
+  isFirebaseConfigured() {
+    return isFirebaseConfigured;
+  },
+
+  getDb() {
+    return db;
+  },
+
+  async enviarHeartbeat(clientId, engineType) {
+    if (isFirebaseConfigured && db) {
+      try {
+        await updateDoc(doc(db, "partidas", "atual"), {
+          engineHeartbeat: Date.now(),
+          engineClientId: clientId,
+          engineType: engineType
+        });
+      } catch (e) {
+        // Silencioso
+      }
+    } else {
+      const saved = localStorage.getItem('bingokrs_game_state');
+      if (saved) {
+        try {
+          const estado = JSON.parse(saved);
+          estado.engineHeartbeat = Date.now();
+          estado.engineClientId = clientId;
+          estado.engineType = engineType;
+          localStorage.setItem('bingokrs_game_state', JSON.stringify(estado));
+          localChannel.postMessage({ type: 'STATE_UPDATE', state: estado });
+        } catch (e) {}
+      }
+    }
+  },
+
+  async executarTransacaoJogo(mutatorFn) {
+    if (isFirebaseConfigured && db) {
+      const docRef = doc(db, "partidas", "atual");
+      try {
+        await runTransaction(db, async (transaction) => {
+          const docSnap = await transaction.get(docRef);
+          if (!docSnap.exists()) return;
+          const data = docSnap.data();
+          const resultado = await mutatorFn(data);
+          if (resultado) {
+            transaction.set(docRef, resultado);
+          }
+        });
+      } catch (e) {
+        console.error("[TRANSACTION] Erro na transação do jogo:", e);
+        throw e;
+      }
+    } else {
+      const saved = localStorage.getItem('bingokrs_game_state');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          const resultado = await mutatorFn(data);
+          if (resultado) {
+            localStorage.setItem('bingokrs_game_state', JSON.stringify(resultado));
+            localChannel.postMessage({ type: 'STATE_UPDATE', state: resultado });
+          }
+        } catch (e) {
+          console.error(e);
+          throw e;
+        }
+      }
+    }
+  },
+
   // ==========================================
   // 6. GERENCIAMENTO DE PDVS E COMISSÕES
   // ==========================================

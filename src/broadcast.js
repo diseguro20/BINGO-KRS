@@ -3,7 +3,7 @@
  */
 
 import { FirebaseHelper } from './firebase-helper.js';
-import { obterRankingTop20, ACUMULADO_LIMITE_ORDEM, verificarELimparEstadoSeAntigo } from './game.js';
+import { obterRankingTop20, ACUMULADO_LIMITE_ORDEM, verificarELimparEstadoSeAntigo, sortearProximaBola, avancarProximaRodada } from './game.js';
 import { launchFireworks, playSirenSound, playApplauseSound, playCelebrationHorn, narrarBola, narrarPremio, playBallDrawSound } from './effects.js';
 
 // Elementos do DOM
@@ -810,3 +810,135 @@ window.addEventListener('online', () => {
   console.log('[TV] Conexão restabelecida. Recarregando a página para garantir sincronia...');
   window.location.reload();
 });
+
+// ==========================================
+// FALLBACK GAME ENGINE (MOTOR DE BACKUP NA TV)
+// ==========================================
+const myEngineClientId = 'tv_' + Math.random().toString(36).substring(2, 9);
+let ultimaBolaSorteadaPelaTvTimestamp = 0;
+let ultimoAvancoAutomaticaPelaTvTimestamp = 0;
+
+async function executarPassoDeJogoTransacional(mutatorFn) {
+  try {
+    await FirebaseHelper.executarTransacaoJogo(async (draft) => {
+      const resultado = await mutatorFn(draft);
+      if (resultado) {
+        // Assume o controle do heartbeat e ID do motor
+        resultado.engineHeartbeat = Date.now();
+        resultado.engineClientId = myEngineClientId;
+        resultado.engineType = 'tv';
+        return resultado;
+      }
+      return null;
+    });
+  } catch (e) {
+    console.error("[TV-ENGINE] Erro na transação do motor:", e);
+  }
+}
+
+setInterval(async () => {
+  if (!estadoGlobal) return;
+
+  const agora = Date.now();
+  const status = estadoGlobal.status || 'WAITING';
+
+  // Verifica se o motor principal (Admin) está ativo
+  const heartbeatAdminAtivo = 
+    estadoGlobal.engineHeartbeat && 
+    estadoGlobal.engineType === 'admin' && 
+    (agora - estadoGlobal.engineHeartbeat < 12000);
+
+  // Se o admin está ativo, a TV não interfere e reseta contadores de backup
+  if (heartbeatAdminAtivo) {
+    return;
+  }
+
+  // Se o admin está offline, a TV assume a responsabilidade de manter o status de heartbeat atualizado
+  // se ela já for o motor ativo ou estiver executando ações
+  const souOMotorAtivo = estadoGlobal.engineClientId === myEngineClientId;
+
+  if (souOMotorAtivo) {
+    // Atualiza heartbeat a cada 3 segundos
+    if (agora - (estadoGlobal.engineHeartbeat || 0) >= 3000) {
+      await FirebaseHelper.enviarHeartbeat(myEngineClientId, 'tv');
+    }
+  }
+
+  // 1. Caso 1: Jogo está em WAITING e o countdown expirou
+  if (status === 'WAITING' && estadoGlobal.countdownEndTime) {
+    const tempoRestante = Math.round((estadoGlobal.countdownEndTime - agora) / 1000);
+    
+    // Se a contagem regressiva terminou há mais de 3 segundos (margem de segurança)
+    if (tempoRestante <= -3) {
+      const motorAtivoRecente = estadoGlobal.engineHeartbeat && (agora - estadoGlobal.engineHeartbeat < 8000);
+      
+      if (!motorAtivoRecente || souOMotorAtivo) {
+        console.log("[TV-ENGINE] Admin offline e contagem zerada. Iniciando sorteio automaticamente!");
+        
+        await executarPassoDeJogoTransacional(async (draft) => {
+          if (draft.status !== 'WAITING') return null;
+          
+          draft.countdownEndTime = null;
+          draft.aiActive = false;
+          
+          // Se não tiver cartelas no jogo, avança para a próxima
+          if (!draft.cards || draft.cards.length === 0) {
+            console.warn("[TV-ENGINE] Nenhuma cartela ativa na rodada. Pulando...");
+            return avancarProximaRodada(draft);
+          }
+          
+          return sortearProximaBola(draft);
+        });
+      }
+    }
+  }
+
+  // 2. Caso 2: Jogo em PLAYING (sorteio automático de bolas)
+  if (status === 'PLAYING' && estadoGlobal.ballsLeft && estadoGlobal.ballsLeft.length > 0) {
+    const motorAtivoRecente = estadoGlobal.engineHeartbeat && (agora - estadoGlobal.engineHeartbeat < 8000);
+    
+    if (!motorAtivoRecente || souOMotorAtivo) {
+      if (!premioEmExibicao) {
+        const drawInterval = (estadoGlobal.drawSpeed || 3) * 1000;
+        const tempoDesdeUltimoSorteio = agora - ultimaBolaSorteadaPelaTvTimestamp;
+        const delayNecessario = souOMotorAtivo ? drawInterval : (drawInterval + 3000);
+
+        if (tempoDesdeUltimoSorteio >= delayNecessario) {
+          ultimaBolaSorteadaPelaTvTimestamp = agora;
+          console.log("[TV-ENGINE] Sorteando próxima bola...");
+          
+          await executarPassoDeJogoTransacional(async (draft) => {
+            if (draft.status !== 'PLAYING' || !draft.ballsLeft || draft.ballsLeft.length === 0) return null;
+            return sortearProximaBola(draft);
+          });
+        }
+      }
+    }
+  }
+
+  // 3. Caso 3: Jogo em ENDED (avançar para a próxima rodada após 15 segundos)
+  if (status === 'ENDED') {
+    const temProxima = estadoGlobal.rodadasQueue && estadoGlobal.rodadasQueue.some(r => !r.status || r.status === 'PENDING');
+    if (temProxima) {
+      const motorAtivoRecente = estadoGlobal.engineHeartbeat && (agora - estadoGlobal.engineHeartbeat < 8000);
+      
+      if (!motorAtivoRecente || souOMotorAtivo) {
+        if (ultimoAvancoAutomaticaPelaTvTimestamp === 0) {
+          ultimoAvancoAutomaticaPelaTvTimestamp = agora;
+        } else if (agora - ultimoAvancoAutomaticaPelaTvTimestamp >= 18000) { // 18s (15s padrão + 3s margem)
+          ultimoAvancoAutomaticaPelaTvTimestamp = 0;
+          console.log("[TV-ENGINE] Avançando para a próxima rodada da fila...");
+          
+          await executarPassoDeJogoTransacional(async (draft) => {
+            if (draft.status !== 'ENDED') return null;
+            return avancarProximaRodada(draft);
+          });
+        }
+      }
+    } else {
+      ultimoAvancoAutomaticaPelaTvTimestamp = 0;
+    }
+  } else {
+    ultimoAvancoAutomaticaPelaTvTimestamp = 0;
+  }
+}, 1000);

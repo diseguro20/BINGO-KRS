@@ -918,25 +918,20 @@ setInterval(async () => {
 
   // 3. Caso 3: Jogo em ENDED (avançar para a próxima rodada após 15 segundos)
   if (status === 'ENDED') {
-    const temProxima = estadoGlobal.rodadasQueue && estadoGlobal.rodadasQueue.some(r => !r.status || r.status === 'PENDING');
-    if (temProxima) {
-      const motorAtivoRecente = estadoGlobal.engineHeartbeat && (agora - estadoGlobal.engineHeartbeat < 8000);
-      
-      if (!motorAtivoRecente || souOMotorAtivo) {
-        if (ultimoAvancoAutomaticaPelaTvTimestamp === 0) {
-          ultimoAvancoAutomaticaPelaTvTimestamp = agora;
-        } else if (agora - ultimoAvancoAutomaticaPelaTvTimestamp >= 18000) { // 18s (15s padrão + 3s margem)
-          ultimoAvancoAutomaticaPelaTvTimestamp = 0;
-          console.log("[TV-ENGINE] Avançando para a próxima rodada da fila...");
-          
-          await executarPassoDeJogoTransacional(async (draft) => {
-            if (draft.status !== 'ENDED') return null;
-            return avancarProximaRodada(draft);
-          });
-        }
+    const motorAtivoRecente = estadoGlobal.engineHeartbeat && (agora - estadoGlobal.engineHeartbeat < 8000);
+    
+    if (!motorAtivoRecente || souOMotorAtivo) {
+      if (ultimoAvancoAutomaticaPelaTvTimestamp === 0) {
+        ultimoAvancoAutomaticaPelaTvTimestamp = agora;
+      } else if (agora - ultimoAvancoAutomaticaPelaTvTimestamp >= 18000) { // 18s (15s padrão + 3s margem)
+        ultimoAvancoAutomaticaPelaTvTimestamp = 0;
+        console.log("[TV-ENGINE] Avançando/limpando rodada finalizada...");
+        
+        await executarPassoDeJogoTransacional(async (draft) => {
+          if (draft.status !== 'ENDED') return null;
+          return avancarProximaRodada(draft);
+        });
       }
-    } else {
-      ultimoAvancoAutomaticaPelaTvTimestamp = 0;
     }
   } else {
     ultimoAvancoAutomaticaPelaTvTimestamp = 0;

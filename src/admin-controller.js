@@ -1449,15 +1449,18 @@ function checarEAgendarProximaRodadaAutomatica() {
   const temProxima = estado.rodadasQueue && estado.rodadasQueue.some(r => !r.status || r.status === 'PENDING');
   if (temProxima) {
     console.log("[PROGRAMAÇÃO] Detectada próxima rodada pendente na fila. Avançando automaticamente em 15 segundos...");
-    autoAdvanceTimeoutId = setTimeout(() => {
-      autoAdvanceTimeoutId = null;
-      if (estado.status === 'ENDED') {
-        estado = avancarProximaRodada(estado);
-        FirebaseHelper.salvarEstadoJogo(estado);
-        console.log("[PROGRAMAÇÃO] Transição de rodada efetuada automaticamente.");
-      }
-    }, 15000); // 15 segundos
+  } else {
+    console.log("[PROGRAMAÇÃO] Nenhuma rodada pendente na fila. Limpando e aguardando novos sorteios em 15 segundos...");
   }
+  
+  autoAdvanceTimeoutId = setTimeout(() => {
+    autoAdvanceTimeoutId = null;
+    if (estado.status === 'ENDED') {
+      estado = avancarProximaRodada(estado);
+      FirebaseHelper.salvarEstadoJogo(estado);
+      console.log("[PROGRAMAÇÃO] Transição/limpeza de rodada efetuada automaticamente.");
+    }
+  }, 15000); // 15 segundos
 }
 
 function limparTimeoutAvancoAutomatico() {
